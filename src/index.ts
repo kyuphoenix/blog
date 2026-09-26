@@ -8,6 +8,8 @@ import homePage from './pages/home'
 import postPage from './pages/post'
 import archivePage from './pages/archive'
 import aboutPage from './pages/about'
+import { getManifest } from './services/github'
+import { blogConfig } from './blog.config'
 
 const app = new Hono<AppEnv>()
 
@@ -19,6 +21,42 @@ const api = new Hono<AppEnv>()
 api.use('*', cors())
 api.route('/posts', postRoutes)
 app.route('/api', api)
+
+// RSS 2.0 订阅源 (动态使用 Worker 环境变量 BLOG_URL)
+app.get('/rss.xml', async (c) => {
+  const manifest = (await getManifest(c.env)).filter((p) => !p.draft)
+  const baseUrl = (c.env.BLOG_URL || '').replace(/\/$/, '') || new URL(c.req.url).origin
+
+  const items = manifest
+    .slice(0, 20)
+    .map(
+      (post) => `
+    <item>
+      <title><![CDATA[${post.title}]]></title>
+      <link>${baseUrl}/posts/${encodeURIComponent(post.title)}</link>
+      <guid isPermaLink="true">${baseUrl}/posts/${encodeURIComponent(post.title)}</guid>
+      <pubDate>${new Date(post.date).toUTCString()}</pubDate>
+      <description><![CDATA[${post.excerpt || post.title}]]></description>
+      <category>${post.category}</category>
+    </item>`
+    )
+    .join('')
+
+  const rss = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>${blogConfig.title}</title>
+    <link>${baseUrl}</link>
+    <description>${blogConfig.description}</description>
+    <atom:link href="${baseUrl}/rss.xml" rel="self" type="application/rss+xml"/>
+    ${items}
+  </channel>
+</rss>`
+
+  return c.text(rss, 200, {
+    'Content-Type': 'application/xml; charset=utf-8',
+  })
+})
 
 // 页面路由 (SSR)
 app.route('/', homePage)

@@ -5,6 +5,7 @@ export type Bindings = {
   GITHUB_BRANCH: string
   GITHUB_TOKEN?: string
   PURGE_SECRET?: string
+  BLOG_URL?: string
   GISCUS_REPO?: string
   GISCUS_REPO_ID?: string
   GISCUS_CATEGORY?: string

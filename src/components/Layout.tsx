@@ -23,6 +23,7 @@ interface LayoutProps {
   isHomePage?: boolean
   categories?: CategoryItem[]
   tags?: TagItem[]
+  blogUrl?: string
   children: any
 }
 
@@ -38,11 +39,13 @@ export const Layout: FC<LayoutProps> = ({
   isHomePage = false,
   categories = [],
   tags = [],
+  blogUrl,
   children,
 }) => {
   const pageTitle = title ? `${title} - ${blogConfig.title}` : blogConfig.title
   const bannerHeightVh = isHomePage ? BANNER_HEIGHT_HOME : BANNER_HEIGHT_PAGE
   const defaultHue = blogConfig.theme.fuwari.primaryHue
+  const canonicalUrl = blogUrl ? `${blogUrl.replace(/\/$/, '')}${currentPath}` : undefined
 
   return (
     <html lang="zh-CN" style={`--fuwari-hue: ${defaultHue};`}>
@@ -51,6 +54,15 @@ export const Layout: FC<LayoutProps> = ({
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>{pageTitle}</title>
         <meta name="description" content={description || blogConfig.description} />
+        {canonicalUrl && (
+          <>
+            <link rel="canonical" href={canonicalUrl} />
+            <meta property="og:url" content={canonicalUrl} />
+            <meta property="og:type" content={isHomePage ? 'website' : 'article'} />
+            <meta property="og:title" content={pageTitle} />
+            <meta property="og:description" content={description || blogConfig.description} />
+          </>
+        )}
         <link rel="icon" type="image/svg+xml" href={blogConfig.icons.faviconSvg} />
         <link rel="icon" href={blogConfig.icons.faviconIco} />
         {/* Tailwind CSS v4 Browser Runtime for full utility support */}

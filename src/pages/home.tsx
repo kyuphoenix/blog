@@ -43,6 +43,7 @@ home.get('/', async (c) => {
       isHomePage={!category && !tag}
       categories={categories}
       tags={tags}
+      blogUrl={c.env.BLOG_URL}
     >
       {(category || tag) && (
         <div

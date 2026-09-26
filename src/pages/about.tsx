@@ -15,6 +15,7 @@ about.get('/', async (c) => {
       isHomePage={false}
       categories={categories}
       tags={tags}
+      blogUrl={c.env.BLOG_URL}
     >
       <div
         class="fuwari-card-base z-10 px-6 md:px-9 pt-6 pb-8 relative w-full fuwari-onload-animation"

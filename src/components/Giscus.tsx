@@ -1,6 +1,5 @@
 import { FC } from 'hono/jsx'
 import { raw } from 'hono/html'
-import { blogConfig } from '../blog.config'
 import { AppEnv } from '../types/env'
 
 interface GiscusProps {
@@ -8,20 +7,15 @@ interface GiscusProps {
 }
 
 export const Giscus: FC<GiscusProps> = ({ env }) => {
-  const giscus = blogConfig.comment?.giscus
-
-  const repo = env?.GISCUS_REPO || giscus?.repo || ''
-  const repoId = env?.GISCUS_REPO_ID || giscus?.repoId || ''
-  const category = env?.GISCUS_CATEGORY || giscus?.category || 'Announcements'
-  const categoryId = env?.GISCUS_CATEGORY_ID || giscus?.categoryId || ''
-
-  if (giscus && !giscus.enable && !env?.GISCUS_REPO) {
-    return null
-  }
+  // 直接从 Cloudflare Worker 环境变量读取
+  const repo = env?.GISCUS_REPO || ''
+  const repoId = env?.GISCUS_REPO_ID || ''
+  const category = env?.GISCUS_CATEGORY || 'Announcements'
+  const categoryId = env?.GISCUS_CATEGORY_ID || ''
 
   const isConfigured = Boolean(repo && repoId && categoryId)
-  const lightTheme = giscus?.theme || 'light'
-  const darkTheme = giscus?.darkTheme || 'dark'
+  const lightTheme = 'light'
+  const darkTheme = 'dark'
 
   return (
     <div
@@ -51,7 +45,7 @@ export const Giscus: FC<GiscusProps> = ({ env }) => {
         <div class="rounded-xl border border-dashed border-black/15 dark:border-white/15 p-6 text-center">
           <div class="text-3xl mb-2">💬</div>
           <div class="font-bold fuwari-text-90 mb-1.5">
-            Giscus 评论系统尚未完成配置
+            Giscus 评论系统尚未配置
           </div>
           <p class="text-sm fuwari-text-50 max-w-md mx-auto mb-4 leading-relaxed">
             只需 1 分钟即可启用基于 GitHub Discussions 的免数据库评论系统。
@@ -77,7 +71,7 @@ export const Giscus: FC<GiscusProps> = ({ env }) => {
               giscus.app
             </a>{' '}
             输入仓库名获取 repoId 与 categoryId<br />
-            4. 在 GitHub 仓库环境变量或 <code>src/blog.config.ts</code> 中配置
+            4. 在 GitHub 仓库变量中配置 <code>GISCUS_REPO</code>、<code>GISCUS_REPO_ID</code> 与 <code>GISCUS_CATEGORY_ID</code>
           </div>
         </div>
       ) : (
@@ -94,14 +88,14 @@ export const Giscus: FC<GiscusProps> = ({ env }) => {
               script.setAttribute('data-repo-id', '${repoId}');
               script.setAttribute('data-category', '${category}');
               script.setAttribute('data-category-id', '${categoryId}');
-              script.setAttribute('data-mapping', '${giscus?.mapping || 'pathname'}');
-              script.setAttribute('data-strict', '${giscus?.strict || '0'}');
-              script.setAttribute('data-reactions-enabled', '${giscus?.reactionsEnabled || '1'}');
-              script.setAttribute('data-emit-metadata', '${giscus?.emitMetadata || '0'}');
-              script.setAttribute('data-input-position', '${giscus?.inputPosition || 'bottom'}');
+              script.setAttribute('data-mapping', 'pathname');
+              script.setAttribute('data-strict', '0');
+              script.setAttribute('data-reactions-enabled', '1');
+              script.setAttribute('data-emit-metadata', '0');
+              script.setAttribute('data-input-position', 'bottom');
               script.setAttribute('data-theme', theme);
-              script.setAttribute('data-lang', '${giscus?.lang || 'zh-CN'}');
-              script.setAttribute('data-loading', '${giscus?.loading || 'lazy'}');
+              script.setAttribute('data-lang', 'zh-CN');
+              script.setAttribute('data-loading', 'lazy');
               script.crossOrigin = 'anonymous';
               script.async = true;
 

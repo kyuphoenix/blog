@@ -30,7 +30,7 @@ postPage.get('/:title', async (c) => {
 
   if (!post || post.draft) {
     return c.html(
-      <Layout title="404 - 文章不存在" currentPath="/posts" categories={categories} tags={tags}>
+      <Layout title="404 - 文章不存在" currentPath="/posts" categories={categories} tags={tags} blogUrl={c.env.BLOG_URL}>
         <div class="fuwari-card-base p-12 text-center fuwari-onload-animation">
           <h1 class="text-4xl font-bold fuwari-text-90 mb-3">404</h1>
           <p class="fuwari-text-50 mb-6">抱歉，您访问的文章不存在或已下线。</p>
@@ -99,6 +99,7 @@ postPage.get('/:title', async (c) => {
       isHomePage={false}
       categories={categories}
       tags={tags}
+      blogUrl={c.env.BLOG_URL}
     >
       <div class="relative flex flex-col rounded-(--fuwari-radius-large) py-1 md:py-0 md:bg-transparent gap-4 mb-4 w-full">
         {/* Table Of Contents (Desktop Floating Right - Exact flare-stack-blog port) */}
