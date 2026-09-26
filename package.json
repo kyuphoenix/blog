@@ -5,6 +5,7 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy --minify",
     "gen:manifest": "node scripts/gen-manifest.mjs",
+    "prepare:wrangler": "node scripts/prepare-wrangler.mjs",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings"
   },
   "dependencies": {
