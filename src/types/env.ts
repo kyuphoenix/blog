@@ -10,6 +10,8 @@ export type Bindings = {
   GISCUS_REPO_ID?: string
   GISCUS_CATEGORY?: string
   GISCUS_CATEGORY_ID?: string
+  GISCUS_THEME_LIGHT?: string
+  GISCUS_THEME_DARK?: string
 }
 
 export type Variables = {

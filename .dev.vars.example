@@ -44,3 +44,8 @@ PURGE_SECRET="local-dev-purge-secret"
 
 # Giscus 讨论分区分类 ID（在 giscus.app 选择分类后获取）
 # GISCUS_CATEGORY_ID="DIC_xxxx"
+
+# Giscus 自定义主题地址（可选，系统默认已自动适配 Fuwari 设计风格并自动切换明暗模式）
+# 如需强制指定或使用其他主题，可配置以下两项：
+# GISCUS_THEME_LIGHT="https://yourdomain.com/css/giscus-fuwari-light.css"
+# GISCUS_THEME_DARK="https://yourdomain.com/css/giscus-fuwari-dark.css"

@@ -139,6 +139,14 @@ draft: false
 | `GISCUS_REPO_ID` | 否 | `R_...` | 从 [giscus.app](https://giscus.app) 获取的仓库 ID |
 | `GISCUS_CATEGORY` | 否 | `Announcements` | Giscus 讨论分区名称 |
 | `GISCUS_CATEGORY_ID` | 否 | `DIC_...` | 从 [giscus.app](https://giscus.app) 获取的分区 ID |
+| `GISCUS_THEME_LIGHT` | 否 | `https://.../css/giscus-fuwari-light.css` | 自定义 Giscus 亮色主题地址（默认自动使用内置 Fuwari 风格） |
+| `GISCUS_THEME_DARK` | 否 | `https://.../css/giscus-fuwari-dark.css` | 自定义 Giscus 暗色主题地址（默认自动使用内置 Fuwari 风格） |
+
+> 🎨 **Fuwari 评论区风格适配**：
+> 系统默认已将 Giscus Markdown 评论框深度定制为 **Fuwari** 风格：
+> - 摒弃默认 GitHub 刻板标签页与硬边角，采用现代分段圆角胶囊选项卡（Write / Preview）与 `1rem` 大圆角设计。
+> - 评论输入框、提交按钮、徽章及代码预览全面采用 Fuwari OKLCH 主题配色（Hue 250）。
+> - 完美支持全站明暗模式无缝联动切换，样式表支持跨域 CORS 托管。
 
 ### 3. 执行首次部署
 

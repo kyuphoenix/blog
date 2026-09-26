@@ -14,8 +14,26 @@ export const Giscus: FC<GiscusProps> = ({ env }) => {
   const categoryId = env?.GISCUS_CATEGORY_ID || ''
 
   const isConfigured = Boolean(repo && repoId && categoryId)
-  const lightTheme = 'light'
-  const darkTheme = 'dark'
+
+  // 确定 Giscus 主题：自动适配 Fuwari 设计风格，支持暗色模式动态切换
+  const blogUrl = (env?.BLOG_URL || '').replace(/\/$/, '')
+  const isHttps = blogUrl.startsWith('https://')
+  const owner = env?.GITHUB_OWNER || 'kyuphoenix'
+  const repoName = env?.GITHUB_REPO || 'blog'
+  const branch = env?.GITHUB_BRANCH || 'main'
+  const cdnBase = `https://cdn.jsdelivr.net/gh/${owner}/${repoName}@${branch}/public/css`
+
+  const lightTheme =
+    env?.GISCUS_THEME_LIGHT ||
+    (isHttps
+      ? `${blogUrl}/css/giscus-fuwari-light.css`
+      : `${cdnBase}/giscus-fuwari-light.css`)
+
+  const darkTheme =
+    env?.GISCUS_THEME_DARK ||
+    (isHttps
+      ? `${blogUrl}/css/giscus-fuwari-dark.css`
+      : `${cdnBase}/giscus-fuwari-dark.css`)
 
   return (
     <div

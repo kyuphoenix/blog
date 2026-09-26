@@ -10,11 +10,37 @@ import archivePage from './pages/archive'
 import aboutPage from './pages/about'
 import { getManifest } from './services/github'
 import { blogConfig } from './blog.config'
+import { giscusLightCss, giscusDarkCss } from './styles/giscusTheme'
 
 const app = new Hono<AppEnv>()
 
 // 全局中间件
 app.use('*', logger())
+
+// Giscus 自定义主题样式路由（附带 CORS 响应头，确保 giscus.app iframe 可以跨域加载）
+app.get('/css/giscus-fuwari-light.css', (c) => {
+  return c.text(giscusLightCss, 200, {
+    'Content-Type': 'text/css; charset=utf-8',
+    'Access-Control-Allow-Origin': '*',
+    'Cache-Control': 'public, max-age=86400',
+  })
+})
+
+app.get('/css/giscus-fuwari-dark.css', (c) => {
+  return c.text(giscusDarkCss, 200, {
+    'Content-Type': 'text/css; charset=utf-8',
+    'Access-Control-Allow-Origin': '*',
+    'Cache-Control': 'public, max-age=86400',
+  })
+})
+
+app.get('/css/giscus-fuwari.css', (c) => {
+  return c.text(giscusLightCss, 200, {
+    'Content-Type': 'text/css; charset=utf-8',
+    'Access-Control-Allow-Origin': '*',
+    'Cache-Control': 'public, max-age=86400',
+  })
+})
 
 // API 路由 (带 CORS)
 const api = new Hono<AppEnv>()
