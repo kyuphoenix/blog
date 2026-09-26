@@ -1,9 +1,7 @@
 name: Deploy to Cloudflare Workers
 
+# 仅允许手动运行触发部署
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 concurrency:
@@ -41,8 +39,14 @@ jobs:
           WORKER_NAME: ${{ vars.WORKER_NAME || 'blog' }}
           GITHUB_OWNER: ${{ vars.GITHUB_OWNER || github.repository_owner }}
           GITHUB_REPO: ${{ vars.GITHUB_REPO || github.event.repository.name }}
-          GITHUB_BRANCH: ${{ vars.GITHUB_BRANCH || 'main' }}
+          GITHUB_BRANCH: ${{ vars.GITHUB_BRANCH || github.ref_name }}
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
+          PURGE_SECRET: ${{ secrets.PURGE_SECRET }}
           CUSTOM_DOMAIN: ${{ vars.CUSTOM_DOMAIN }}
+          GISCUS_REPO: ${{ vars.GISCUS_REPO }}
+          GISCUS_REPO_ID: ${{ vars.GISCUS_REPO_ID }}
+          GISCUS_CATEGORY: ${{ vars.GISCUS_CATEGORY }}
+          GISCUS_CATEGORY_ID: ${{ vars.GISCUS_CATEGORY_ID }}
         run: pnpm prepare:wrangler
 
       - name: Deploy to Cloudflare Workers

@@ -4,6 +4,11 @@ export type Bindings = {
   GITHUB_REPO: string
   GITHUB_BRANCH: string
   GITHUB_TOKEN?: string
+  PURGE_SECRET?: string
+  GISCUS_REPO?: string
+  GISCUS_REPO_ID?: string
+  GISCUS_CATEGORY?: string
+  GISCUS_CATEGORY_ID?: string
 }
 
 export type Variables = {

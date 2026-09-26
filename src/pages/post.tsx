@@ -298,7 +298,7 @@ postPage.get('/:title', async (c) => {
         </div>
 
         {/* Giscus Comments Section */}
-        <Giscus />
+        <Giscus env={c.env} />
 
         {/* Prev / Next Navigation Cards (Fuwari style) */}
         <div

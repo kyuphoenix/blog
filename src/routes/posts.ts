@@ -115,15 +115,23 @@ posts.get('/:title', async (c) => {
  * POST /api/posts/purge
  */
 posts.post('/purge', async (c) => {
-  // 简单的密钥验证
+  // 密钥验证（支持 PURGE_SECRET 或 GITHUB_TOKEN）
   const secret = c.req.header('X-Purge-Secret')
-  const expectedSecret = c.env.GITHUB_TOKEN
+  const expectedSecret = c.env.PURGE_SECRET || c.env.GITHUB_TOKEN
   if (expectedSecret && secret !== expectedSecret) {
     return fail(c, 'Unauthorized', 401)
   }
 
+  // 1. 清空旧文章及清单缓存
   await purgeCache(c.env)
-  return success(c, null, 'Cache purged')
+  // 2. 立即拉取并重新缓存最新文章列表
+  const manifest = await getManifest(c.env)
+
+  return success(
+    c,
+    { reCachedCount: manifest.length },
+    'Cache purged and manifest re-cached successfully'
+  )
 })
 
 export default posts

@@ -1,17 +1,27 @@
 import { FC } from 'hono/jsx'
 import { raw } from 'hono/html'
 import { blogConfig } from '../blog.config'
+import { AppEnv } from '../types/env'
 
-export const Giscus: FC = () => {
+interface GiscusProps {
+  env?: AppEnv['Bindings']
+}
+
+export const Giscus: FC<GiscusProps> = ({ env }) => {
   const giscus = blogConfig.comment?.giscus
 
-  if (!giscus || !giscus.enable) {
+  const repo = env?.GISCUS_REPO || giscus?.repo || ''
+  const repoId = env?.GISCUS_REPO_ID || giscus?.repoId || ''
+  const category = env?.GISCUS_CATEGORY || giscus?.category || 'Announcements'
+  const categoryId = env?.GISCUS_CATEGORY_ID || giscus?.categoryId || ''
+
+  if (giscus && !giscus.enable && !env?.GISCUS_REPO) {
     return null
   }
 
-  const isConfigured = Boolean(giscus.repo && giscus.repoId && giscus.categoryId)
-  const lightTheme = giscus.theme || 'light'
-  const darkTheme = giscus.darkTheme || 'dark'
+  const isConfigured = Boolean(repo && repoId && categoryId)
+  const lightTheme = giscus?.theme || 'light'
+  const darkTheme = giscus?.darkTheme || 'dark'
 
   return (
     <div
@@ -67,7 +77,7 @@ export const Giscus: FC = () => {
               giscus.app
             </a>{' '}
             输入仓库名获取 repoId 与 categoryId<br />
-            4. 填入 <code>src/blog.config.ts</code> 的 <code>comment.giscus</code> 配置项
+            4. 在 GitHub 仓库环境变量或 <code>src/blog.config.ts</code> 中配置
           </div>
         </div>
       ) : (
@@ -80,18 +90,18 @@ export const Giscus: FC = () => {
 
               var script = document.createElement('script');
               script.src = 'https://giscus.app/client.js';
-              script.setAttribute('data-repo', '${giscus.repo}');
-              script.setAttribute('data-repo-id', '${giscus.repoId}');
-              script.setAttribute('data-category', '${giscus.category || 'Announcements'}');
-              script.setAttribute('data-category-id', '${giscus.categoryId}');
-              script.setAttribute('data-mapping', '${giscus.mapping || 'pathname'}');
-              script.setAttribute('data-strict', '${giscus.strict || '0'}');
-              script.setAttribute('data-reactions-enabled', '${giscus.reactionsEnabled || '1'}');
-              script.setAttribute('data-emit-metadata', '${giscus.emitMetadata || '0'}');
-              script.setAttribute('data-input-position', '${giscus.inputPosition || 'bottom'}');
+              script.setAttribute('data-repo', '${repo}');
+              script.setAttribute('data-repo-id', '${repoId}');
+              script.setAttribute('data-category', '${category}');
+              script.setAttribute('data-category-id', '${categoryId}');
+              script.setAttribute('data-mapping', '${giscus?.mapping || 'pathname'}');
+              script.setAttribute('data-strict', '${giscus?.strict || '0'}');
+              script.setAttribute('data-reactions-enabled', '${giscus?.reactionsEnabled || '1'}');
+              script.setAttribute('data-emit-metadata', '${giscus?.emitMetadata || '0'}');
+              script.setAttribute('data-input-position', '${giscus?.inputPosition || 'bottom'}');
               script.setAttribute('data-theme', theme);
-              script.setAttribute('data-lang', '${giscus.lang || 'zh-CN'}');
-              script.setAttribute('data-loading', '${giscus.loading || 'lazy'}');
+              script.setAttribute('data-lang', '${giscus?.lang || 'zh-CN'}');
+              script.setAttribute('data-loading', '${giscus?.loading || 'lazy'}');
               script.crossOrigin = 'anonymous';
               script.async = true;
 
