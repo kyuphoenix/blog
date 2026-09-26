@@ -16,8 +16,8 @@
   ],
   // 环境变量
   "vars": {
-    "GITHUB_OWNER": "<YOUR_GITHUB_USERNAME>",
-    "GITHUB_REPO": "<YOUR_REPO_NAME>",
+    "GITHUB_OWNER": "kyuphoenix",
+    "GITHUB_REPO": "blog",
     "GITHUB_BRANCH": "main"
   }
 }
