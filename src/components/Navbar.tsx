@@ -319,6 +319,7 @@ export const ThemeScript: FC = () => {
         themeBtn.addEventListener('click', function() {
           var isDark = document.documentElement.classList.toggle('dark');
           localStorage.setItem('theme', isDark ? 'dark' : 'light');
+          window.dispatchEvent(new CustomEvent('theme-change', { detail: { isDark: isDark } }));
         });
       }
 

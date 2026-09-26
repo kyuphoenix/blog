@@ -461,4 +461,12 @@ body {
   background: rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(4px);
 }
+
+/* ==========================================
+   Giscus Comments
+   ========================================== */
+.giscus,
+.giscus-frame {
+  width: 100%;
+}
 `;

@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { raw } from 'hono/html'
 import { AppEnv } from '../types/env'
-import { Layout } from '../components'
+import { Layout, Giscus } from '../components'
 import {
   FileTextIcon,
   ClockIcon,
@@ -296,6 +296,9 @@ postPage.get('/:title', async (c) => {
             <div class="h-px w-full bg-linear-to-r from-(--fuwari-meta-divider) via-transparent to-transparent opacity-20" />
           </div>
         </div>
+
+        {/* Giscus Comments Section */}
+        <Giscus />
 
         {/* Prev / Next Navigation Cards (Fuwari style) */}
         <div

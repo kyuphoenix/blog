@@ -1,0 +1,119 @@
+import { FC } from 'hono/jsx'
+import { raw } from 'hono/html'
+import { blogConfig } from '../blog.config'
+
+export const Giscus: FC = () => {
+  const giscus = blogConfig.comment?.giscus
+
+  if (!giscus || !giscus.enable) {
+    return null
+  }
+
+  const isConfigured = Boolean(giscus.repo && giscus.repoId && giscus.categoryId)
+  const lightTheme = giscus.theme || 'light'
+  const darkTheme = giscus.darkTheme || 'dark'
+
+  return (
+    <div
+      class="fuwari-card-base p-6 md:p-8 fuwari-onload-animation"
+      style="animation-delay: 250ms"
+      id="comments"
+    >
+      <div class="flex items-center justify-between mb-6 pb-3 border-b border-black/5 dark:border-white/10">
+        <div class="font-bold text-lg fuwari-text-90 flex items-center gap-2">
+          <span
+            class="w-1 h-4 rounded-md inline-block"
+            style="background-color: var(--fuwari-primary)"
+          />
+          评论交流
+        </div>
+        <a
+          href="https://giscus.app/zh-CN"
+          target="_blank"
+          rel="noreferrer"
+          class="text-xs fuwari-text-50 hover:text-(--fuwari-primary) transition-colors no-underline"
+        >
+          由 Giscus 提供支持 ↗
+        </a>
+      </div>
+
+      {!isConfigured ? (
+        <div class="rounded-xl border border-dashed border-black/15 dark:border-white/15 p-6 text-center">
+          <div class="text-3xl mb-2">💬</div>
+          <div class="font-bold fuwari-text-90 mb-1.5">
+            Giscus 评论系统尚未完成配置
+          </div>
+          <p class="text-sm fuwari-text-50 max-w-md mx-auto mb-4 leading-relaxed">
+            只需 1 分钟即可启用基于 GitHub Discussions 的免数据库评论系统。
+          </p>
+          <div class="text-xs text-left bg-black/5 dark:bg-white/5 p-4 rounded-lg max-w-lg mx-auto mb-4 font-mono leading-relaxed fuwari-text-75">
+            1. 确保你的 GitHub 仓库为公开且已在 Settings 开启 Discussions<br />
+            2. 安装{' '}
+            <a
+              href="https://github.com/apps/giscus"
+              target="_blank"
+              rel="noreferrer"
+              class="text-(--fuwari-primary) underline"
+            >
+              Giscus GitHub App
+            </a><br />
+            3. 打开{' '}
+            <a
+              href="https://giscus.app/zh-CN"
+              target="_blank"
+              rel="noreferrer"
+              class="text-(--fuwari-primary) underline"
+            >
+              giscus.app
+            </a>{' '}
+            输入仓库名获取 repoId 与 categoryId<br />
+            4. 填入 <code>src/blog.config.ts</code> 的 <code>comment.giscus</code> 配置项
+          </div>
+        </div>
+      ) : (
+        <>
+          <div class="giscus min-h-[160px]" id="giscus-container"></div>
+          {raw(`<script>
+            (function() {
+              var isDark = document.documentElement.classList.contains('dark');
+              var theme = isDark ? '${darkTheme}' : '${lightTheme}';
+
+              var script = document.createElement('script');
+              script.src = 'https://giscus.app/client.js';
+              script.setAttribute('data-repo', '${giscus.repo}');
+              script.setAttribute('data-repo-id', '${giscus.repoId}');
+              script.setAttribute('data-category', '${giscus.category || 'Announcements'}');
+              script.setAttribute('data-category-id', '${giscus.categoryId}');
+              script.setAttribute('data-mapping', '${giscus.mapping || 'pathname'}');
+              script.setAttribute('data-strict', '${giscus.strict || '0'}');
+              script.setAttribute('data-reactions-enabled', '${giscus.reactionsEnabled || '1'}');
+              script.setAttribute('data-emit-metadata', '${giscus.emitMetadata || '0'}');
+              script.setAttribute('data-input-position', '${giscus.inputPosition || 'bottom'}');
+              script.setAttribute('data-theme', theme);
+              script.setAttribute('data-lang', '${giscus.lang || 'zh-CN'}');
+              script.setAttribute('data-loading', '${giscus.loading || 'lazy'}');
+              script.crossOrigin = 'anonymous';
+              script.async = true;
+
+              var container = document.getElementById('giscus-container');
+              if (container) {
+                container.appendChild(script);
+              }
+
+              // 监听明暗模式切换，向 Giscus iframe 发送更新主题消息
+              window.addEventListener('theme-change', function(e) {
+                var iframe = document.querySelector('iframe.giscus-frame');
+                if (!iframe) return;
+                var currentTheme = e.detail && e.detail.isDark ? '${darkTheme}' : '${lightTheme}';
+                iframe.contentWindow.postMessage(
+                  { giscus: { setConfig: { theme: currentTheme } } },
+                  'https://giscus.app'
+                );
+              });
+            })();
+          </script>`)}
+        </>
+      )}
+    </div>
+  )
+}
