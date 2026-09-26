@@ -1,0 +1,111 @@
+# Pages CMS 配置文件 (https://pagescms.org/docs/configuration/)
+# 放置在仓库根目录下，作为 Pages CMS 的单一配置源
+
+# 1. 媒体文件配置：上传的图片存储在 public/images，访问路径为 /images
+media:
+  input: public/images
+  output: /images
+  categories:
+    - image
+
+# 2. 内容集合配置
+content:
+  - name: posts
+    label: 文章
+    type: collection
+    path: posts
+    exclude:
+      - manifest.json
+    format: yaml-frontmatter
+    filename:
+      template: "{title}.md"
+      field: true
+    view:
+      fields:
+        - title
+        - date
+        - category
+        - tags
+        - draft
+      primary: title
+      sort:
+        - date
+        - title
+      default:
+        sort: date
+        order: desc
+    fields:
+      - name: title
+        label: 标题
+        type: string
+        required: true
+        description: 文章标题，线上直接通过 /posts/标题 访问
+      - name: date
+        label: 发布日期
+        type: date
+        required: true
+      - name: updated
+        label: 更新日期
+        type: date
+      - name: category
+        label: 分类
+        type: string
+        default: 技术
+      - name: tags
+        label: 标签
+        type: string
+        list: true
+      - name: excerpt
+        label: 摘要
+        type: text
+        description: 文章摘要，展示在首页卡片和文章顶部摘要区
+      - name: cover
+        label: 封面图
+        type: image
+        description: 封面图片（支持上传到图库或直接粘贴外链）
+      - name: draft
+        label: 草稿
+        type: boolean
+        default: false
+        description: 标记为草稿时线上不会展示
+      - name: body
+        label: 正文内容
+        type: rich-text
+        options:
+          format: markdown
+          switcher: true
+    actions:
+      - name: sync-posts
+        label: 重新生成清单并刷新缓存
+        scope: collection
+        workflow: sync-posts.yml
+        confirm:
+          title: 刷新文章缓存？
+          message: 将重新生成 manifest.json 并通知 Cloudflare Worker 预热最新缓存。
+          button: 立即同步
+
+# 3. 仓库级动作（GitHub Actions 快捷触发按钮）
+actions:
+  - name: sync-posts
+    label: 同步文章缓存 (Sync Posts)
+    workflow: sync-posts.yml
+    confirm:
+      title: 刷新文章缓存？
+      message: 重新生成文章清单并通知 Cloudflare Worker 加载最新内容。
+      button: 确认同步
+  - name: deploy-worker
+    label: 部署 Worker (Deploy)
+    workflow: deploy.yml
+    confirm:
+      title: 部署 Worker？
+      message: 触发 GitHub Actions 重新构建并部署 Cloudflare Worker。
+      button: 确认部署
+
+# 4. 全局提交设置
+settings:
+  commit:
+    identity: user
+    templates:
+      create: "docs(post): create {filename} (via Pages CMS)"
+      update: "docs(post): update {filename} (via Pages CMS)"
+      delete: "docs(post): delete {filename} (via Pages CMS)"
