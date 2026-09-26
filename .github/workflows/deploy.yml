@@ -42,7 +42,7 @@ jobs:
           GITHUB_BRANCH: ${{ vars.GITHUB_BRANCH || github.ref_name }}
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
           PURGE_SECRET: ${{ secrets.PURGE_SECRET }}
-          CUSTOM_DOMAIN: ${{ vars.CUSTOM_DOMAIN }}
+          BLOG_URL: ${{ vars.BLOG_URL || secrets.BLOG_URL }}
           GISCUS_REPO: ${{ vars.GISCUS_REPO }}
           GISCUS_REPO_ID: ${{ vars.GISCUS_REPO_ID }}
           GISCUS_CATEGORY: ${{ vars.GISCUS_CATEGORY }}

@@ -9,7 +9,7 @@
  * - GITHUB_BRANCH: GitHub 分支名 (可选，默认取当前分支或 main)
  * - GITHUB_TOKEN: GitHub 访问令牌 (可选，私有仓库拉取或提升 API 限额)
  * - PURGE_SECRET: 缓存刷新密钥 (可选)
- * - CUSTOM_DOMAIN: 自定义域名 (可选，如 blog.example.com)
+ * - BLOG_URL: 博客完整访问地址 (可选，若为独立域名将自动解析并配置自定义域名路由)
  * - GISCUS_REPO: Giscus 评论仓库 (可选)
  * - GISCUS_REPO_ID: Giscus 仓库 ID (可选)
  * - GISCUS_CATEGORY: Giscus 讨论分类 (可选)
@@ -31,8 +31,24 @@ const githubOwner = process.env.GITHUB_OWNER || defaultOwner
 const githubRepo = process.env.GITHUB_REPO || defaultRepo
 const githubBranch = process.env.GITHUB_BRANCH || process.env.GITHUB_REF_NAME || 'main'
 const purgeSecret = process.env.PURGE_SECRET
-const customDomain = process.env.CUSTOM_DOMAIN
 const githubToken = process.env.GITHUB_TOKEN || process.env.GH_TOKEN
+
+// 从 BLOG_URL 直接解析自定义域名（如 https://blog.example.com -> blog.example.com）
+let customDomain = ''
+const blogUrl = process.env.BLOG_URL
+if (blogUrl && blogUrl.trim()) {
+  try {
+    const raw = blogUrl.trim()
+    const parsed = new URL(raw.startsWith('http://') || raw.startsWith('https://') ? raw : `https://${raw}`)
+    const hostname = parsed.hostname
+    // Cloudflare 自带的 *.workers.dev 域名和 localhost 不需要也不支持配置自定义域名路由
+    if (hostname && !hostname.endsWith('.workers.dev') && hostname !== 'localhost') {
+      customDomain = hostname
+    }
+  } catch (err) {
+    console.warn('⚠️ 无法从 BLOG_URL 解析域名:', err.message)
+  }
+}
 
 const giscusRepo = process.env.GISCUS_REPO
 const giscusRepoId = process.env.GISCUS_REPO_ID
@@ -83,16 +99,15 @@ injectVar('GISCUS_REPO_ID', giscusRepoId)
 injectVar('GISCUS_CATEGORY', giscusCategory)
 injectVar('GISCUS_CATEGORY_ID', giscusCategoryId)
 
-if (customDomain && customDomain.trim()) {
-  const domain = customDomain.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '')
+if (customDomain) {
   // 检查是否已有 routes，没有则在倒数第一个右大括号前插入
   if (!content.includes('"routes"')) {
-    const routeBlock = `,\n  // 自定义域名\n  "routes": [\n    {\n      "pattern": "${domain}",\n      "custom_domain": true\n    }\n  ]`
+    const routeBlock = `,\n  // 自定义域名（自动从 BLOG_URL 解析）\n  "routes": [\n    {\n      "pattern": "${customDomain}",\n      "custom_domain": true\n    }\n  ]`
     content = content.replace(/(\n\})[\s]*$/, `${routeBlock}\n}`)
-    console.log(`✓ 已绑定自定义域名: ${domain}`)
+    console.log(`✓ 已从 BLOG_URL 自动解析并绑定自定义域名: ${customDomain}`)
   } else {
-    content = content.replace(/"pattern":\s*"[^"]*"/, `"pattern": "${domain}"`)
-    console.log(`✓ 已更新自定义域名: ${domain}`)
+    content = content.replace(/"pattern":\s*"[^"]*"/, `"pattern": "${customDomain}"`)
+    console.log(`✓ 已更新自定义域名: ${customDomain}`)
   }
 }
 

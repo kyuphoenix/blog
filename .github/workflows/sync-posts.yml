@@ -48,17 +48,13 @@ jobs:
 
       - name: Notify Cloudflare Worker to re-cache posts
         run: |
-          # 获取博客访问地址，优先级：vars.BLOG_URL > secrets.BLOG_URL > vars.CUSTOM_DOMAIN
+          # 获取博客访问地址
           BLOG_URL="${{ vars.BLOG_URL || secrets.BLOG_URL }}"
-          if [ -z "$BLOG_URL" ] && [ -n "${{ vars.CUSTOM_DOMAIN }}" ]; then
-            BLOG_URL="https://${{ vars.CUSTOM_DOMAIN }}"
-          fi
-
           PURGE_SECRET="${{ secrets.PURGE_SECRET || secrets.GITHUB_TOKEN }}"
 
           if [ -z "$BLOG_URL" ]; then
-            echo "⚠️ 未配置 BLOG_URL 或 CUSTOM_DOMAIN，跳过 Worker 缓存刷新通知。"
-            echo "提示：请在 GitHub 仓库 Settings -> Secrets and variables -> Actions 中设置变量 BLOG_URL (如: https://blog.yourname.workers.dev)"
+            echo "⚠️ 未配置 BLOG_URL，跳过 Worker 缓存刷新通知。"
+            echo "提示：请在 GitHub 仓库 Settings -> Secrets and variables -> Actions 中设置变量 BLOG_URL (如: https://blog.yourname.workers.dev 或 https://blog.example.com)"
             exit 0
           fi
 
