@@ -1,0 +1,328 @@
+import { AppEnv } from '../types/env'
+import { PostMeta, Post, Manifest } from '../types/post'
+import { parseFrontmatter, estimateReadingTime } from '../utils/markdown'
+
+const CACHE_TTL = 60 * 5 // 缓存 5 分钟
+const MANIFEST_CACHE_KEY = 'manifest'
+
+/**
+ * 构建 GitHub Raw 内容 URL
+ */
+function rawUrl(owner: string, repo: string, branch: string, path: string): string {
+  return `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${encodeURI(path)}`
+}
+
+/**
+ * 检查 GitHub 配置是否有效
+ */
+function isGitHubConfigured(env: AppEnv['Bindings']): boolean {
+  return !!(
+    env.GITHUB_OWNER &&
+    env.GITHUB_REPO &&
+    !env.GITHUB_OWNER.startsWith('<') &&
+    !env.GITHUB_REPO.startsWith('<')
+  )
+}
+
+/**
+ * 从 GitHub 拉取文件内容
+ */
+async function fetchFromGitHub(
+  url: string,
+  token?: string
+): Promise<string | null> {
+  const headers: Record<string, string> = {
+    'User-Agent': 'Blog-Worker',
+  }
+  if (token) {
+    headers['Authorization'] = `token ${token}`
+  }
+
+  const res = await fetch(url, { headers })
+  if (!res.ok) {
+    if (res.status === 404) return null
+    throw new Error(`GitHub fetch failed: ${res.status} ${res.statusText}`)
+  }
+  return res.text()
+}
+
+/**
+ * 获取文章清单（带 KV 缓存）
+ */
+export async function getManifest(env: AppEnv['Bindings']): Promise<Manifest> {
+  // 先查缓存
+  try {
+    const cached = await env.BLOG_CACHE?.get(MANIFEST_CACHE_KEY)
+    if (cached) {
+      return JSON.parse(cached) as Manifest
+    }
+  } catch {
+    // KV 不可用时忽略
+  }
+
+  // GitHub 未配置时返回示例数据
+  if (!isGitHubConfigured(env)) {
+    return getBuiltinManifest()
+  }
+
+  // 从 GitHub 拉取
+  const url = rawUrl(env.GITHUB_OWNER, env.GITHUB_REPO, env.GITHUB_BRANCH, 'posts/manifest.json')
+  const content = await fetchFromGitHub(url, env.GITHUB_TOKEN)
+
+  if (!content) {
+    return getBuiltinManifest()
+  }
+
+  const manifest = JSON.parse(content) as Manifest
+
+  // 写入缓存
+  try {
+    await env.BLOG_CACHE?.put(MANIFEST_CACHE_KEY, content, {
+      expirationTtl: CACHE_TTL,
+    })
+  } catch {
+    // KV 不可用时忽略
+  }
+
+  return manifest
+}
+
+/**
+ * 获取单篇文章完整内容
+ * @param identifier 文章标题（支持中文、空格、URL 编码字符）
+ */
+export async function getPost(
+  identifier: string,
+  env: AppEnv['Bindings']
+): Promise<Post | null> {
+  // 解码可能传入的 URL 编码标题
+  let decoded = identifier
+  try {
+    decoded = decodeURIComponent(identifier)
+  } catch {
+    // 忽略解码错误
+  }
+
+  const cacheKey = `post:${decoded}`
+
+  // 先查缓存
+  try {
+    const cached = await env.BLOG_CACHE?.get(cacheKey)
+    if (cached) {
+      return JSON.parse(cached) as Post
+    }
+  } catch {
+    // KV 不可用时忽略
+  }
+
+  // 从清单查找对应文章以获取真实文件路径
+  const manifest = await getManifest(env)
+  const meta = manifest.find(
+    (p) =>
+      p.title === decoded ||
+      p.title === identifier ||
+      p.slug === decoded ||
+      p.slug === identifier ||
+      encodeURIComponent(p.title) === identifier
+  )
+
+  // GitHub 未配置时返回示例文章
+  if (!isGitHubConfigured(env)) {
+    return getBuiltinPost(decoded)
+  }
+
+  const filePath = meta ? meta.path : `posts/${decoded}.md`
+  const url = rawUrl(env.GITHUB_OWNER, env.GITHUB_REPO, env.GITHUB_BRANCH, filePath)
+  const raw = await fetchFromGitHub(url, env.GITHUB_TOKEN)
+
+  if (!raw) {
+    return null
+  }
+
+  // 解析 frontmatter 和内容
+  const { frontmatter, content } = parseFrontmatter(raw)
+
+  const postTitle = meta?.title || frontmatter.title || decoded
+
+  const post: Post = {
+    title: postTitle,
+    date: meta?.date || frontmatter.date || new Date().toISOString().split('T')[0],
+    category: meta?.category || frontmatter.category || '未分类',
+    tags: meta?.tags || frontmatter.tags || [],
+    excerpt: meta?.excerpt || frontmatter.excerpt || '',
+    cover: meta?.cover || frontmatter.cover,
+    draft: meta?.draft ?? frontmatter.draft ?? false,
+    slug: postTitle,
+    path: filePath,
+    readingTime: estimateReadingTime(content),
+    content,
+  }
+
+  // 写入缓存
+  try {
+    await env.BLOG_CACHE?.put(cacheKey, JSON.stringify(post), {
+      expirationTtl: CACHE_TTL,
+    })
+  } catch {
+    // KV 不可用时忽略
+  }
+
+  return post
+}
+
+/**
+ * 清除所有缓存（文章更新后调用）
+ */
+export async function purgeCache(env: AppEnv['Bindings']): Promise<void> {
+  if (!env.BLOG_CACHE) return
+
+  // 清除 manifest 缓存
+  await env.BLOG_CACHE.delete(MANIFEST_CACHE_KEY)
+
+  // 列出并清除所有文章缓存
+  const list = await env.BLOG_CACHE.list({ prefix: 'post:' })
+  for (const key of list.keys) {
+    await env.BLOG_CACHE.delete(key.name)
+  }
+}
+
+/**
+ * 获取侧边栏分类与标签统计数据
+ */
+export async function getSidebarData(env: AppEnv['Bindings']) {
+  const manifest = (await getManifest(env)).filter((p) => !p.draft)
+  const categoryMap = new Map<string, number>()
+  const tagMap = new Map<string, number>()
+
+  for (const p of manifest) {
+    if (p.category) {
+      categoryMap.set(p.category, (categoryMap.get(p.category) || 0) + 1)
+    }
+    for (const t of p.tags) {
+      tagMap.set(t, (tagMap.get(t) || 0) + 1)
+    }
+  }
+
+  const categories = Array.from(categoryMap, ([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+  const tags = Array.from(tagMap, ([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+
+  return { categories, tags }
+}
+
+// ============================
+// 内置示例数据（本地开发用）
+// ============================
+
+function getBuiltinManifest(): Manifest {
+  return [
+    {
+      title: '使用 Hono 构建博客 API',
+      slug: '使用 Hono 构建博客 API',
+      date: '2024-01-20',
+      category: '技术',
+      tags: ['Hono', 'Cloudflare Workers', 'TypeScript'],
+      excerpt: '本文介绍如何使用 Hono 框架在 Cloudflare Workers 上构建一个轻量级博客 API。',
+      draft: false,
+      path: 'posts/building-blog-with-hono.md',
+      readingTime: 3,
+    },
+    {
+      title: 'Hello World',
+      slug: 'Hello World',
+      date: '2024-01-15',
+      category: '技术',
+      tags: ['博客', '入门'],
+      excerpt: '这是我的第一篇博客文章，欢迎来到我的博客！',
+      cover: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800&q=80',
+      draft: false,
+      path: 'posts/hello-world.md',
+      readingTime: 1,
+    },
+  ]
+}
+
+function getBuiltinPost(identifier: string): Post | null {
+  const posts: Record<string, Post> = {
+    'Hello World': {
+      title: 'Hello World',
+      slug: 'Hello World',
+      date: '2024-01-15',
+      category: '技术',
+      tags: ['博客', '入门'],
+      excerpt: '这是我的第一篇博客文章，欢迎来到我的博客！',
+      cover: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800&q=80',
+      draft: false,
+      path: 'posts/hello-world.md',
+      readingTime: 1,
+      content: `# Hello World
+
+欢迎来到我的博客！🎉
+
+这是一篇示例文章，用于展示博客系统的基本功能。
+
+## 特性
+
+- 📝 文章存储在 Git 仓库中
+- 🚀 通过 GitHub Raw API 动态拉取，无需重新部署
+- ⚡ KV 缓存加速访问
+- 🏷️ 支持分类和标签
+- 🔗 直接通过 \`/posts/文章标题\` 访问，无需单独指定 slug
+
+## 代码示例
+
+\`\`\`typescript
+const greeting = 'Hello, World!'
+console.log(greeting)
+\`\`\`
+
+## 如何添加新文章
+
+1. 在 \`posts/\` 目录下创建 \`.md\` 文件
+2. 填写 frontmatter（只需标题、日期、分类等，无需写 slug）
+3. 运行 \`pnpm gen:manifest\` 更新文章清单
+4. 推送到 GitHub，文章自动生效！`,
+    },
+    '使用 Hono 构建博客 API': {
+      title: '使用 Hono 构建博客 API',
+      slug: '使用 Hono 构建博客 API',
+      date: '2024-01-20',
+      category: '技术',
+      tags: ['Hono', 'Cloudflare Workers', 'TypeScript'],
+      excerpt: '本文介绍如何使用 Hono 框架在 Cloudflare Workers 上构建一个轻量级博客 API。',
+      draft: false,
+      path: 'posts/building-blog-with-hono.md',
+      readingTime: 3,
+      content: `# 使用 Hono 构建博客 API
+
+Hono 是一个小巧、快速的 Web 框架，专为 Edge Runtime 设计。
+
+## 为什么选择 Hono？
+
+- **超快**：基于 Web 标准 API，零开销
+- **轻量**：核心包只有几 KB
+- **类型安全**：原生 TypeScript 支持
+- **中间件丰富**：内置 CORS、JWT、Logger 等
+
+## 架构设计
+
+我们的博客采用了一种独特的架构：
+
+\`\`\`
+用户请求 → Cloudflare Worker → KV 缓存?
+                                  ├─ 命中 → 返回缓存
+                                  └─ 未命中 → GitHub Raw API → 缓存 → 返回
+\`\`\`
+
+这种方式的好处是内容和代码完全解耦，更新文章无需触发构建和部署。`,
+    },
+  }
+
+  // 同时也支持原有的兼容 key
+  if (posts[identifier]) return posts[identifier]
+  if (identifier === 'hello-world') return posts['Hello World']
+  if (identifier === 'building-blog-with-hono') return posts['使用 Hono 构建博客 API']
+
+  return null
+}
