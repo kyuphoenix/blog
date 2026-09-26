@@ -1,0 +1,23 @@
+{
+  "name": "blog-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2024-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+  // 静态资源目录（托管 /images/home-bg.webp, /images/avatar.png, favicon 等）
+  "assets": {
+    "directory": "./public"
+  },
+  // KV 缓存绑定（用于缓存 GitHub 拉取的文章）
+  "kv_namespaces": [
+    {
+      "binding": "BLOG_CACHE",
+      "id": "<YOUR_KV_NAMESPACE_ID>"
+    }
+  ],
+  // 环境变量
+  "vars": {
+    "GITHUB_OWNER": "<YOUR_GITHUB_USERNAME>",
+    "GITHUB_REPO": "<YOUR_REPO_NAME>",
+    "GITHUB_BRANCH": "main"
+  }
+}
