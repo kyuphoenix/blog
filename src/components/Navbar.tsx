@@ -1,6 +1,6 @@
 import { FC } from 'hono/jsx'
 import { raw } from 'hono/html'
-import { blogConfig } from '../blog.config'
+import { blogConfig, NavItem } from '../blog.config'
 import {
   HomeIcon,
   SearchIcon,
@@ -10,19 +10,10 @@ import {
   MoonIcon,
   PaletteIcon,
   ArrowUpIcon,
+  ExternalLinkIcon,
 } from './Icons'
 
-interface NavOption {
-  id: string
-  label: string
-  to: string
-}
-
-export const navOptions: NavOption[] = [
-  { id: 'home', label: '首页', to: '/' },
-  { id: 'archive', label: '归档', to: '/archive' },
-  { id: 'about', label: '关于', to: '/about' },
-]
+export const navOptions = blogConfig.nav
 
 export const Navbar: FC<{ currentPath?: string; bannerHeightVh?: number }> = ({
   currentPath = '/',
@@ -50,18 +41,29 @@ export const Navbar: FC<{ currentPath?: string; bannerHeightVh?: number }> = ({
             </button>
           </div>
           <nav class="flex flex-col gap-1">
-            {navOptions.map((option) => {
-              const isActive = currentPath === option.to
+            {blogConfig.nav.map((item) => {
+              const isExternal =
+                item.external ??
+                (item.url.startsWith('http://') || item.url.startsWith('https://'))
+              const isActive =
+                !isExternal &&
+                (currentPath === item.url ||
+                  (item.url !== '/' && currentPath.startsWith(item.url)))
               return (
                 <a
-                  href={option.to}
-                  class={`fuwari-expand-animation rounded-lg h-11 font-bold px-4 flex items-center transition-colors ${
+                  href={item.url}
+                  target={isExternal ? '_blank' : undefined}
+                  rel={isExternal ? 'noreferrer noopener' : undefined}
+                  class={`fuwari-expand-animation rounded-lg h-11 font-bold px-4 flex items-center justify-between transition-colors no-underline ${
                     isActive
                       ? 'text-(--fuwari-primary)'
                       : 'fuwari-text-75 hover:text-(--fuwari-primary)'
                   }`}
                 >
-                  {option.label}
+                  <span>{item.label}</span>
+                  {isExternal && (
+                    <ExternalLinkIcon size={14} class="opacity-60 shrink-0" />
+                  )}
                 </a>
               )
             })}
@@ -96,18 +98,29 @@ export const Navbar: FC<{ currentPath?: string; bannerHeightVh?: number }> = ({
             </a>
 
             <nav class="hidden md:flex items-center gap-1">
-              {navOptions.map((option) => {
-                const isActive = currentPath === option.to
+              {blogConfig.nav.map((item) => {
+                const isExternal =
+                  item.external ??
+                  (item.url.startsWith('http://') || item.url.startsWith('https://'))
+                const isActive =
+                  !isExternal &&
+                  (currentPath === item.url ||
+                    (item.url !== '/' && currentPath.startsWith(item.url)))
                 return (
                   <a
-                    href={option.to}
-                    class={`fuwari-expand-animation rounded-lg h-11 font-bold px-5 active:scale-95 flex items-center no-underline ${
+                    href={item.url}
+                    target={isExternal ? '_blank' : undefined}
+                    rel={isExternal ? 'noreferrer noopener' : undefined}
+                    class={`fuwari-expand-animation rounded-lg h-11 font-bold px-4 lg:px-5 active:scale-95 flex items-center gap-1.5 no-underline ${
                       isActive
                         ? 'text-(--fuwari-primary)'
                         : 'fuwari-text-75 hover:text-(--fuwari-primary)'
                     }`}
                   >
-                    {option.label}
+                    <span>{item.label}</span>
+                    {isExternal && (
+                      <ExternalLinkIcon size={13} class="opacity-50 shrink-0 -mt-0.5" />
+                    )}
                   </a>
                 )
               })}

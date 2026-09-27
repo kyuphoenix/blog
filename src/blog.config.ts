@@ -1,3 +1,9 @@
+export interface NavItem {
+  label: string
+  url: string
+  external?: boolean // 是否为外部超链接（在新标签页打开，并附带外链小图标）
+}
+
 export interface SocialLink {
   platform: 'github' | 'email' | 'rss'
   url: string
@@ -9,6 +15,12 @@ export const blogConfig = {
   author: 'Blog Author',
   description:
     '这是我的个人网站和博客。在这里，我主要分享与技术和生活相关的内容。欢迎阅读！',
+  // 顶部导航栏栏位配置（支持站内路径如 '/about' 或外部链接如 'https://github.com/...'）
+  nav: [
+    { label: '首页', url: '/' },
+    { label: '归档', url: '/archive' },
+    { label: '关于', url: '/about' },
+  ] as NavItem[],
   social: [
     { platform: 'github', url: 'https://github.com', label: 'GitHub' },
     { platform: 'email', url: 'mailto:example@email.com', label: 'Email' },
