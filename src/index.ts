@@ -4,6 +4,7 @@ import { logger } from 'hono/logger'
 import { AppEnv } from './types/env'
 import { errorHandler } from './middleware'
 import { postRoutes } from './routes'
+import statsRoutes from './routes/stats'
 import homePage from './pages/home'
 import postPage from './pages/post'
 import archivePage from './pages/archive'
@@ -46,6 +47,7 @@ app.get('/css/giscus-fuwari.css', (c) => {
 const api = new Hono<AppEnv>()
 api.use('*', cors())
 api.route('/posts', postRoutes)
+api.route('/stats', statsRoutes)
 app.route('/api', api)
 
 // RSS 2.0 订阅源 (动态使用 Worker 环境变量 BLOG_URL)

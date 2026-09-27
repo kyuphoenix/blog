@@ -1,4 +1,5 @@
 export type Bindings = {
+  DB?: D1Database
   BLOG_CACHE: KVNamespace
   GITHUB_OWNER: string
   GITHUB_REPO: string

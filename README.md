@@ -115,7 +115,8 @@ draft: false
 
 1. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com/)。
 2. 进入 **Workers & Pages** -> **KV**，创建一个名为 `blog-cache` 的命名空间，复制其 **Namespace ID**。
-3. 创建具有 Worker 部署权限的 **API Token**（可使用 `Edit Cloudflare Workers` 模板），并记录你的 **Account ID**。
+3. 进入 **Workers & Pages** -> **D1**，创建一个名为 `blog-db` 的数据库，复制其 **Database ID**（用于访问量统计与热门文章置顶）。
+4. 创建具有 Worker 部署权限的 **API Token**（可使用 `Edit Cloudflare Workers` 模板），并记录你的 **Account ID**。
 
 ### 2. 配置 GitHub 仓库变量与密钥
 
@@ -127,6 +128,7 @@ draft: false
 | `CLOUDFLARE_API_TOKEN` | **是** | Cloudflare API 令牌 |
 | `CLOUDFLARE_ACCOUNT_ID` | **是** | Cloudflare 账户 ID |
 | `CLOUDFLARE_KV_ID` | **是** | 上一步创建的 KV 命名空间 ID |
+| `CLOUDFLARE_D1_ID` | 推荐 | 上一步创建的 D1 数据库 ID（配置后自动开启访问量统计与 Top 3 热门置顶） |
 | `PURGE_SECRET` | 推荐 | 自定义缓存刷新密钥（如任意随机字符串），用于保护缓存刷新接口 |
 | `PAT_TOKEN` | 可选 | GitHub Personal Access Token（仅在仓库为私有仓库或需提高 API 速率时配置） |
 
@@ -147,6 +149,13 @@ draft: false
 > - 摒弃默认 GitHub 刻板标签页与硬边角，采用现代分段圆角胶囊选项卡（Write / Preview）与 `1rem` 大圆角设计。
 > - 评论输入框、提交按钮、徽章及代码预览全面采用 Fuwari OKLCH 主题配色（Hue 250）。
 > - 完美支持全站明暗模式无缝联动切换，样式表支持跨域 CORS 托管。
+>
+> 📊 **Cloudflare D1 访问量统计与热门置顶（参考 Umami 规范）**：
+> - **隐私保护**：无 Cookie 追踪，基于当日 Salt 与客户端特征单向哈希去重，完全符合 GDPR 隐私规范。
+> - **会话防刷**：采用 Umami 级客户端与服务端双重防刷，同会话/短时间内频繁刷新不重复计入访问量。
+> - **极速读取**：采用事件明细与聚合计数双表设计，首页读取热门文章仅需毫秒级行读取，高效省流。
+> - **Top 3 热门置顶**：首页自动按总浏览量升序提拔最高的三篇热门文章置顶展示在文章列表最上方，并带有 `🔥 热门置顶 · TOP 1/2/3` 专属徽章与实时阅读量。
+
 
 ### 3. 执行首次部署
 

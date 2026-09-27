@@ -33,10 +33,11 @@ jobs:
       - name: Generate post manifest
         run: pnpm gen:manifest
 
-      # 仅注入 Cloudflare 基础设施级别的必须项（KV ID、Worker 名称、自定义域名路由）
+      # 仅注入 Cloudflare 基础设施级别的必须项（KV ID、D1 ID、Worker 名称、自定义域名路由）
       - name: Prepare wrangler.jsonc infrastructure config
         env:
           CLOUDFLARE_KV_ID: ${{ secrets.CLOUDFLARE_KV_ID || vars.CLOUDFLARE_KV_ID || vars.KV_NAMESPACE_ID }}
+          CLOUDFLARE_D1_ID: ${{ secrets.CLOUDFLARE_D1_ID || vars.CLOUDFLARE_D1_ID || vars.D1_DATABASE_ID }}
           WORKER_NAME: ${{ vars.WORKER_NAME || 'blog' }}
           BLOG_URL: ${{ vars.BLOG_URL || secrets.BLOG_URL }}
         run: pnpm prepare:wrangler

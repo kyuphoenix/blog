@@ -5,10 +5,18 @@ import {
   TagIcon,
   ClockIcon,
   ChevronRightIcon,
+  EyeIcon,
+  FireIcon,
 } from './Icons'
 
+export interface PostCardItem extends PostMeta {
+  isTop?: boolean
+  rank?: number
+  views?: number
+}
+
 interface PostCardProps {
-  post: PostMeta
+  post: PostCardItem
   index?: number
 }
 
@@ -18,10 +26,23 @@ export const PostCard: FC<PostCardProps> = ({ post, index = 0 }) => {
 
   return (
     <div
-      class="fuwari-card-base flex flex-col w-full rounded-(--fuwari-radius-large) overflow-hidden relative fuwari-onload-animation"
+      class={`fuwari-card-base flex flex-col w-full rounded-(--fuwari-radius-large) overflow-hidden relative fuwari-onload-animation transition-all duration-300 ${
+        post.isTop
+          ? 'border-2 border-(--fuwari-primary)/40 shadow-sm dark:border-(--fuwari-primary)/50'
+          : ''
+      }`}
       style={`animation-delay: ${delay}ms`}
     >
       <div class="pl-6 md:pl-9 pr-6 pt-6 md:pt-7 pb-6 relative w-full md:pr-24">
+        {/* Top Pinned Badge (for top 3 most-viewed posts) */}
+        {post.isTop && (
+          <div class="flex items-center gap-2 mb-2.5">
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold text-white bg-(--fuwari-primary) shadow-xs">
+              <FireIcon size={12} strokeWidth={2.2} />
+              <span>热门置顶 · TOP {post.rank}</span>
+            </span>
+          </div>
+        )}
         {/* Title with left vertical accent bar */}
         <a
           href={postUrl}
@@ -97,12 +118,18 @@ export const PostCard: FC<PostCardProps> = ({ post, index = 0 }) => {
           </div>
         )}
 
-        {/* Read time */}
-        <div class="text-sm fuwari-text-50 flex items-center gap-4">
+        {/* Read time and views */}
+        <div class="text-sm fuwari-text-50 flex flex-wrap items-center gap-4">
           <span class="inline-flex items-center gap-1.5">
             <ClockIcon size={14} />
             {post.readingTime} 分钟阅读
           </span>
+          {post.views !== undefined && post.views > 0 && (
+            <span class="inline-flex items-center gap-1.5 text-(--fuwari-primary) font-medium">
+              <EyeIcon size={14} />
+              {post.views} 次阅读
+            </span>
+          )}
         </div>
       </div>
 

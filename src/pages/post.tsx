@@ -10,8 +10,10 @@ import {
   TagIcon,
   QuoteIcon,
   ChevronRightIcon,
+  EyeIcon,
 } from '../components/Icons'
 import { getPost, getManifest, getSidebarData } from '../services/github'
+import { getPostStats } from '../services/stats'
 import { marked } from 'marked'
 
 const postPage = new Hono<AppEnv>()
@@ -71,6 +73,10 @@ postPage.get('/:title', async (c) => {
     .split(/\s+/)
     .filter(Boolean).length
   const wordCount = Math.max(100, chineseChars + englishWords)
+
+  // 获取 D1 访问量统计
+  const stats = await getPostStats(c.env.DB, post.title)
+  const viewsCount = stats.views || 0
 
   // Compute minDepth for TOC numbering (exact flare-stack-blog TableOfContents logic)
   let minDepth = 10
@@ -175,7 +181,7 @@ postPage.get('/:title', async (c) => {
 
         {/* Main Post Container (Exact flare-stack-blog PostPage port) */}
         <div class="fuwari-card-base z-10 px-6 md:px-9 pt-6 pb-4 relative w-full fuwari-onload-animation">
-          {/* Word count and reading time */}
+          {/* Word count, reading time and view count */}
           <div class="flex flex-row flex-wrap fuwari-text-30 gap-5 mb-3 transition">
             <div class="flex flex-row items-center">
               <div class="transition h-6 w-6 rounded-md bg-black/5 dark:bg-white/10 fuwari-text-50 flex items-center justify-center mr-2">
@@ -188,6 +194,12 @@ postPage.get('/:title', async (c) => {
                 <ClockIcon strokeWidth={1.5} size={16} />
               </div>
               <div class="text-sm">{post.readingTime} 分钟</div>
+            </div>
+            <div class="flex flex-row items-center">
+              <div class="transition h-6 w-6 rounded-md bg-black/5 dark:bg-white/10 fuwari-text-50 flex items-center justify-center mr-2 text-(--fuwari-primary)">
+                <EyeIcon strokeWidth={1.5} size={16} />
+              </div>
+              <div class="text-sm"><span id="post-views-count">{viewsCount}</span> 次阅读</div>
             </div>
           </div>
 
@@ -372,6 +384,53 @@ postPage.get('/:title', async (c) => {
           window.addEventListener('scroll', updateTocIndicator, { passive: true });
           window.addEventListener('resize', updateTocIndicator);
           setTimeout(updateTocIndicator, 100);
+        })();
+      </script>`)}
+
+      {/* 访问量统计上报脚本（参考 Umami 隐私优先与会话去重机制） */}
+      {raw(`<script>
+        (function() {
+          var slug = ${JSON.stringify(post.title)};
+          var storageKey = 'fuwari_pv_' + encodeURIComponent(slug);
+          var lastViewed = sessionStorage.getItem(storageKey);
+          var now = Date.now();
+
+          // 15 分钟会话级防刷（Umami 规范）：同一标签页/会话短时间刷新不重复计数
+          if (lastViewed && (now - parseInt(lastViewed, 10)) < 15 * 60 * 1000) {
+            return;
+          }
+
+          var sessionId = sessionStorage.getItem('fuwari_sid');
+          if (!sessionId) {
+            sessionId = 's_' + Math.random().toString(36).slice(2) + now.toString(36);
+            sessionStorage.setItem('fuwari_sid', sessionId);
+          }
+
+          sessionStorage.setItem(storageKey, String(now));
+
+          fetch('/api/stats/view', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              slug: slug,
+              url: window.location.pathname,
+              referrer: document.referrer || '',
+              screen: window.screen ? (window.screen.width + 'x' + window.screen.height) : '',
+              language: navigator.language || '',
+              sessionId: sessionId
+            }),
+            keepalive: true
+          })
+          .then(function(r) { return r.json(); })
+          .then(function(res) {
+            if (res && res.success && res.data) {
+              var countEl = document.getElementById('post-views-count');
+              if (countEl && typeof res.data.views === 'number') {
+                countEl.textContent = res.data.views;
+              }
+            }
+          })
+          .catch(function() {});
         })();
       </script>`)}
     </Layout>

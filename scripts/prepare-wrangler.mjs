@@ -13,6 +13,7 @@ const rawContent = readFileSync(configPath, 'utf-8')
 let content = rawContent
 
 const kvId = process.env.CLOUDFLARE_KV_ID || process.env.KV_NAMESPACE_ID
+const d1Id = process.env.CLOUDFLARE_D1_ID || process.env.D1_DATABASE_ID
 const workerName = process.env.WORKER_NAME
 const blogUrl = process.env.BLOG_URL
 
@@ -22,6 +23,15 @@ if (kvId && kvId.trim()) {
   console.log(`✓ 已注入 KV 命名空间 ID: ${kvId.trim()}`)
 } else {
   console.warn('⚠️ 未检测到 CLOUDFLARE_KV_ID 环境变量，使用现有配置')
+}
+
+// 2. 注入 D1 数据库 ID（若未配置且为占位符则安全剔除，避免线上构建部署报错）
+if (d1Id && d1Id.trim()) {
+  content = content.replace(/"database_id":\s*"[^"]*"/, `"database_id": "${d1Id.trim()}"`)
+  console.log(`✓ 已注入 D1 数据库 ID: ${d1Id.trim()}`)
+} else if (content.includes('<YOUR_D1_DATABASE_ID>')) {
+  content = content.replace(/,\s*\/\/[^\n]*\n\s*"d1_databases":\s*\[[\s\S]*?\]/, '')
+  console.warn('⚠️ 未检测到 CLOUDFLARE_D1_ID 环境变量，已暂缓 D1 绑定（配置后自动启用）')
 }
 
 // 2. 自定义 Worker 服务名称（可选）

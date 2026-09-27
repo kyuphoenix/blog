@@ -13,5 +13,13 @@
       "binding": "BLOG_CACHE",
       "id": "<YOUR_KV_NAMESPACE_ID>"
     }
+  ],
+  // D1 数据库绑定（用于访问量统计与热门文章置顶）
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "blog-db",
+      "database_id": "<YOUR_D1_DATABASE_ID>"
+    }
   ]
 }
