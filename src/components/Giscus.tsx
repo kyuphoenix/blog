@@ -41,24 +41,6 @@ export const Giscus: FC<GiscusProps> = ({ env }) => {
       style="animation-delay: 250ms"
       id="comments"
     >
-      <div class="flex items-center justify-between mb-6 pb-3 border-b border-black/5 dark:border-white/10">
-        <div class="font-bold text-lg fuwari-text-90 flex items-center gap-2">
-          <span
-            class="w-1 h-4 rounded-md inline-block"
-            style="background-color: var(--fuwari-primary)"
-          />
-          评论交流
-        </div>
-        <a
-          href="https://giscus.app/zh-CN"
-          target="_blank"
-          rel="noreferrer"
-          class="text-xs fuwari-text-50 hover:text-(--fuwari-primary) transition-colors no-underline"
-        >
-          由 Giscus 提供支持 ↗
-        </a>
-      </div>
-
       {!isConfigured ? (
         <div class="rounded-xl border border-dashed border-black/15 dark:border-white/15 p-6 text-center">
           <div class="text-3xl mb-2">💬</div>
