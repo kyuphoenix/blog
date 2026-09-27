@@ -1,9 +1,10 @@
 import { AppEnv } from '../types/env'
-import { PostMeta, Post, Manifest } from '../types/post'
+import { PostMeta, Post, Manifest, FriendLink } from '../types/post'
 import { parseFrontmatter, estimateReadingTime } from '../utils/markdown'
 
 const CACHE_TTL = 60 * 5 // 缓存 5 分钟
 const MANIFEST_CACHE_KEY = 'manifest'
+const FRIENDS_CACHE_KEY = 'friends'
 
 /**
  * 构建 GitHub Raw 内容 URL
@@ -171,13 +172,67 @@ export async function getPost(
 }
 
 /**
- * 清除所有缓存（文章更新后调用）
+ * 获取友情链接列表（带 KV 缓存）
+ */
+export async function getFriends(env: AppEnv['Bindings']): Promise<FriendLink[]> {
+  // 1. 先查缓存
+  try {
+    const cached = await env.BLOG_CACHE?.get(FRIENDS_CACHE_KEY)
+    if (cached) {
+      const data = JSON.parse(cached)
+      if (Array.isArray(data)) return data
+      if (data && Array.isArray(data.friends)) return data.friends
+    }
+  } catch {
+    // KV 不可用时忽略
+  }
+
+  // 2. GitHub 未配置时返回内置示例数据
+  if (!isGitHubConfigured(env)) {
+    return getBuiltinFriends()
+  }
+
+  // 3. 从 GitHub 拉取 friends.json
+  const url = rawUrl(env.GITHUB_OWNER, env.GITHUB_REPO, env.GITHUB_BRANCH, 'friends.json')
+  const content = await fetchFromGitHub(url, env.GITHUB_TOKEN)
+
+  if (!content) {
+    return getBuiltinFriends()
+  }
+
+  try {
+    const data = JSON.parse(content)
+    const list: FriendLink[] = Array.isArray(data)
+      ? data
+      : data && Array.isArray(data.friends)
+      ? data.friends
+      : []
+
+    // 写入缓存
+    try {
+      await env.BLOG_CACHE?.put(FRIENDS_CACHE_KEY, JSON.stringify(list), {
+        expirationTtl: CACHE_TTL,
+      })
+    } catch {
+      // KV 不可用时忽略
+    }
+
+    return list
+  } catch (err) {
+    console.warn('Failed to parse friends.json:', err)
+    return getBuiltinFriends()
+  }
+}
+
+/**
+ * 清除所有缓存（文章或友链更新后调用）
  */
 export async function purgeCache(env: AppEnv['Bindings']): Promise<void> {
   if (!env.BLOG_CACHE) return
 
-  // 清除 manifest 缓存
+  // 清除 manifest 与 friends 缓存
   await env.BLOG_CACHE.delete(MANIFEST_CACHE_KEY)
+  await env.BLOG_CACHE.delete(FRIENDS_CACHE_KEY)
 
   // 列出并清除所有文章缓存
   const list = await env.BLOG_CACHE.list({ prefix: 'post:' })
@@ -325,4 +380,27 @@ Hono 是一个小巧、快速的 Web 框架，专为 Edge Runtime 设计。
   if (identifier === 'building-blog-with-hono') return posts['使用 Hono 构建博客 API']
 
   return null
+}
+
+function getBuiltinFriends(): FriendLink[] {
+  return [
+    {
+      title: 'Fuwari',
+      url: 'https://github.com/saicaca/fuwari',
+      description: '✨ A static blog theme powered by Astro & Tailwind CSS',
+      avatar: 'https://github.com/saicaca.png',
+    },
+    {
+      title: 'Hono',
+      url: 'https://hono.dev',
+      description: 'Ultrafast web framework for the Cloudflare Workers & Edge',
+      avatar: 'https://github.com/honojs.png',
+    },
+    {
+      title: 'Cloudflare',
+      url: 'https://cloudflare.com',
+      description: 'Connect, protect, and build everywhere',
+      avatar: 'https://github.com/cloudflare.png',
+    },
+  ]
 }

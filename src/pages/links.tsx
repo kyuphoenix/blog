@@ -2,13 +2,16 @@ import { Hono } from 'hono'
 import { AppEnv } from '../types/env'
 import { Layout, Giscus } from '../components'
 import { ExternalLinkIcon } from '../components/Icons'
-import { getSidebarData } from '../services/github'
+import { getSidebarData, getFriends } from '../services/github'
 import { blogConfig } from '../blog.config'
 
 const links = new Hono<AppEnv>()
 
 links.get('/', async (c) => {
-  const { categories, tags } = await getSidebarData(c.env)
+  const [{ categories, tags }, friends] = await Promise.all([
+    getSidebarData(c.env),
+    getFriends(c.env),
+  ])
   const baseUrl = (c.env.BLOG_URL || '').replace(/\/$/, '') || new URL(c.req.url).origin
   const avatarUrl = blogConfig.theme.fuwari.avatar.startsWith('http')
     ? blogConfig.theme.fuwari.avatar
@@ -43,7 +46,7 @@ links.get('/', async (c) => {
         class="grid grid-cols-1 md:grid-cols-2 gap-4 fuwari-onload-animation"
         style="animation-delay: 150ms"
       >
-        {blogConfig.friends?.map((friend) => (
+        {friends.map((friend) => (
           <a
             href={friend.url}
             target="_blank"

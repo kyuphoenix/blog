@@ -35,6 +35,7 @@
 ├── posts/                    # 文章存放目录 (Markdown)
 │   ├── manifest.json         # 自动生成的文章元数据清单
 │   └── *.md                  # 文章源文件
+├── friends.json              # 友情链接数据源 (支持动态更新与自动刷新缓存)
 ├── public/                   # 静态资源 (头像、背景图、Favicon 等)
 ├── scripts/
 │   ├── gen-manifest.mjs      # 文章清单生成脚本
@@ -173,6 +174,8 @@ draft: false
   - GitHub Actions 将自动触发 `Sync Posts & Refresh Cache` 工作流。
   - 自动更新 `posts/manifest.json` 清单并提交。
   - 自动向 Worker 发送请求清除旧缓存并预热最新文章，**几秒内即可看到更新，无须重新构建部署**。
+- **添加 / 更新友链**：
+  直接修改仓库根目录的 `friends.json`（或在 Pages CMS 中可视化编辑）并推送，Actions 将自动刷新 Worker 缓存，**秒级生效，无需重新构建部署**。
 - **更新网站代码 / 主题样式**：
   修改 `src/` 代码后推送到 GitHub，按需前往 Actions 页面手动运行 **Deploy to Cloudflare Workers** 即可。
 

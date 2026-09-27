@@ -7,6 +7,7 @@ on:
       - main
     paths:
       - 'posts/**'
+      - 'friends.json'
   workflow_dispatch:
 
 concurrency:
@@ -46,7 +47,7 @@ jobs:
             echo "manifest.json 已是最新，无需提交。"
           fi
 
-      - name: Notify Cloudflare Worker to re-cache posts
+      - name: Notify Cloudflare Worker to re-cache posts & friends
         run: |
           # 获取博客访问地址
           BLOG_URL="${{ vars.BLOG_URL || secrets.BLOG_URL }}"
@@ -58,7 +59,7 @@ jobs:
             exit 0
           fi
 
-          echo "正在通知 Cloudflare Worker 重新加载文章列表缓存: ${BLOG_URL%/}/api/posts/purge"
+          echo "正在通知 Cloudflare Worker 重新加载文章与友链缓存: ${BLOG_URL%/}/api/posts/purge"
           HTTP_CODE=$(curl -s -o /tmp/purge_res.json -w "%{http_code}" -X POST "${BLOG_URL%/}/api/posts/purge" \
             -H "X-Purge-Secret: ${PURGE_SECRET}")
 
@@ -68,7 +69,7 @@ jobs:
           fi
 
           if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
-            echo "✅ Cloudflare Worker 已成功清空旧缓存并重新缓存最新文章列表！"
+            echo "✅ Cloudflare Worker 已成功清空旧缓存并重新缓存最新文章列表与友链！"
           else
             echo "⚠️ 缓存刷新请求返回非 2xx 状态码: $HTTP_CODE (请核对 PURGE_SECRET 与 Worker 状态)"
           fi

@@ -84,6 +84,36 @@ content:
           message: 将重新生成 manifest.json 并通知 Cloudflare Worker 预热最新缓存。
           button: 立即同步
 
+  - name: friends
+    label: 友情链接
+    type: file
+    path: friends.json
+    list: true
+    fields:
+      - name: title
+        label: 博客名称
+        type: string
+        required: true
+      - name: url
+        label: 博客网址
+        type: string
+        required: true
+      - name: description
+        label: 博客简介
+        type: string
+      - name: avatar
+        label: 头像图片或链接
+        type: string
+    actions:
+      - name: sync-posts
+        label: 刷新友链缓存
+        scope: file
+        workflow: sync-posts.yml
+        confirm:
+          title: 刷新缓存？
+          message: 将通知 Cloudflare Worker 重新加载最新的友链数据。
+          button: 立即刷新
+
 # 3. 仓库级动作（GitHub Actions 快捷触发按钮）
 actions:
   - name: sync-posts

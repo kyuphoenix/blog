@@ -10,13 +10,6 @@ export interface SocialLink {
   label: string
 }
 
-export interface FriendLink {
-  title: string
-  url: string
-  description: string
-  avatar: string
-}
-
 export const blogConfig = {
   title: 'Fuwari Blog',
   author: 'Blog Author',
@@ -29,27 +22,6 @@ export const blogConfig = {
     { label: '友链', url: '/links' },
     { label: '关于', url: '/about' },
   ] as NavItem[],
-  // 友情链接列表配置
-  friends: [
-    {
-      title: 'Fuwari',
-      url: 'https://github.com/saicaca/fuwari',
-      description: '✨ A static blog theme powered by Astro & Tailwind CSS',
-      avatar: 'https://github.com/saicaca.png',
-    },
-    {
-      title: 'Hono',
-      url: 'https://hono.dev',
-      description: 'Ultrafast web framework for the Cloudflare Workers & Edge',
-      avatar: 'https://github.com/honojs.png',
-    },
-    {
-      title: 'Cloudflare',
-      url: 'https://cloudflare.com',
-      description: 'Connect, protect, and build everywhere',
-      avatar: 'https://github.com/cloudflare.png',
-    },
-  ] as FriendLink[],
   social: [
     { platform: 'github', url: 'https://github.com', label: 'GitHub' },
     { platform: 'email', url: 'mailto:example@email.com', label: 'Email' },

@@ -31,3 +31,11 @@ export interface PostListResponse {
 }
 
 export type Manifest = PostMeta[]
+
+export interface FriendLink {
+  title: string
+  url: string
+  description: string
+  avatar: string
+}
+
