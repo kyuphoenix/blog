@@ -42,6 +42,7 @@ links.get('/', async (c) => {
   return c.html(
     <Layout
       title="友链"
+      description="友情链接 - 优秀博主与开发者朋友们的空间导航与友链申请"
       currentPath="/links"
       isHomePage={false}
       categories={categories}

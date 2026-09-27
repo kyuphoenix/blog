@@ -83,6 +83,104 @@ app.get('/rss.xml', async (c) => {
 
   return c.text(rss, 200, {
     'Content-Type': 'application/xml; charset=utf-8',
+    'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+  })
+})
+
+// RSS 订阅源兼容别名 (/feed, /feed.xml, /atom.xml)
+app.get('/feed', (c) => c.redirect('/rss.xml', 301))
+app.get('/feed.xml', (c) => c.redirect('/rss.xml', 301))
+app.get('/atom.xml', (c) => c.redirect('/rss.xml', 301))
+
+// Sitemap.xml 站点地图生成 (支持 Google, Bing, 百度等全搜索引擎收录标准)
+app.get('/sitemap.xml', async (c) => {
+  const manifest = (await getManifest(c.env)).filter((p) => !p.draft)
+  const baseUrl = (c.env.BLOG_URL || '').replace(/\/$/, '') || new URL(c.req.url).origin
+
+  // 1. 固定页面配置（首页、归档、友链、关于）
+  const staticPages = [
+    { url: '/', changefreq: 'daily', priority: '1.0' },
+    { url: '/archive', changefreq: 'weekly', priority: '0.8' },
+    { url: '/links', changefreq: 'monthly', priority: '0.7' },
+    { url: '/about', changefreq: 'monthly', priority: '0.7' },
+  ]
+
+  // 2. 提取所有已发布文章页面
+  const articlePages = manifest.map((post) => {
+    let lastmod = ''
+    try {
+      lastmod = new Date(post.updated || post.date).toISOString()
+    } catch {
+      lastmod = new Date().toISOString()
+    }
+    return `  <url>
+    <loc>${baseUrl}/posts/${encodeURIComponent(post.title)}</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>`
+  })
+
+  // 3. 提取所有分类与标签聚合页面
+  const categorySet = new Set<string>()
+  const tagSet = new Set<string>()
+  manifest.forEach((p) => {
+    if (p.category) categorySet.add(p.category)
+    if (Array.isArray(p.tags)) {
+      p.tags.forEach((t) => tagSet.add(t))
+    }
+  })
+
+  const categoryPages = Array.from(categorySet).map(
+    (cat) => `  <url>
+    <loc>${baseUrl}/?category=${encodeURIComponent(cat)}</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>`
+  )
+
+  const tagPages = Array.from(tagSet).map(
+    (tag) => `  <url>
+    <loc>${baseUrl}/?tag=${encodeURIComponent(tag)}</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.5</priority>
+  </url>`
+  )
+
+  const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${staticPages
+  .map(
+    (p) => `  <url>
+    <loc>${baseUrl}${p.url}</loc>
+    <changefreq>${p.changefreq}</changefreq>
+    <priority>${p.priority}</priority>
+  </url>`
+  )
+  .join('\n')}
+${articlePages.join('\n')}
+${categoryPages.join('\n')}
+${tagPages.join('\n')}
+</urlset>`
+
+  return c.text(sitemapXml, 200, {
+    'Content-Type': 'application/xml; charset=utf-8',
+    'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+  })
+})
+
+// robots.txt 搜索引擎爬虫协议 (告知抓取范围与 Sitemap 路径)
+app.get('/robots.txt', (c) => {
+  const baseUrl = (c.env.BLOG_URL || '').replace(/\/$/, '') || new URL(c.req.url).origin
+  const robotsTxt = `User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: ${baseUrl}/sitemap.xml
+`
+  return c.text(robotsTxt, 200, {
+    'Content-Type': 'text/plain; charset=utf-8',
+    'Cache-Control': 'public, max-age=86400, s-maxage=86400',
   })
 })
 

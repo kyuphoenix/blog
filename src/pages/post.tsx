@@ -106,6 +106,18 @@ postPage.get('/:title', async (c) => {
       categories={categories}
       tags={tags}
       blogUrl={c.env.BLOG_URL}
+      image={post.cover}
+      ogType="article"
+      articleMeta={{
+        publishedTime: post.date ? new Date(post.date).toISOString() : undefined,
+        modifiedTime: post.updated
+          ? new Date(post.updated).toISOString()
+          : post.date
+          ? new Date(post.date).toISOString()
+          : undefined,
+        section: post.category,
+        tags: post.tags,
+      }}
     >
       <div class="relative flex flex-col rounded-(--fuwari-radius-large) py-1 md:py-0 md:bg-transparent gap-4 mb-4 w-full">
         {/* Table Of Contents (Desktop Floating Right - Exact flare-stack-blog port) */}

@@ -15,6 +15,7 @@ archive.get('/', async (c) => {
   return c.html(
     <Layout
       title="归档"
+      description={`共 ${manifest.length} 篇文章的历史时间线与分类归档`}
       currentPath="/archive"
       isHomePage={false}
       categories={categories}

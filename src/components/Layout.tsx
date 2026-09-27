@@ -16,14 +16,26 @@ interface TagItem {
   count: number
 }
 
+export interface ArticleMeta {
+  publishedTime?: string
+  modifiedTime?: string
+  author?: string
+  section?: string
+  tags?: string[]
+}
+
 interface LayoutProps {
   title?: string
   description?: string
+  keywords?: string[]
   currentPath?: string
   isHomePage?: boolean
   categories?: CategoryItem[]
   tags?: TagItem[]
   blogUrl?: string
+  image?: string
+  ogType?: 'website' | 'article'
+  articleMeta?: ArticleMeta
   children: any
 }
 
@@ -35,17 +47,118 @@ const NAVBAR_HEIGHT_REM = 4.5
 export const Layout: FC<LayoutProps> = ({
   title,
   description,
+  keywords = [],
   currentPath = '/',
   isHomePage = false,
   categories = [],
   tags = [],
   blogUrl,
+  image,
+  ogType,
+  articleMeta,
   children,
 }) => {
   const pageTitle = title ? `${title} - ${blogConfig.title}` : blogConfig.title
   const bannerHeightVh = isHomePage ? BANNER_HEIGHT_HOME : BANNER_HEIGHT_PAGE
   const defaultHue = blogConfig.theme.fuwari.primaryHue
-  const canonicalUrl = blogUrl ? `${blogUrl.replace(/\/$/, '')}${currentPath}` : undefined
+
+  // 基础域名处理
+  const cleanBlogUrl = (blogUrl || '').replace(/\/$/, '')
+  const canonicalUrl = cleanBlogUrl ? `${cleanBlogUrl}${currentPath}` : undefined
+
+  // 图片绝对路径处理 (用于 OpenGraph / Twitter Card / Schema.org)
+  const defaultImage = blogConfig.theme.fuwari.homeBg || blogConfig.theme.fuwari.avatar
+  const rawImage = image || defaultImage
+  const ogImage =
+    rawImage.startsWith('http://') || rawImage.startsWith('https://')
+      ? rawImage
+      : cleanBlogUrl
+      ? `${cleanBlogUrl}${rawImage.startsWith('/') ? '' : '/'}${rawImage}`
+      : rawImage
+
+  // 关键词集合生成
+  const computedKeywords = [
+    ...(keywords || []),
+    ...(articleMeta?.tags || []),
+    ...(tags?.map((t) => t.name) || []),
+    blogConfig.author,
+    '博客',
+    '技术博客',
+  ].filter(Boolean)
+  const uniqueKeywords = Array.from(new Set(computedKeywords)).slice(0, 15).join(', ')
+
+  // 结构化数据 (JSON-LD Schema.org)
+  const jsonLdList: any[] = []
+
+  // 1. 站点级结构化数据 WebSite
+  if (isHomePage) {
+    jsonLdList.push({
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: blogConfig.title,
+      url: cleanBlogUrl || '/',
+      description: blogConfig.description,
+      author: {
+        '@type': 'Person',
+        name: blogConfig.author,
+      },
+      inLanguage: 'zh-CN',
+    })
+  }
+
+  // 2. 文章级结构化数据 BlogPosting
+  if (articleMeta) {
+    jsonLdList.push({
+      '@context': 'https://schema.org',
+      '@type': 'BlogPosting',
+      mainEntityOfPage: {
+        '@type': 'WebPage',
+        '@id': canonicalUrl || currentPath,
+      },
+      headline: title || blogConfig.title,
+      description: description || blogConfig.description,
+      image: ogImage ? [ogImage] : undefined,
+      datePublished: articleMeta.publishedTime,
+      dateModified: articleMeta.modifiedTime || articleMeta.publishedTime,
+      author: {
+        '@type': 'Person',
+        name: articleMeta.author || blogConfig.author,
+      },
+      publisher: {
+        '@type': 'Organization',
+        name: blogConfig.title,
+        logo: {
+          '@type': 'ImageObject',
+          url: cleanBlogUrl ? `${cleanBlogUrl}/favicon.svg` : '/favicon.svg',
+        },
+      },
+      articleSection: articleMeta.section,
+      keywords: articleMeta.tags?.join(', '),
+      inLanguage: 'zh-CN',
+    })
+  }
+
+  // 3. 面包屑导航结构化数据 BreadcrumbList
+  if (!isHomePage && currentPath !== '/') {
+    jsonLdList.push({
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: '首页',
+          item: cleanBlogUrl || '/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: title || '当前页面',
+          item: canonicalUrl || currentPath,
+        },
+      ],
+    })
+  }
 
   return (
     <html lang="zh-CN" style={`--fuwari-hue: ${defaultHue};`}>
@@ -54,15 +167,71 @@ export const Layout: FC<LayoutProps> = ({
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>{pageTitle}</title>
         <meta name="description" content={description || blogConfig.description} />
-        {canonicalUrl && (
+        {uniqueKeywords && <meta name="keywords" content={uniqueKeywords} />}
+        <meta name="author" content={articleMeta?.author || blogConfig.author} />
+        <meta
+          name="robots"
+          content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+        />
+
+        {/* 规范链接 Canonical URL */}
+        {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
+
+        {/* OpenGraph 协议元数据 */}
+        <meta property="og:site_name" content={blogConfig.title} />
+        <meta property="og:locale" content="zh_CN" />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={description || blogConfig.description} />
+        {canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
+        <meta property="og:type" content={ogType || (isHomePage ? 'website' : 'article')} />
+        {ogImage && <meta property="og:image" content={ogImage} />}
+
+        {/* 文章专用 OpenGraph 元数据 */}
+        {articleMeta && (
           <>
-            <link rel="canonical" href={canonicalUrl} />
-            <meta property="og:url" content={canonicalUrl} />
-            <meta property="og:type" content={isHomePage ? 'website' : 'article'} />
-            <meta property="og:title" content={pageTitle} />
-            <meta property="og:description" content={description || blogConfig.description} />
+            {articleMeta.publishedTime && (
+              <meta property="article:published_time" content={articleMeta.publishedTime} />
+            )}
+            {articleMeta.modifiedTime && (
+              <meta property="article:modified_time" content={articleMeta.modifiedTime} />
+            )}
+            {articleMeta.author && (
+              <meta property="article:author" content={articleMeta.author} />
+            )}
+            {articleMeta.section && (
+              <meta property="article:section" content={articleMeta.section} />
+            )}
+            {articleMeta.tags?.map((t) => (
+              <meta property="article:tag" content={t} />
+            ))}
           </>
         )}
+
+        {/* Twitter Card 元数据 */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={description || blogConfig.description} />
+        {ogImage && <meta name="twitter:image" content={ogImage} />}
+        <meta name="twitter:creator" content={blogConfig.author} />
+
+        {/* RSS 与 Sitemap 自动发现关联 */}
+        <link
+          rel="alternate"
+          type="application/rss+xml"
+          title={`${blogConfig.title} - RSS`}
+          href={`${cleanBlogUrl || ''}/rss.xml`}
+        />
+        <link
+          rel="sitemap"
+          type="application/xml"
+          title="Sitemap"
+          href={`${cleanBlogUrl || ''}/sitemap.xml`}
+        />
+
+        {/* 搜索引擎结构化数据 (JSON-LD) */}
+        {jsonLdList.map((data) => (
+          <script type="application/ld+json">{raw(JSON.stringify(data))}</script>
+        ))}
         <link rel="icon" type="image/svg+xml" href={blogConfig.icons.faviconSvg} />
         <link rel="icon" href={blogConfig.icons.faviconIco} />
         <link rel="apple-touch-icon" href={blogConfig.icons.appleTouchIcon} />

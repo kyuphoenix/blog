@@ -11,6 +11,7 @@ about.get('/', async (c) => {
   return c.html(
     <Layout
       title="关于"
+      description="关于本站 - 了解博客的技术架构、个人介绍与建站初衷"
       currentPath="/about"
       isHomePage={false}
       categories={categories}
