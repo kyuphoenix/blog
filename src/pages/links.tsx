@@ -156,7 +156,7 @@ links.get('/', async (c) => {
                   onclick={`copyFriendText('${adminEmail}', this)`}
                   class="fuwari-btn-regular px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer border-none"
                 >
-                  复制博主邮箱 ({adminEmail})
+                  复制邮箱
                 </button>
               </>
             ) : (
