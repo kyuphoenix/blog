@@ -1,3 +1,3 @@
 export * from './response'
 export * from './pagination'
-export * from './slug'
+export * from './markdown'

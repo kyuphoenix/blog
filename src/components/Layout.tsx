@@ -65,6 +65,7 @@ export const Layout: FC<LayoutProps> = ({
         )}
         <link rel="icon" type="image/svg+xml" href={blogConfig.icons.faviconSvg} />
         <link rel="icon" href={blogConfig.icons.faviconIco} />
+        <link rel="apple-touch-icon" href={blogConfig.icons.appleTouchIcon} />
         {/* Tailwind CSS v4 Browser Runtime for full utility support */}
         <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
         {raw(`<style type="text/tailwindcss">

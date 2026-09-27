@@ -105,18 +105,6 @@ export const ChevronRightIcon: FC<IconProps> = ({ size = 24, strokeWidth = 2, cl
   </svg>
 )
 
-export const ChevronDownIcon: FC<IconProps> = ({ size = 16, strokeWidth = 2, class: cls = '' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width={strokeWidth} stroke-linecap="round" stroke-linejoin="round" class={cls}>
-    <path d="m6 9 6 6 6-6" />
-  </svg>
-)
-
-export const ChevronUpIcon: FC<IconProps> = ({ size = 16, strokeWidth = 2, class: cls = '' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width={strokeWidth} stroke-linecap="round" stroke-linejoin="round" class={cls}>
-    <path d="m18 15-6-6-6 6" />
-  </svg>
-)
-
 export const ArrowUpIcon: FC<IconProps> = ({ size = 24, strokeWidth = 2.5, class: cls = '' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width={strokeWidth} stroke-linecap="round" stroke-linejoin="round" class={cls}>
     <path d="m5 12 7-7 7 7" />
