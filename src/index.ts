@@ -8,6 +8,7 @@ import homePage from './pages/home'
 import postPage from './pages/post'
 import archivePage from './pages/archive'
 import aboutPage from './pages/about'
+import linksPage from './pages/links'
 import { getManifest } from './services/github'
 import { blogConfig } from './blog.config'
 import { giscusLightCss, giscusDarkCss } from './styles/giscusTheme'
@@ -89,6 +90,7 @@ app.get('/rss.xml', async (c) => {
 app.route('/', homePage)
 app.route('/posts', postPage)
 app.route('/archive', archivePage)
+app.route('/links', linksPage)
 app.route('/about', aboutPage)
 
 // 错误处理
