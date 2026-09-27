@@ -433,46 +433,38 @@ main {
 }
 
 /* ============================================================
-   Unified Comment Header: Count + Reactions + Direct Comments
+   Unified Comment Header: Count + Reactions on the EXACT SAME ROW
    ============================================================ */
 
-/* 1. Dissolve nested wrappers so header elements and reactions share the same grid */
-.gsc-comments {
-  display: contents !important;
-}
-
-.gsc-header {
-  display: contents !important;
-}
-
-/* 2. Grid container on .gsc-main */
 .gsc-main {
-  display: grid !important;
-  grid-template-columns: auto auto 1fr !important;
-  align-items: center !important;
   position: relative !important;
 }
 
-/* Full-width bottom border separating header row from comment contents */
-.gsc-main::before {
-  content: "" !important;
-  grid-column: 1 / -1 !important;
-  grid-row: 1 !important;
-  align-self: end !important;
-  border-bottom: 1px solid var(--color-border-muted) !important;
-  margin-bottom: -10px !important;
-  pointer-events: none !important;
+.gsc-comments {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
 }
 
-/* 3. Left Header (Comments count: 0 条评论) */
+/* Header line in normal document flow */
+.gsc-header {
+  min-height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  border-bottom: 1px solid var(--color-border-muted) !important;
+  padding-bottom: 12px !important;
+  padding-right: 60px !important; /* ensures space for reaction buttons on the right */
+  margin-top: 0 !important;
+  margin-bottom: 16px !important;
+}
+
+/* Left Header (Comments count: 0 条评论) */
 .gsc-left-header {
-  grid-column: 1 / 2 !important;
-  grid-row: 1 !important;
   display: inline-flex !important;
   align-items: center !important;
   gap: 8px !important;
   margin: 0 !important;
-  padding: 0 0 10px 0 !important;
+  padding: 0 !important;
 }
 
 .gsc-comments-count {
@@ -509,35 +501,40 @@ main {
   display: none !important;
 }
 
-/* 4. Reactions placed directly on the right of the comments count */
+/* Reactions container: absolutely positioned on the EXACT SAME ROW at top: 0, right: 0 */
 .gsc-reactions {
-  grid-column: 2 / 3 !important;
-  grid-row: 1 !important;
-  display: inline-flex !important;
+  position: absolute !important;
+  top: 0 !important;
+  right: 0 !important;
+  height: 36px !important;
+  display: flex !important;
   align-items: center !important;
-  justify-content: flex-start !important;
-  margin: 0 0 0 12px !important;
-  padding: 0 0 10px 0 !important;
-  width: auto !important;
+  justify-content: flex-end !important;
+  z-index: 20 !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
+/* Hide the reaction count header entirely (e.g. "0 reactions", "0 个表情") */
 .gsc-reactions-count {
   display: none !important;
 }
 
+/* Reaction buttons container */
 .gsc-reactions > div {
   margin: 0 !important;
   display: inline-flex !important;
   align-items: center !important;
-  justify-content: flex-start !important;
+  justify-content: flex-end !important;
   gap: 6px !important;
-  width: auto !important;
 }
 
+/* Hide count numbers on individual reaction buttons so only pure emoji icons are shown */
 .gsc-social-reaction-summary-item-count {
   display: none !important;
 }
 
+/* Reaction pill styling */
 .gsc-reactions-button,
 .gsc-direct-reaction-button {
   padding: 4px 8px !important;
@@ -558,27 +555,14 @@ main {
 .gsc-reactions-popover {
   position: absolute !important;
   top: 100% !important;
-  left: 0 !important;
-  right: auto !important;
+  right: 0 !important;
+  left: auto !important;
   z-index: 50 !important;
   margin-top: 6px !important;
 }
 
 .gsc-right-header {
-  grid-column: 3 / 4 !important;
-  grid-row: 1 !important;
-  justify-self: end !important;
-  padding: 0 0 10px 0 !important;
-  margin: 0 !important;
-}
-
-/* 5. Direct Comments Content below the header */
-.gsc-comment-box,
-.gsc-timeline,
-.pagination-loader-container,
-.gsc-reply-box {
-  grid-column: 1 / -1 !important;
-  margin-top: 14px !important;
+  display: none !important;
 }
 
 

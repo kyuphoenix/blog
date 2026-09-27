@@ -23,17 +23,18 @@ export const Giscus: FC<GiscusProps> = ({ env }) => {
   const branch = env?.GITHUB_BRANCH || 'main'
   const cdnBase = `https://cdn.jsdelivr.net/gh/${owner}/${repoName}@${branch}/public/css`
 
+  const themeVersion = '20260927v4'
   const lightTheme =
     env?.GISCUS_THEME_LIGHT ||
     (isHttps
-      ? `${blogUrl}/css/giscus-fuwari-light.css`
-      : `${cdnBase}/giscus-fuwari-light.css`)
+      ? `${blogUrl}/css/giscus-fuwari-light.css?v=${themeVersion}`
+      : `${cdnBase}/giscus-fuwari-light.css?v=${themeVersion}`)
 
   const darkTheme =
     env?.GISCUS_THEME_DARK ||
     (isHttps
-      ? `${blogUrl}/css/giscus-fuwari-dark.css`
-      : `${cdnBase}/giscus-fuwari-dark.css`)
+      ? `${blogUrl}/css/giscus-fuwari-dark.css?v=${themeVersion}`
+      : `${cdnBase}/giscus-fuwari-dark.css?v=${themeVersion}`)
 
   return (
     <div
