@@ -26,28 +26,22 @@ export const PostCard: FC<PostCardProps> = ({ post, index = 0 }) => {
 
   return (
     <div
-      class={`fuwari-card-base flex flex-col w-full rounded-(--fuwari-radius-large) overflow-hidden relative fuwari-onload-animation transition-all duration-300 ${
-        post.isTop
-          ? 'border-2 border-(--fuwari-primary)/40 shadow-sm dark:border-(--fuwari-primary)/50'
-          : ''
-      }`}
+      class="fuwari-card-base flex flex-col w-full rounded-(--fuwari-radius-large) overflow-hidden relative fuwari-onload-animation"
       style={`animation-delay: ${delay}ms`}
     >
       <div class="pl-6 md:pl-9 pr-6 pt-6 md:pt-7 pb-6 relative w-full md:pr-24">
-        {/* Top Pinned Badge (for top 3 most-viewed posts) */}
-        {post.isTop && (
-          <div class="flex items-center gap-2 mb-2.5">
-            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold text-white bg-(--fuwari-primary) shadow-xs">
-              <FireIcon size={12} strokeWidth={2.2} />
-              <span>热门置顶 · TOP {post.rank}</span>
-            </span>
-          </div>
-        )}
         {/* Title with left vertical accent bar */}
         <a
           href={postUrl}
           class="transition group w-full block font-bold mb-3 text-2xl md:text-3xl fuwari-text-90 hover:text-(--fuwari-primary) active:text-(--fuwari-primary) relative before:w-1 before:h-5 before:rounded-md before:absolute before:-left-5 before:top-1/2 before:-translate-y-1/2 before:hidden md:before:block before:bg-(--fuwari-primary) no-underline"
         >
+          {post.isTop && (
+            <FireIcon
+              size={24}
+              strokeWidth={2}
+              class="inline-block text-[#f97316] dark:text-[#fb923c] mr-2 align-middle -mt-1 shrink-0"
+            />
+          )}
           {post.title}
           <ChevronRightIcon
             size={28}
