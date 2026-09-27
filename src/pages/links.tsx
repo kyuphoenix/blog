@@ -134,13 +134,13 @@ links.get('/', async (c) => {
           </div>
         </div>
 
-        {/* 私密申请通道提示与直达按钮 */}
-        <div class="p-4 rounded-xl bg-(--fuwari-primary)/10 border border-(--fuwari-primary)/20 mb-3">
+        {/* 申请方式一：邮件申请 */}
+        <div class="p-4 rounded-xl bg-(--fuwari-primary)/10 border border-(--fuwari-primary)/20 mb-4">
           <div class="font-bold text-sm fuwari-text-90 flex items-center gap-1.5 mb-1.5">
-            <span>🔒 私密申请通道（推荐 · 仅双方可见）</span>
+            <span>📧 邮件申请（推荐）</span>
           </div>
           <p class="text-xs fuwari-text-75 leading-relaxed mb-3">
-            因公开讨论区评论对所有人可见，若需保护您的博客申请隐私，建议通过邮件私信申请。邮件仅您与博主双方可见。
+            点击下方按钮可直接调起您的邮件客户端，正文已预填好申请模板，发送后博主会尽快查收并添加：
           </p>
           <div class="flex flex-wrap items-center gap-2.5">
             {adminEmail ? (
@@ -149,7 +149,7 @@ links.get('/', async (c) => {
                   href={mailtoUrl}
                   class="fuwari-btn-primary px-3.5 py-1.5 rounded-lg text-xs font-bold no-underline inline-flex items-center gap-1.5 shadow-xs"
                 >
-                  <span>📧 一键发送申请邮件</span>
+                  <span>一键发送申请邮件</span>
                 </a>
                 <button
                   type="button"
@@ -165,16 +165,22 @@ links.get('/', async (c) => {
           </div>
         </div>
 
-        {/* 可选：公开讨论区折叠区 */}
-        <div class="mt-4 pt-3 border-t border-black/5 dark:border-white/10">
+        {/* 申请方式二：评论申请 */}
+        <div class="p-4 rounded-xl bg-black/3 dark:bg-white/4 border border-black/5 dark:border-white/10 mb-2">
+          <div class="font-bold text-sm fuwari-text-90 flex items-center gap-1.5 mb-1.5">
+            <span>💬 评论申请</span>
+          </div>
+          <p class="text-xs fuwari-text-75 leading-relaxed mb-3">
+            您也可以直接通过下方评论区提交友链申请，请按照上方格式模板留言（留言内容由 Giscus 托管，对所有访客公开可见）：
+          </p>
           <button
             type="button"
             id="toggle-public-comments-btn"
-            class="text-xs fuwari-text-50 hover:text-(--fuwari-primary) cursor-pointer border-none bg-transparent flex items-center gap-1"
+            class="fuwari-btn-regular px-3.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer border-none flex items-center gap-1.5 text-(--fuwari-primary)"
           >
-            <span>💬 展开/收起公开留言交流区（所有访客公开可见）</span>
+            <span id="comment-toggle-text">展开评论留言区</span>
           </button>
-          <div id="public-comments-wrap" class="hidden mt-4">
+          <div id="public-comments-wrap" class="hidden mt-4 pt-4 border-t border-black/5 dark:border-white/10">
             <Giscus env={c.env} />
           </div>
         </div>
@@ -234,9 +240,13 @@ links.get('/', async (c) => {
 
           var commentToggleBtn = document.getElementById('toggle-public-comments-btn');
           var commentWrap = document.getElementById('public-comments-wrap');
+          var commentText = document.getElementById('comment-toggle-text');
           if (commentToggleBtn && commentWrap) {
             commentToggleBtn.addEventListener('click', function() {
-              commentWrap.classList.toggle('hidden');
+              var isHidden = commentWrap.classList.toggle('hidden');
+              if (commentText) {
+                commentText.textContent = isHidden ? '展开评论留言区' : '收起评论留言区';
+              }
             });
           }
 
