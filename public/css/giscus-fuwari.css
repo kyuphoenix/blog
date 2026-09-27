@@ -499,6 +499,7 @@ main {
 .gsc-comments {
   margin-top: 0 !important;
   padding-top: 0 !important;
+  gap: 1rem !important;
 }
 
 /* Header line in normal document flow */
@@ -508,10 +509,10 @@ main {
   align-items: center !important;
   justify-content: space-between !important;
   border-bottom: 1px solid var(--color-border-muted) !important;
-  padding-bottom: 12px !important;
+  padding-bottom: 8px !important;
   padding-right: 60px !important; /* ensures space for reaction buttons on the right */
   margin-top: 0 !important;
-  margin-bottom: 16px !important;
+  margin-bottom: 0 !important;
 }
 
 /* Left Header (Comments count: 0 条评论) */

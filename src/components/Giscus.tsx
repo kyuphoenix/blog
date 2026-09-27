@@ -16,29 +16,18 @@ export const Giscus: FC<GiscusProps> = ({ env }) => {
   const isConfigured = Boolean(repo && repoId && categoryId)
 
   // 确定 Giscus 主题：自动适配 Fuwari 设计风格，支持暗色模式动态切换
-  const blogUrl = (env?.BLOG_URL || '').replace(/\/$/, '')
-  const isHttps = blogUrl.startsWith('https://')
   const owner = env?.GITHUB_OWNER || 'kyuphoenix'
   const repoName = env?.GITHUB_REPO || 'blog'
   const branch = env?.GITHUB_BRANCH || 'main'
-  const cdnBase = `https://cdn.jsdelivr.net/gh/${owner}/${repoName}@${branch}/public/css`
-
-  const themeVersion = '20260927v4'
-  const lightTheme =
-    env?.GISCUS_THEME_LIGHT ||
-    (isHttps
-      ? `${blogUrl}/css/giscus-fuwari-light.css?v=${themeVersion}`
-      : `${cdnBase}/giscus-fuwari-light.css?v=${themeVersion}`)
-
-  const darkTheme =
-    env?.GISCUS_THEME_DARK ||
-    (isHttps
-      ? `${blogUrl}/css/giscus-fuwari-dark.css?v=${themeVersion}`
-      : `${cdnBase}/giscus-fuwari-dark.css?v=${themeVersion}`)
+  const cdnBase = `https://cdn.jsdelivr.net/gh/${owner}/${repoName}@${branch}/public`
+  const configuredLight = env?.GISCUS_THEME_LIGHT || ''
+  const configuredDark = env?.GISCUS_THEME_DARK || ''
+  const configuredBlogUrl = (env?.BLOG_URL || '').replace(/\/$/, '')
+  const themeVersion = '20260927v5'
 
   return (
     <div
-      class="fuwari-card-base p-6 md:p-8 fuwari-onload-animation"
+      class="fuwari-card-base px-6 md:px-8 py-5 md:py-6 fuwari-onload-animation"
       style="animation-delay: 250ms"
       id="comments"
     >
@@ -80,8 +69,22 @@ export const Giscus: FC<GiscusProps> = ({ env }) => {
           <div class="giscus min-h-[160px]" id="giscus-container"></div>
           {raw(`<script>
             (function() {
+              var origin = window.location.origin;
+              var isHttps = origin && origin.startsWith('https://');
+              var configuredUrl = '${configuredBlogUrl}';
+              var cdnBase = '${cdnBase}';
+              var v = '${themeVersion}';
+
+              // 优先使用当前站点的 HTTPS 域名（直接加载 Worker 自身路由，无 CDN 缓存延迟）
+              var baseUrl = (configuredUrl && configuredUrl.startsWith('https://'))
+                ? configuredUrl
+                : (isHttps ? origin : cdnBase);
+
+              var lightTheme = '${configuredLight}' || (baseUrl + '/css/giscus-fuwari-light.css?v=' + v);
+              var darkTheme = '${configuredDark}' || (baseUrl + '/css/giscus-fuwari-dark.css?v=' + v);
+
               var isDark = document.documentElement.classList.contains('dark');
-              var theme = isDark ? '${darkTheme}' : '${lightTheme}';
+              var theme = isDark ? darkTheme : lightTheme;
 
               var script = document.createElement('script');
               script.src = 'https://giscus.app/client.js';
@@ -109,7 +112,7 @@ export const Giscus: FC<GiscusProps> = ({ env }) => {
               window.addEventListener('theme-change', function(e) {
                 var iframe = document.querySelector('iframe.giscus-frame');
                 if (!iframe) return;
-                var currentTheme = e.detail && e.detail.isDark ? '${darkTheme}' : '${lightTheme}';
+                var currentTheme = e.detail && e.detail.isDark ? darkTheme : lightTheme;
                 iframe.contentWindow.postMessage(
                   { giscus: { setConfig: { theme: currentTheme } } },
                   'https://giscus.app'
