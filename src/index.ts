@@ -197,21 +197,6 @@ Sitemap: ${baseUrl}/sitemap.xml
   })
 })
 
-// IndexNow 站长协议密钥自动验证端点 (支持 Bing / Yandex 等快速索引验证)
-app.get('/:key{.+\\.txt$}', (c) => {
-  const requestedFilename = c.req.param('key')
-  const requestedKey = requestedFilename.replace(/\.txt$/, '')
-  const expectedKey = c.env.INDEXNOW_KEY || blogConfig.seo?.indexnowKey
-
-  if (expectedKey && requestedKey === expectedKey) {
-    return c.text(expectedKey, 200, {
-      'Content-Type': 'text/plain; charset=utf-8',
-      'Cache-Control': 'public, max-age=86400',
-    })
-  }
-  return c.notFound()
-})
-
 // 页面路由 (SSR)
 app.route('/', homePage)
 app.route('/posts', postPage)

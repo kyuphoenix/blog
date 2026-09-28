@@ -77,11 +77,10 @@ export const Layout: FC<LayoutProps> = ({
   const cleanBlogUrl = (blogUrl || '').replace(/\/$/, '')
   const canonicalUrl = cleanBlogUrl ? `${cleanBlogUrl}${currentPath}` : undefined
 
-  // 站长平台验证码（优先使用环境变量传入，其次使用 blogConfig.seo）
+  // 站长平台验证码（直接读取 blogConfig.seo，用户无需配置环境变量或额外 Token）
   const googleVerification = verification?.google || blogConfig.seo?.googleSiteVerification
   const bingVerification = verification?.bing || blogConfig.seo?.bingSiteVerification
   const baiduVerification = verification?.baidu || blogConfig.seo?.baiduSiteVerification
-  const yandexVerification = verification?.yandex || blogConfig.seo?.yandexVerification
 
   // 图片绝对路径处理 (用于 OpenGraph / Twitter Card / Schema.org)
   const defaultImage = blogConfig.theme.fuwari.homeBg || blogConfig.theme.fuwari.avatar
@@ -224,16 +223,13 @@ export const Layout: FC<LayoutProps> = ({
           content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
         />
 
-        {/* 站长平台所有权验证 Meta 标记 */}
+        {/* 站长平台所有权验证 Meta 标记（可选，在 blog.config.ts 中填写） */}
         {googleVerification && (
           <meta name="google-site-verification" content={googleVerification} />
         )}
         {bingVerification && <meta name="msvalidate.01" content={bingVerification} />}
         {baiduVerification && (
           <meta name="baidu-site-verification" content={baiduVerification} />
-        )}
-        {yandexVerification && (
-          <meta name="yandex-verification" content={yandexVerification} />
         )}
 
         {/* 规范链接 Canonical URL */}

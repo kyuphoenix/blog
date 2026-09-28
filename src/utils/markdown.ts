@@ -117,3 +117,22 @@ export function estimateReadingTime(content: string): number {
   const minutes = chineseChars / 300 + englishWords / 200
   return Math.max(1, Math.ceil(minutes))
 }
+
+/**
+ * 提取纯文本摘要 (若文章未定义 excerpt，自动从正文提取作为 SEO 搜索结果与页面描述)
+ */
+export function extractExcerpt(content: string, maxLen: number = 160): string {
+  if (!content) return ''
+  const plain = content
+    .replace(/```[\s\S]*?```/g, '') // 去除代码块
+    .replace(/`([^`]+)`/g, '$1')     // 去除行内代码标记
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, '') // 去除图片
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1') // 提取超链接文本
+    .replace(/<[^>]+>/g, '')         // 去除 HTML 标签
+    .replace(/^#+\s+/gm, '')         // 去除标题符号
+    .replace(/^>\s+/gm, '')          // 去除引用符号
+    .replace(/[*_~]+/g, '')          // 去除强调符号
+    .replace(/\s+/g, ' ')            // 压缩空白
+    .trim()
+  return plain.length <= maxLen ? plain : plain.slice(0, maxLen) + '...'
+}

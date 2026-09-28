@@ -1,6 +1,6 @@
 import { AppEnv } from '../types/env'
 import { PostMeta, Post, Manifest, FriendLink } from '../types/post'
-import { parseFrontmatter, estimateReadingTime } from '../utils/markdown'
+import { parseFrontmatter, estimateReadingTime, extractExcerpt } from '../utils/markdown'
 
 const CACHE_TTL = 60 * 5 // 缓存 5 分钟
 const MANIFEST_CACHE_KEY = 'manifest'
@@ -150,7 +150,7 @@ export async function getPost(
     date: meta?.date || frontmatter.date || new Date().toISOString().split('T')[0],
     category: meta?.category || frontmatter.category || '未分类',
     tags: meta?.tags || frontmatter.tags || [],
-    excerpt: meta?.excerpt || frontmatter.excerpt || '',
+    excerpt: meta?.excerpt || frontmatter.excerpt || extractExcerpt(content),
     cover: meta?.cover || frontmatter.cover,
     draft: meta?.draft ?? frontmatter.draft ?? false,
     slug: postTitle,

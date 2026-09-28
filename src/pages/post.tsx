@@ -120,12 +120,6 @@ postPage.get('/:title', async (c) => {
         wordCount,
         readingTime: post.readingTime,
       }}
-      verification={{
-        google: c.env.GOOGLE_SITE_VERIFICATION,
-        bing: c.env.BING_SITE_VERIFICATION,
-        baidu: c.env.BAIDU_SITE_VERIFICATION,
-        yandex: c.env.YANDEX_VERIFICATION,
-      }}
     >
       <div class="relative flex flex-col rounded-(--fuwari-radius-large) py-1 md:py-0 md:bg-transparent gap-4 mb-4 w-full">
         {/* Table Of Contents (Desktop Floating Right - Exact flare-stack-blog port) */}

@@ -48,12 +48,6 @@ links.get('/', async (c) => {
       categories={categories}
       tags={tags}
       blogUrl={c.env.BLOG_URL}
-      verification={{
-        google: c.env.GOOGLE_SITE_VERIFICATION,
-        bing: c.env.BING_SITE_VERIFICATION,
-        baidu: c.env.BAIDU_SITE_VERIFICATION,
-        yandex: c.env.YANDEX_VERIFICATION,
-      }}
     >
       {/* 头部标题卡片：左侧标题，右侧“申请友链”按钮 */}
       <div

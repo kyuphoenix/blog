@@ -17,12 +17,6 @@ about.get('/', async (c) => {
       categories={categories}
       tags={tags}
       blogUrl={c.env.BLOG_URL}
-      verification={{
-        google: c.env.GOOGLE_SITE_VERIFICATION,
-        bing: c.env.BING_SITE_VERIFICATION,
-        baidu: c.env.BAIDU_SITE_VERIFICATION,
-        yandex: c.env.YANDEX_VERIFICATION,
-      }}
     >
       <div
         class="fuwari-card-base z-10 px-6 md:px-9 pt-6 pb-8 relative w-full fuwari-onload-animation"

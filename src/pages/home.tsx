@@ -5,6 +5,7 @@ import { PostCardItem } from '../components/PostCard'
 import { getManifest, getSidebarData } from '../services/github'
 import { getTopPosts, getAllPostStats } from '../services/stats'
 import { parsePagination } from '../utils/pagination'
+import { blogConfig } from '../blog.config'
 
 const home = new Hono<AppEnv>()
 
@@ -86,23 +87,24 @@ home.get('/', async (c) => {
   else if (tag) baseUrl = `/?tag=${encodeURIComponent(tag)}`
 
   let pageTitle = undefined
-  if (category) pageTitle = `分类: ${category}`
-  if (tag) pageTitle = `标签: ${tag}`
+  let pageDescription = undefined
+  if (category) {
+    pageTitle = `分类: ${category}`
+    pageDescription = `${blogConfig.title} - “${category}”分类下的所有精选文章与技术分享（共 ${total} 篇）。`
+  } else if (tag) {
+    pageTitle = `标签: ${tag}`
+    pageDescription = `${blogConfig.title} - 包含“#${tag}”标签的所有相关文章与教程（共 ${total} 篇）。`
+  }
 
   return c.html(
     <Layout
       title={pageTitle}
+      description={pageDescription}
       currentPath={category ? `/?category=${encodeURIComponent(category)}` : tag ? `/?tag=${encodeURIComponent(tag)}` : '/'}
       isHomePage={!category && !tag}
       categories={categories}
       tags={tags}
       blogUrl={c.env.BLOG_URL}
-      verification={{
-        google: c.env.GOOGLE_SITE_VERIFICATION,
-        bing: c.env.BING_SITE_VERIFICATION,
-        baidu: c.env.BAIDU_SITE_VERIFICATION,
-        yandex: c.env.YANDEX_VERIFICATION,
-      }}
     >
       {(category || tag) && (
         <div

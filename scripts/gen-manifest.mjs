@@ -85,7 +85,24 @@ function parseFrontmatter(raw) {
     Math.ceil(chineseChars / 300 + englishWords / 200)
   )
 
-  return { meta, readingTime }
+  // 自动提取摘要 (若 Frontmatter 未填写 excerpt，自动提取正文纯文本前 160 字作为 SEO 搜索结果摘要)
+  let excerpt = meta.excerpt || ''
+  if (!excerpt && content) {
+    const plain = content
+      .replace(/```[\s\S]*?```/g, '') // 去除代码块
+      .replace(/`([^`]+)`/g, '$1')     // 去除行内代码标记
+      .replace(/!\[([^\]]*)\]\([^)]*\)/g, '') // 去除图片
+      .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1') // 提取超链接文本
+      .replace(/<[^>]+>/g, '')         // 去除 HTML 标签
+      .replace(/^#+\s+/gm, '')         // 去除标题符号
+      .replace(/^>\s+/gm, '')          // 去除引用符号
+      .replace(/[*_~]+/g, '')          // 去除强调符号
+      .replace(/\s+/g, ' ')            // 压缩空白
+      .trim()
+    excerpt = plain.length <= 160 ? plain : plain.slice(0, 160) + '...'
+  }
+
+  return { meta, readingTime, excerpt }
 }
 
 async function main() {
@@ -115,7 +132,7 @@ async function main() {
       updated: meta.updated || undefined,
       category: meta.category || '未分类',
       tags: Array.isArray(meta.tags) ? meta.tags : [],
-      excerpt: meta.excerpt || '',
+      excerpt: meta.excerpt || parsed.excerpt || '',
       cover: meta.cover || undefined,
       draft: meta.draft || false,
       path: `posts/${file}`,
