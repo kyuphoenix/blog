@@ -21,6 +21,12 @@ archive.get('/', async (c) => {
       categories={categories}
       tags={tags}
       blogUrl={c.env.BLOG_URL}
+      verification={{
+        google: c.env.GOOGLE_SITE_VERIFICATION,
+        bing: c.env.BING_SITE_VERIFICATION,
+        baidu: c.env.BAIDU_SITE_VERIFICATION,
+        yandex: c.env.YANDEX_VERIFICATION,
+      }}
     >
       <ArchivePanel posts={manifest} />
     </Layout>

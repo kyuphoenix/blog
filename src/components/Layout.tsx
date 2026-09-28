@@ -22,6 +22,15 @@ export interface ArticleMeta {
   author?: string
   section?: string
   tags?: string[]
+  wordCount?: number
+  readingTime?: number
+}
+
+export interface VerificationMeta {
+  google?: string
+  bing?: string
+  baidu?: string
+  yandex?: string
 }
 
 interface LayoutProps {
@@ -36,6 +45,7 @@ interface LayoutProps {
   image?: string
   ogType?: 'website' | 'article'
   articleMeta?: ArticleMeta
+  verification?: VerificationMeta
   children: any
 }
 
@@ -56,6 +66,7 @@ export const Layout: FC<LayoutProps> = ({
   image,
   ogType,
   articleMeta,
+  verification,
   children,
 }) => {
   const pageTitle = title ? `${title} - ${blogConfig.title}` : blogConfig.title
@@ -65,6 +76,12 @@ export const Layout: FC<LayoutProps> = ({
   // 基础域名处理
   const cleanBlogUrl = (blogUrl || '').replace(/\/$/, '')
   const canonicalUrl = cleanBlogUrl ? `${cleanBlogUrl}${currentPath}` : undefined
+
+  // 站长平台验证码（优先使用环境变量传入，其次使用 blogConfig.seo）
+  const googleVerification = verification?.google || blogConfig.seo?.googleSiteVerification
+  const bingVerification = verification?.bing || blogConfig.seo?.bingSiteVerification
+  const baiduVerification = verification?.baidu || blogConfig.seo?.baiduSiteVerification
+  const yandexVerification = verification?.yandex || blogConfig.seo?.yandexVerification
 
   // 图片绝对路径处理 (用于 OpenGraph / Twitter Card / Schema.org)
   const defaultImage = blogConfig.theme.fuwari.homeBg || blogConfig.theme.fuwari.avatar
@@ -79,6 +96,7 @@ export const Layout: FC<LayoutProps> = ({
   // 关键词集合生成
   const computedKeywords = [
     ...(keywords || []),
+    ...(blogConfig.seo?.keywords || []),
     ...(articleMeta?.tags || []),
     ...(tags?.map((t) => t.name) || []),
     blogConfig.author,
@@ -90,7 +108,7 @@ export const Layout: FC<LayoutProps> = ({
   // 结构化数据 (JSON-LD Schema.org)
   const jsonLdList: any[] = []
 
-  // 1. 站点级结构化数据 WebSite
+  // 1. 站点级结构化数据 WebSite (支持 Google Sitelinks 站内搜索框)
   if (isHomePage) {
     jsonLdList.push({
       '@context': 'https://schema.org',
@@ -103,6 +121,14 @@ export const Layout: FC<LayoutProps> = ({
         name: blogConfig.author,
       },
       inLanguage: 'zh-CN',
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: {
+          '@type': 'EntryPoint',
+          urlTemplate: `${cleanBlogUrl || ''}/?keyword={search_term_string}`,
+        },
+        'query-input': 'required name=search_term_string',
+      },
     })
   }
 
@@ -134,29 +160,53 @@ export const Layout: FC<LayoutProps> = ({
       },
       articleSection: articleMeta.section,
       keywords: articleMeta.tags?.join(', '),
+      wordCount: articleMeta.wordCount,
+      timeRequired: articleMeta.readingTime ? `PT${articleMeta.readingTime}M` : undefined,
       inLanguage: 'zh-CN',
     })
   }
 
   // 3. 面包屑导航结构化数据 BreadcrumbList
   if (!isHomePage && currentPath !== '/') {
+    const breadcrumbItems: any[] = [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: '首页',
+        item: cleanBlogUrl || '/',
+      },
+    ]
+
+    if (articleMeta) {
+      // 文章页拥有 3 级面包屑：首页 -> 所属分类 -> 文章标题
+      breadcrumbItems.push({
+        '@type': 'ListItem',
+        position: 2,
+        name: articleMeta.section || '文章',
+        item: cleanBlogUrl
+          ? `${cleanBlogUrl}/?category=${encodeURIComponent(articleMeta.section || '文章')}`
+          : '/archive',
+      })
+      breadcrumbItems.push({
+        '@type': 'ListItem',
+        position: 3,
+        name: title || '当前文章',
+        item: canonicalUrl || currentPath,
+      })
+    } else {
+      // 普通二级页面（归档、友链、关于）
+      breadcrumbItems.push({
+        '@type': 'ListItem',
+        position: 2,
+        name: title || '当前页面',
+        item: canonicalUrl || currentPath,
+      })
+    }
+
     jsonLdList.push({
       '@context': 'https://schema.org',
       '@type': 'BreadcrumbList',
-      itemListElement: [
-        {
-          '@type': 'ListItem',
-          position: 1,
-          name: '首页',
-          item: cleanBlogUrl || '/',
-        },
-        {
-          '@type': 'ListItem',
-          position: 2,
-          name: title || '当前页面',
-          item: canonicalUrl || currentPath,
-        },
-      ],
+      itemListElement: breadcrumbItems,
     })
   }
 
@@ -173,6 +223,18 @@ export const Layout: FC<LayoutProps> = ({
           name="robots"
           content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
         />
+
+        {/* 站长平台所有权验证 Meta 标记 */}
+        {googleVerification && (
+          <meta name="google-site-verification" content={googleVerification} />
+        )}
+        {bingVerification && <meta name="msvalidate.01" content={bingVerification} />}
+        {baiduVerification && (
+          <meta name="baidu-site-verification" content={baiduVerification} />
+        )}
+        {yandexVerification && (
+          <meta name="yandex-verification" content={yandexVerification} />
+        )}
 
         {/* 规范链接 Canonical URL */}
         {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
@@ -232,6 +294,12 @@ export const Layout: FC<LayoutProps> = ({
         {jsonLdList.map((data) => (
           <script type="application/ld+json">{raw(JSON.stringify(data))}</script>
         ))}
+
+        {/* DNS-Prefetch 与 CDN Preconnect 优化 (显著降低 Core Web Vitals LCP 延迟) */}
+        <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com" />
+        <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
         <link rel="icon" type="image/svg+xml" href={blogConfig.icons.faviconSvg} />
         <link rel="icon" href={blogConfig.icons.faviconIco} />
         <link rel="apple-touch-icon" href={blogConfig.icons.appleTouchIcon} />

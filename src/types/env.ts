@@ -13,6 +13,12 @@ export type Bindings = {
   GISCUS_CATEGORY_ID?: string
   GISCUS_THEME_LIGHT?: string
   GISCUS_THEME_DARK?: string
+  GOOGLE_SITE_VERIFICATION?: string
+  BING_SITE_VERIFICATION?: string
+  BAIDU_SITE_VERIFICATION?: string
+  YANDEX_VERIFICATION?: string
+  INDEXNOW_KEY?: string
+  BAIDU_PUSH_TOKEN?: string
 }
 
 export type Variables = {

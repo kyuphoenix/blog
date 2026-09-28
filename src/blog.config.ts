@@ -40,4 +40,24 @@ export const blogConfig = {
       primaryHue: 250,
     },
   },
+  // 搜索引擎收录与站长验证配置
+  seo: {
+    // 网站主关键词
+    keywords: [
+      '个人博客',
+      '技术分享',
+      '全栈开发',
+      'Cloudflare Workers',
+      'Hono',
+      'TypeScript',
+      '前端开发',
+    ],
+    // 站长平台所有权验证（可选，也可通过环境变量覆盖）
+    googleSiteVerification: '', // Google Search Console 验证码
+    bingSiteVerification: '',   // Bing Webmaster Tools (msvalidate.01)
+    baiduSiteVerification: '',  // 百度搜索资源平台验证码
+    yandexVerification: '',     // Yandex 验证码
+    // IndexNow 密钥（用于 Bing / Yandex 秒级推送收录）
+    indexnowKey: '',
+  },
 }

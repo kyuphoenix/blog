@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { AppEnv } from '../types/env'
 import { getManifest, getPost, getFriends, purgeCache } from '../services/github'
+import { pushUrlsToSearchEngines } from '../services/seo'
 import { success, paginated, fail } from '../utils/response'
 import { parsePagination } from '../utils/pagination'
 
@@ -130,9 +131,34 @@ posts.post('/purge', async (c) => {
     getFriends(c.env),
   ])
 
+  // 3. 构建公开页面 URL 列表并向搜索引擎（IndexNow / 百度）自动提交收录
+  const baseUrl = (c.env.BLOG_URL || '').replace(/\/$/, '')
+  let pushResults: any = undefined
+  if (baseUrl) {
+    const published = manifest.filter((p) => !p.draft)
+    const urlsToPush = [
+      `${baseUrl}/`,
+      `${baseUrl}/archive`,
+      `${baseUrl}/links`,
+      `${baseUrl}/about`,
+      ...published.map((p) => `${baseUrl}/posts/${encodeURIComponent(p.title)}`),
+    ]
+
+    if (c.executionCtx && typeof c.executionCtx.waitUntil === 'function') {
+      c.executionCtx.waitUntil(pushUrlsToSearchEngines(c.env, urlsToPush))
+    } else {
+      pushResults = await pushUrlsToSearchEngines(c.env, urlsToPush)
+    }
+  }
+
   return success(
     c,
-    { reCachedCount: manifest.length, reCachedFriendsCount: friends.length },
+    {
+      reCachedCount: manifest.length,
+      reCachedFriendsCount: friends.length,
+      pushTriggered: Boolean(baseUrl),
+      pushResults,
+    },
     'Cache purged and manifest & friends re-cached successfully'
   )
 })

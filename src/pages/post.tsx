@@ -117,6 +117,14 @@ postPage.get('/:title', async (c) => {
           : undefined,
         section: post.category,
         tags: post.tags,
+        wordCount,
+        readingTime: post.readingTime,
+      }}
+      verification={{
+        google: c.env.GOOGLE_SITE_VERIFICATION,
+        bing: c.env.BING_SITE_VERIFICATION,
+        baidu: c.env.BAIDU_SITE_VERIFICATION,
+        yandex: c.env.YANDEX_VERIFICATION,
       }}
     >
       <div class="relative flex flex-col rounded-(--fuwari-radius-large) py-1 md:py-0 md:bg-transparent gap-4 mb-4 w-full">
@@ -192,7 +200,15 @@ postPage.get('/:title', async (c) => {
         )}
 
         {/* Main Post Container (Exact flare-stack-blog PostPage port) */}
-        <div class="fuwari-card-base z-10 px-6 md:px-9 pt-6 pb-4 relative w-full fuwari-onload-animation">
+        <article
+          class="fuwari-card-base z-10 px-6 md:px-9 pt-6 pb-4 relative w-full fuwari-onload-animation"
+          itemscope
+          itemtype="https://schema.org/BlogPosting"
+        >
+          <meta itemprop="headline" content={post.title} />
+          <meta itemprop="description" content={post.excerpt || post.title} />
+          <meta itemprop="wordCount" content={String(wordCount)} />
+
           {/* Word count, reading time and view count */}
           <div class="flex flex-row flex-wrap fuwari-text-30 gap-5 mb-3 transition">
             <div class="flex flex-row items-center">
@@ -234,7 +250,7 @@ postPage.get('/:title', async (c) => {
               <div class="fuwari-meta-icon">
                 <CalendarIcon strokeWidth={1.5} size={20} />
               </div>
-              <span class="text-sm font-medium fuwari-text-50">{post.date}</span>
+              <time datetime={post.date} itemprop="datePublished" class="text-sm font-medium fuwari-text-50">{post.date}</time>
             </div>
 
             {post.updated && post.updated !== post.date && (
@@ -242,9 +258,9 @@ postPage.get('/:title', async (c) => {
                 <div class="fuwari-meta-icon">
                   <EditIcon strokeWidth={1.5} size={20} />
                 </div>
-                <span class="text-sm font-medium fuwari-text-50">
+                <time datetime={post.updated} itemprop="dateModified" class="text-sm font-medium fuwari-text-50">
                   {post.updated}
-                </span>
+                </time>
               </div>
             )}
 
@@ -308,7 +324,10 @@ postPage.get('/:title', async (c) => {
           )}
 
           {/* Markdown Content */}
-          <div class="mb-6 prose dark:prose-invert prose-base max-w-none! fuwari-custom-md">
+          <div
+            class="mb-6 prose dark:prose-invert prose-base max-w-none! fuwari-custom-md"
+            itemprop="articleBody"
+          >
             {raw(htmlContent)}
           </div>
 
@@ -320,7 +339,7 @@ postPage.get('/:title', async (c) => {
             </span>
             <div class="h-px w-full bg-linear-to-r from-(--fuwari-meta-divider) via-transparent to-transparent opacity-20" />
           </div>
-        </div>
+        </article>
 
         {/* Giscus Comments Section */}
         <Giscus env={c.env} />

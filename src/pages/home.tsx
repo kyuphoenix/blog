@@ -92,11 +92,17 @@ home.get('/', async (c) => {
   return c.html(
     <Layout
       title={pageTitle}
-      currentPath="/"
+      currentPath={category ? `/?category=${encodeURIComponent(category)}` : tag ? `/?tag=${encodeURIComponent(tag)}` : '/'}
       isHomePage={!category && !tag}
       categories={categories}
       tags={tags}
       blogUrl={c.env.BLOG_URL}
+      verification={{
+        google: c.env.GOOGLE_SITE_VERIFICATION,
+        bing: c.env.BING_SITE_VERIFICATION,
+        baidu: c.env.BAIDU_SITE_VERIFICATION,
+        yandex: c.env.YANDEX_VERIFICATION,
+      }}
     >
       {(category || tag) && (
         <div

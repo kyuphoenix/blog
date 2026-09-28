@@ -105,7 +105,7 @@ app.get('/sitemap.xml', async (c) => {
     { url: '/about', changefreq: 'monthly', priority: '0.7' },
   ]
 
-  // 2. 提取所有已发布文章页面
+  // 2. 提取所有已发布文章页面（支持 Google Image Sitemap 扩展）
   const articlePages = manifest.map((post) => {
     let lastmod = ''
     try {
@@ -113,11 +113,24 @@ app.get('/sitemap.xml', async (c) => {
     } catch {
       lastmod = new Date().toISOString()
     }
+
+    let imageXml = ''
+    if (post.cover) {
+      const coverUrl = post.cover.startsWith('http')
+        ? post.cover
+        : `${baseUrl}${post.cover.startsWith('/') ? '' : '/'}${post.cover}`
+      imageXml = `\n    <image:image>
+      <image:loc>${coverUrl}</image:loc>
+      <image:title><![CDATA[${post.title}]]></image:title>
+      <image:caption><![CDATA[${post.excerpt || post.title}]]></image:caption>
+    </image:image>`
+    }
+
     return `  <url>
     <loc>${baseUrl}/posts/${encodeURIComponent(post.title)}</loc>
     <lastmod>${lastmod}</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
+    <priority>0.9</priority>${imageXml}
   </url>`
   })
 
@@ -148,7 +161,7 @@ app.get('/sitemap.xml', async (c) => {
   )
 
   const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
 ${staticPages
   .map(
     (p) => `  <url>
@@ -184,6 +197,21 @@ Sitemap: ${baseUrl}/sitemap.xml
   })
 })
 
+// IndexNow 站长协议密钥自动验证端点 (支持 Bing / Yandex 等快速索引验证)
+app.get('/:key{.+\\.txt$}', (c) => {
+  const requestedFilename = c.req.param('key')
+  const requestedKey = requestedFilename.replace(/\.txt$/, '')
+  const expectedKey = c.env.INDEXNOW_KEY || blogConfig.seo?.indexnowKey
+
+  if (expectedKey && requestedKey === expectedKey) {
+    return c.text(expectedKey, 200, {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Cache-Control': 'public, max-age=86400',
+    })
+  }
+  return c.notFound()
+})
+
 // 页面路由 (SSR)
 app.route('/', homePage)
 app.route('/posts', postPage)
@@ -194,18 +222,25 @@ app.route('/about', aboutPage)
 // 错误处理
 app.onError(errorHandler)
 
-// 404 处理
+// 404 处理 (添加 noindex, nofollow 防止搜索引擎将 404 错误页收录)
 app.notFound((c) => {
   return c.html(
     `<!DOCTYPE html>
-    <html><head><title>404</title></head>
-    <body style="display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;">
-      <div style="text-align:center">
-        <h1 style="font-size:4rem;margin:0">404</h1>
-        <p>页面不存在</p>
-        <a href="/" style="color:#6366f1">返回首页</a>
-      </div>
-    </body></html>`,
+    <html lang="zh-CN">
+      <head>
+        <meta charset="utf-8" />
+        <title>404 - 页面未找到</title>
+        <meta name="robots" content="noindex, nofollow" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      </head>
+      <body style="display:flex;justify-content:center;align-items:center;height:100vh;margin:0;font-family:sans-serif;background-color:#fafafa;color:#333;">
+        <div style="text-align:center">
+          <h1 style="font-size:4rem;margin:0;color:#6366f1">404</h1>
+          <p style="font-size:1.125rem;margin:1rem 0">抱歉，您访问的页面不存在或已被移除</p>
+          <a href="/" style="display:inline-block;padding:0.5rem 1.25rem;background-color:#6366f1;color:#fff;border-radius:0.5rem;text-decoration:none;font-weight:500;">返回首页</a>
+        </div>
+      </body>
+    </html>`,
     404
   )
 })
