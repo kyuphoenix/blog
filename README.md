@@ -148,9 +148,25 @@ draft: false
 3. **数据库初始化（支持全自动与手动两种方式）**：
    - **✨ 全自动初始化（推荐，无需手动建表）**：
      在 GitHub Secrets 中添加 `DATABASE_URL`（Supabase 控制台 **Settings** -> **Database** -> **Connection string** 中的 URI）或 `SUPABASE_ACCESS_TOKEN`（控制台 **Account** -> **Access Tokens**）。
-     GitHub Actions 在首次部署时会自动检测数据表是否存在，若未初始化将**自动执行建表、索引与存储过程初始化**！后续部署自动跳过。
+     GitHub Actions 在首次部署时会自动检测数据表是否存在，若未初始化将**自动执行建表、索引、RLS 安全策略与存储过程初始化**！后续部署自动跳过。
    - **手动初始化（备选）**：
      打开 Supabase 项目的 **SQL Editor**，将项目中的 [`db/schema.supabase.sql`](db/schema.supabase.sql) 内容完整粘贴并点击 **Run** 执行一次即可。
+
+#### 🔑 Supabase 不同权限密钥/凭据的区别与选用建议
+
+在使用 Supabase 时，你会接触到几种不同类型与权限级别的密钥，它们在安全性与功能上的差异如下：
+
+| 凭据类型 | 配置名称 | 权限级别 | 能否自动建表 (DDL) | 业务读写 | 安全性与适用场景 |
+| :--- | :--- | :---: | :---: | :---: | :--- |
+| **anon key**<br>(公开匿名密钥) | `SUPABASE_KEY` | 受限<br>(遵循 RLS 策略) | ❌ 否<br>(公开 API 禁止建表) | ✅ 正常支持<br>(受 RLS 保护) | 🟢 **最安全**。专供客户端与边缘 Worker 运行时使用，即便泄露也不会破坏数据库或越权访问。 |
+| **service_role key**<br>(管理员超级密钥) | `SUPABASE_KEY` 或<br>`SUPABASE_SERVICE_ROLE_KEY` | 超级管理<br>(绕过所有 RLS) | ❌ 否<br>(PostgREST 未开放任意 SQL 接口) | ✅ 拥有全权<br>(无视 RLS 规则) | 🟡 **需妥善保管**。仅可在后端/Worker 环境变量中存放，**严禁暴露在客户端前端代码中**。 |
+| **DATABASE_URL**<br>(PostgreSQL 直连连接串) | `DATABASE_URL` 或<br>`SUPABASE_DB_URL` | 底层数据库连接<br>(`postgres` 用户) | ✅ **支持全自动建表**<br>(通过标准 Postgres 协议) | -<br>(Worker 走 REST 避免耗尽连接池) | 🔴 **高度敏感**。存放在 GitHub Secrets 中，**专供 GitHub Actions 首次部署时自动执行建表与升级**。 |
+| **SUPABASE_ACCESS_TOKEN**<br>(个人管理访问令牌) | `SUPABASE_ACCESS_TOKEN` | 平台管理级<br>(Management API) | ✅ **支持全自动建表**<br>(通过官方管控 API 远程下发) | -<br>(不参与应用业务运行) | 🔴 **账户级凭据**。存放在 GitHub Secrets 中，适合不便配置数据库密码时的全自动建表备选。 |
+
+> 💡 **最佳实践推荐组合**：
+> - **生产运行**：`SUPABASE_KEY` 配置 `anon key`（安全合规，配合项目自带的 RLS 策略正常读写统计数据）。
+> - **一键部署**：GitHub Secrets 中配置 `DATABASE_URL`，实现初次部署免进 Supabase 控制台的**全自动无感建表**。
+
 
 ### 方案 B：使用 Cloudflare D1
 
