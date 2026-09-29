@@ -140,13 +140,17 @@ draft: false
 
 博客支持 **Cloudflare D1** 或 **Supabase** 作为阅读量统计与热门置顶的数据源。
 
-### 方案 A：使用 Supabase (推荐用于跨平台部署)
+### 方案 A：使用 Supabase (推荐用于跨平台部署，支持 Action 全自动建表)
 
 1. 在 [Supabase](https://supabase.com/) 创建一个新项目。
-2. 打开项目的 **SQL Editor**，将项目中的 [`db/schema.supabase.sql`](db/schema.supabase.sql) 内容完整粘贴并点击 **Run** 执行。
-3. 进入 **Project Settings** -> **API**，获取以下信息：
-   - **Project URL**（对应 `SUPABASE_URL`）
-   - **Project API Keys** 中的 `anon` public key 或 `service_role` key（对应 `SUPABASE_KEY`）
+2. 获取项目凭据：
+   - 进入 **Project Settings** -> **API**，获取 **Project URL**（对应 `SUPABASE_URL`）和 **Project API Keys**（对应 `SUPABASE_KEY`）。
+3. **数据库初始化（支持全自动与手动两种方式）**：
+   - **✨ 全自动初始化（推荐，无需手动建表）**：
+     在 GitHub Secrets 中添加 `DATABASE_URL`（Supabase 控制台 **Settings** -> **Database** -> **Connection string** 中的 URI）或 `SUPABASE_ACCESS_TOKEN`（控制台 **Account** -> **Access Tokens**）。
+     GitHub Actions 在首次部署时会自动检测数据表是否存在，若未初始化将**自动执行建表、索引与存储过程初始化**！后续部署自动跳过。
+   - **手动初始化（备选）**：
+     打开 Supabase 项目的 **SQL Editor**，将项目中的 [`db/schema.supabase.sql`](db/schema.supabase.sql) 内容完整粘贴并点击 **Run** 执行一次即可。
 
 ### 方案 B：使用 Cloudflare D1
 
@@ -175,6 +179,8 @@ draft: false
 | `CLOUDFLARE_D1_ID` | 选填 | Cloudflare D1 数据库 ID（使用 D1 数据库时配置） |
 | `SUPABASE_URL` | 选填 | Supabase 项目 URL（使用 Supabase 数据库时配置） |
 | `SUPABASE_KEY` | 选填 | Supabase API 密钥（使用 Supabase 数据库时配置） |
+| `DATABASE_URL` | 选填 | Supabase PostgreSQL 连接串，**配置后 Action 自动检测并全自动建表** |
+| `SUPABASE_ACCESS_TOKEN` | 选填 | Supabase Personal Access Token，**配置后亦支持 Action 全自动建表** |
 | `PURGE_SECRET` | 推荐 | 自定义缓存刷新密钥（用于防护缓存热刷新 Webhook） |
 | `PAT_TOKEN` | 可选 | GitHub Personal Access Token（仅在仓库为私有仓库时需要） |
 
