@@ -20,12 +20,18 @@ const dbType = (process.env.DATABASE_TYPE || process.env.DB_TYPE || 'auto').toLo
 const supabaseUrl = process.env.SUPABASE_URL
 const supabaseKey = process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY
 
-// 1. 注入 KV 命名空间 ID
+// 辅助函数：安全移除 wrangler.jsonc 中的 kv_namespaces 绑定
+function stripKVNamespaces(text) {
+  return text.replace(/,\s*\/\/[^\n]*\n\s*"kv_namespaces":\s*\[[\s\S]*?\]/, '')
+}
+
+// 1. 注入 KV 命名空间 ID（若未提供且仍为占位符则安全移除，unstorage 会自动平滑降级为内存缓存）
 if (kvId && kvId.trim()) {
   content = content.replace(/"id":\s*"[^"]*"/, `"id": "${kvId.trim()}"`)
   console.log(`✓ 已注入 KV 命名空间 ID: ${kvId.trim()}`)
-} else {
-  console.warn('⚠️ 未检测到 CLOUDFLARE_KV_ID 环境变量，使用现有配置')
+} else if (content.includes('<YOUR_KV_NAMESPACE_ID>')) {
+  content = stripKVNamespaces(content)
+  console.warn('⚠️ 未检测到 CLOUDFLARE_KV_ID，已安全移除 KV 占位绑定（unstorage 自动降级为内存缓存）')
 }
 
 // 辅助函数：安全移除 wrangler.jsonc 中的 d1_databases 绑定

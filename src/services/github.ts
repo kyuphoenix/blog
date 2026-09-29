@@ -1,6 +1,7 @@
 import { AppEnv } from '../types/env'
 import { PostMeta, Post, Manifest, FriendLink } from '../types/post'
 import { parseFrontmatter, estimateReadingTime, extractExcerpt } from '../utils/markdown'
+import { getBlogStorage } from './storage'
 
 const CACHE_TTL = 60 * 5 // 缓存 5 分钟
 const MANIFEST_CACHE_KEY = 'manifest'
@@ -51,14 +52,16 @@ async function fetchFromGitHub(
  * 获取文章清单（带 KV 缓存）
  */
 export async function getManifest(env: AppEnv['Bindings']): Promise<Manifest> {
+  const storage = getBlogStorage(env)
+
   // 先查缓存
   try {
-    const cached = await env.BLOG_CACHE?.get(MANIFEST_CACHE_KEY)
+    const cached = await storage.getItem<Manifest>(MANIFEST_CACHE_KEY)
     if (cached) {
-      return JSON.parse(cached) as Manifest
+      return cached
     }
   } catch {
-    // KV 不可用时忽略
+    // 缓存不可用时忽略
   }
 
   // GitHub 未配置时返回示例数据
@@ -78,11 +81,11 @@ export async function getManifest(env: AppEnv['Bindings']): Promise<Manifest> {
 
   // 写入缓存
   try {
-    await env.BLOG_CACHE?.put(MANIFEST_CACHE_KEY, content, {
-      expirationTtl: CACHE_TTL,
+    await storage.setItem(MANIFEST_CACHE_KEY, manifest, {
+      ttl: CACHE_TTL,
     })
   } catch {
-    // KV 不可用时忽略
+    // 写入异常时忽略
   }
 
   return manifest
@@ -105,15 +108,16 @@ export async function getPost(
   }
 
   const cacheKey = `post:${decoded}`
+  const storage = getBlogStorage(env)
 
   // 先查缓存
   try {
-    const cached = await env.BLOG_CACHE?.get(cacheKey)
+    const cached = await storage.getItem<Post>(cacheKey)
     if (cached) {
-      return JSON.parse(cached) as Post
+      return cached
     }
   } catch {
-    // KV 不可用时忽略
+    // 缓存不可用时忽略
   }
 
   // 从清单查找对应文章以获取真实文件路径
@@ -161,11 +165,11 @@ export async function getPost(
 
   // 写入缓存
   try {
-    await env.BLOG_CACHE?.put(cacheKey, JSON.stringify(post), {
-      expirationTtl: CACHE_TTL,
+    await storage.setItem(cacheKey, post, {
+      ttl: CACHE_TTL,
     })
   } catch {
-    // KV 不可用时忽略
+    // 写入异常时忽略
   }
 
   return post
@@ -175,16 +179,17 @@ export async function getPost(
  * 获取友情链接列表（带 KV 缓存）
  */
 export async function getFriends(env: AppEnv['Bindings']): Promise<FriendLink[]> {
+  const storage = getBlogStorage(env)
+
   // 1. 先查缓存
   try {
-    const cached = await env.BLOG_CACHE?.get(FRIENDS_CACHE_KEY)
+    const cached = await storage.getItem<any>(FRIENDS_CACHE_KEY)
     if (cached) {
-      const data = JSON.parse(cached)
-      if (Array.isArray(data)) return data
-      if (data && Array.isArray(data.friends)) return data.friends
+      if (Array.isArray(cached)) return cached
+      if (cached && Array.isArray(cached.friends)) return cached.friends
     }
   } catch {
-    // KV 不可用时忽略
+    // 缓存不可用时忽略
   }
 
   // 2. GitHub 未配置时返回内置示例数据
@@ -210,11 +215,11 @@ export async function getFriends(env: AppEnv['Bindings']): Promise<FriendLink[]>
 
     // 写入缓存
     try {
-      await env.BLOG_CACHE?.put(FRIENDS_CACHE_KEY, JSON.stringify(list), {
-        expirationTtl: CACHE_TTL,
+      await storage.setItem(FRIENDS_CACHE_KEY, list, {
+        ttl: CACHE_TTL,
       })
     } catch {
-      // KV 不可用时忽略
+      // 写入异常时忽略
     }
 
     return list
@@ -228,16 +233,22 @@ export async function getFriends(env: AppEnv['Bindings']): Promise<FriendLink[]>
  * 清除所有缓存（文章或友链更新后调用）
  */
 export async function purgeCache(env: AppEnv['Bindings']): Promise<void> {
-  if (!env.BLOG_CACHE) return
+  const storage = getBlogStorage(env)
 
-  // 清除 manifest 与 friends 缓存
-  await env.BLOG_CACHE.delete(MANIFEST_CACHE_KEY)
-  await env.BLOG_CACHE.delete(FRIENDS_CACHE_KEY)
+  try {
+    // 清除 manifest 与 friends 缓存
+    await Promise.all([
+      storage.removeItem(MANIFEST_CACHE_KEY),
+      storage.removeItem(FRIENDS_CACHE_KEY),
+    ])
 
-  // 列出并清除所有文章缓存
-  const list = await env.BLOG_CACHE.list({ prefix: 'post:' })
-  for (const key of list.keys) {
-    await env.BLOG_CACHE.delete(key.name)
+    // 列出并清除所有文章缓存
+    const postKeys = await storage.getKeys('post:')
+    if (postKeys.length > 0) {
+      await Promise.all(postKeys.map((key) => storage.removeItem(key)))
+    }
+  } catch (err) {
+    console.warn('清除缓存失败:', err)
   }
 }
 

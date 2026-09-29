@@ -11,7 +11,8 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",
     "hono": "^4.13.9",
-    "marked": "^18.0.14"
+    "marked": "^18.0.14",
+    "unstorage": "^1.17.5"
   },
   "devDependencies": {
     "wrangler": "^4.110.0"
