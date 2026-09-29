@@ -199,16 +199,6 @@ postPage.get('/:title', async (c) => {
           itemscope
           itemtype="https://schema.org/BlogPosting"
         >
-          {post.cover && (
-            <div class="relative w-full max-h-[32vh] md:max-h-[45vh] overflow-hidden rounded-xl mb-6 -mt-1">
-              <img
-                src={post.cover}
-                alt={post.title}
-                class="w-full h-full object-cover object-center"
-              />
-            </div>
-          )}
-
           <meta itemprop="headline" content={post.title} />
           <meta itemprop="description" content={post.excerpt || post.title} />
           <meta itemprop="wordCount" content={String(wordCount)} />
@@ -306,6 +296,20 @@ postPage.get('/:title', async (c) => {
               </div>
             </div>
           </div>
+
+          {/* Post Cover Image (Fuwari Specification - natural aspect ratio without harsh cropping) */}
+          {post.cover ? (
+            <div class="relative w-full overflow-hidden rounded-2xl mb-8 border border-black/5 dark:border-white/10 shadow-xs">
+              <img
+                src={post.cover}
+                alt={post.title}
+                class="w-full h-auto max-h-[650px] object-cover object-center block"
+                loading="eager"
+              />
+            </div>
+          ) : (
+            <div class="border-(--fuwari-meta-divider) border-dashed border-b mb-6 opacity-30" />
+          )}
 
           {/* PostSummary (Exact flare-stack-blog PostSummary port) */}
           {post.excerpt && (
