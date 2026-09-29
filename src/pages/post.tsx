@@ -74,8 +74,8 @@ postPage.get('/:title', async (c) => {
     .filter(Boolean).length
   const wordCount = Math.max(100, chineseChars + englishWords)
 
-  // 获取 D1 访问量统计
-  const stats = await getPostStats(c.env.DB, post.title)
+  // 获取访问量统计（自动适配 D1 或 Supabase）
+  const stats = await getPostStats(c.env, post.title)
   const viewsCount = stats.views || 0
 
   // Compute minDepth for TOC numbering (exact flare-stack-blog TableOfContents logic)

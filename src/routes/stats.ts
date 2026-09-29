@@ -33,7 +33,7 @@ stats.post('/view', async (c) => {
       '127.0.0.1'
     const country = c.req.header('cf-ipcountry') || ''
 
-    const result = await recordPageView(c.env.DB, {
+    const result = await recordPageView(c.env, {
       slug,
       url: body.url || '',
       referrer: body.referrer || '',
@@ -57,7 +57,7 @@ stats.post('/view', async (c) => {
  */
 stats.get('/top', async (c) => {
   const limit = Math.min(20, Math.max(1, parseInt(c.req.query('limit') || '3', 10)))
-  const data = await getTopPosts(c.env.DB, limit)
+  const data = await getTopPosts(c.env, limit)
   return c.json({ success: true, data })
 })
 
@@ -69,8 +69,22 @@ stats.get('/post', async (c) => {
   if (!slug) {
     return c.json({ success: false, message: 'Missing slug' }, 400)
   }
-  const data = await getPostStats(c.env.DB, slug)
+  const data = await getPostStats(c.env, slug)
   return c.json({ success: true, data })
+})
+
+/**
+ * 查询当前生效的数据库类型与连接状态
+ */
+stats.get('/status', (c) => {
+  const type = resolveDatabaseType(c.env)
+  return c.json({
+    success: true,
+    data: {
+      database: type || 'none',
+      configured: Boolean(type),
+    },
+  })
 })
 
 export default stats

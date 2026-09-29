@@ -3,6 +3,16 @@ name: Deploy to Cloudflare Workers
 # 仅允许手动运行触发部署
 on:
   workflow_dispatch:
+    inputs:
+      database_type:
+        description: '选择部署连接的数据库类型 (auto: 自动检测, d1: Cloudflare D1, supabase: Supabase)'
+        required: false
+        default: 'auto'
+        type: choice
+        options:
+          - auto
+          - d1
+          - supabase
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -36,19 +46,25 @@ jobs:
       # 仅注入 Cloudflare 基础设施级别的必须项（KV ID、D1 ID、Worker 名称、自定义域名路由）
       - name: Prepare wrangler.jsonc infrastructure config
         env:
+          DATABASE_TYPE: ${{ github.event.inputs.database_type || vars.DATABASE_TYPE || 'auto' }}
           CLOUDFLARE_KV_ID: ${{ secrets.CLOUDFLARE_KV_ID || vars.CLOUDFLARE_KV_ID || vars.KV_NAMESPACE_ID }}
           CLOUDFLARE_D1_ID: ${{ secrets.CLOUDFLARE_D1_ID || vars.CLOUDFLARE_D1_ID || vars.D1_DATABASE_ID }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY || vars.SUPABASE_KEY || secrets.SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY }}
           WORKER_NAME: ${{ vars.WORKER_NAME || 'blog' }}
           BLOG_URL: ${{ vars.BLOG_URL || secrets.BLOG_URL }}
         run: pnpm prepare:wrangler
 
-      # 将代码所需的运行期环境变量（BLOG_URL、GISCUS_*、GITHUB_*、密钥等）直接部署到 Worker 环境变量中
+      # 将代码所需的运行期环境变量（BLOG_URL、GISCUS_*、GITHUB_*、数据库配置、密钥等）直接部署到 Worker 环境变量中
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
           vars: |
+            DATABASE_TYPE
+            SUPABASE_URL
+            SUPABASE_KEY
             BLOG_URL
             GITHUB_OWNER
             GITHUB_REPO
@@ -62,6 +78,9 @@ jobs:
             PURGE_SECRET
             GITHUB_TOKEN
         env:
+          DATABASE_TYPE: ${{ github.event.inputs.database_type || vars.DATABASE_TYPE || 'auto' }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY || vars.SUPABASE_KEY || secrets.SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY }}
           BLOG_URL: ${{ vars.BLOG_URL || secrets.BLOG_URL }}
           GITHUB_OWNER: ${{ vars.GITHUB_OWNER || github.repository_owner }}
           GITHUB_REPO: ${{ vars.GITHUB_REPO || github.event.repository.name }}

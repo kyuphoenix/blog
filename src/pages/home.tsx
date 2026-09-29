@@ -4,6 +4,7 @@ import { Layout, PostCard, Pagination } from '../components'
 import { PostCardItem } from '../components/PostCard'
 import { getManifest, getSidebarData } from '../services/github'
 import { getTopPosts, getAllPostStats } from '../services/stats'
+import { resolveDatabaseType } from '../services/db'
 import { parsePagination } from '../utils/pagination'
 import { blogConfig } from '../blog.config'
 
@@ -25,17 +26,17 @@ home.get('/', async (c) => {
 
   manifest.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
-  // 获取所有文章的访问量统计
-  const allStats = await getAllPostStats(c.env.DB)
+  // 获取所有文章的访问量统计（自动适配 D1 或 Supabase）
+  const allStats = await getAllPostStats(c.env)
 
   // 仅在首页主列表第一页（无分类/标签筛选）时，置顶访问量最高的前 3 篇文章
   const isMainFeed = page === 1 && !category && !tag
   let topPosts: PostCardItem[] = []
   let regularList = manifest
 
-  if (isMainFeed && c.env.DB) {
+  if (isMainFeed && resolveDatabaseType(c.env)) {
     try {
-      const topStats = await getTopPosts(c.env.DB, 3)
+      const topStats = await getTopPosts(c.env, 3)
       if (topStats.length > 0) {
         const topMap = new Map(
           topStats.map((s, idx) => [s.slug, { rank: idx + 1, views: s.views }])
