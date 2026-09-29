@@ -7,6 +7,7 @@ export interface PostFrontmatter {
   tags?: string[]
   excerpt?: string
   cover?: string
+  image?: string
   draft?: boolean
 }
 

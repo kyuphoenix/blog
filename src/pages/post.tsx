@@ -199,6 +199,16 @@ postPage.get('/:title', async (c) => {
           itemscope
           itemtype="https://schema.org/BlogPosting"
         >
+          {post.cover && (
+            <div class="relative w-full max-h-[32vh] md:max-h-[45vh] overflow-hidden rounded-xl mb-6 -mt-1">
+              <img
+                src={post.cover}
+                alt={post.title}
+                class="w-full h-full object-cover object-center"
+              />
+            </div>
+          )}
+
           <meta itemprop="headline" content={post.title} />
           <meta itemprop="description" content={post.excerpt || post.title} />
           <meta itemprop="wordCount" content={String(wordCount)} />

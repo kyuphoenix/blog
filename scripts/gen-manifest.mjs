@@ -133,7 +133,7 @@ async function main() {
       category: meta.category || '未分类',
       tags: Array.isArray(meta.tags) ? meta.tags : [],
       excerpt: meta.excerpt || parsed.excerpt || '',
-      cover: meta.cover || undefined,
+      cover: meta.cover || meta.image || undefined,
       draft: meta.draft || false,
       path: `posts/${file}`,
       readingTime,

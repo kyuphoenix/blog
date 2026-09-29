@@ -31,13 +31,11 @@ about.get('/', async (c) => {
         <div class="prose dark:prose-invert prose-base max-w-none! fuwari-custom-md">
           <p>
             欢迎来到我的个人博客！本站基于 <a href="https://hono.dev" target="_blank" rel="noreferrer">Hono</a> 框架与{' '}
-            <a href="https://workers.cloudflare.com" target="_blank" rel="noreferrer">Cloudflare Workers</a> 构建，前端完整移植自{' '}
-            <code>flare-stack-blog</code> 的 <strong>Fuwari</strong> 主题。
+            <a href="https://workers.cloudflare.com" target="_blank" rel="noreferrer">Cloudflare Workers</a> 构建
           </p>
 
           <h2>核心特性</h2>
           <ul>
-            <li>🎨 <strong>1:1 Fuwari 主题还原</strong>：支持 OKLCH 动态色相调节（0–360°）、明暗模式平滑切换、Banner 负向重叠双栏网格。</li>
             <li>📝 <strong>Git 驱动的内容管理</strong>：所有文章以 Markdown 格式存放在 GitHub 仓库的 <code>posts/</code> 目录，构建产物零文章体积。</li>
             <li>🚀 <strong>零重部署动态更新</strong>：Worker 运行时从 GitHub Raw API 拉取文章并写入 Cloudflare KV 缓存，推送 Markdown 即可更新文章。</li>
           </ul>

@@ -35,7 +35,7 @@ export const blogConfig = {
   },
   theme: {
     fuwari: {
-      homeBg: '/images/home-bg.webp',
+      homeBg: '/images/home-bg.png',
       avatar: '/images/avatar.png',
       primaryHue: 250,
     },

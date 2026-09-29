@@ -23,13 +23,20 @@ interface PostCardProps {
 export const PostCard: FC<PostCardProps> = ({ post, index = 0 }) => {
   const delay = 150 + index * 50
   const postUrl = `/posts/${encodeURIComponent(post.title)}`
+  const hasCover = Boolean(post.cover && post.cover.trim())
 
   return (
     <div
-      class="fuwari-card-base flex flex-col w-full rounded-(--fuwari-radius-large) overflow-hidden relative fuwari-onload-animation"
+      class="fuwari-card-base flex flex-col-reverse md:flex-col w-full rounded-(--fuwari-radius-large) overflow-hidden relative fuwari-onload-animation"
       style={`animation-delay: ${delay}ms`}
     >
-      <div class="pl-6 md:pl-9 pr-6 pt-6 md:pt-7 pb-6 relative w-full md:pr-24">
+      <div
+        class={`pl-6 md:pl-9 pr-6 pt-6 md:pt-7 pb-6 relative w-full ${
+          hasCover
+            ? 'md:w-[calc(100%-28%-12px)] md:pr-4'
+            : 'md:w-[calc(100%-52px-12px)] md:pr-6'
+        }`}
+      >
         {/* Title with left vertical accent bar */}
         <a
           href={postUrl}
@@ -127,18 +134,44 @@ export const PostCard: FC<PostCardProps> = ({ post, index = 0 }) => {
         </div>
       </div>
 
-      {/* Right-side full-height Enter button */}
-      <a
-        href={postUrl}
-        aria-label={post.title}
-        class="hidden md:flex fuwari-btn-regular w-13 absolute right-3 top-3 bottom-3 rounded-xl active:scale-95"
-      >
-        <ChevronRightIcon
-          size={32}
-          strokeWidth={2}
-          class="text-(--fuwari-primary) mx-auto"
-        />
-      </a>
+      {/* Cover Image (Fuwari Layout) */}
+      {hasCover && (
+        <a
+          href={postUrl}
+          aria-label={post.title}
+          class="group max-h-[22vh] md:max-h-none mx-4 mt-4 -mb-2 md:mb-0 md:mx-0 md:mt-0 md:w-[28%] md:max-w-[18rem] relative md:absolute md:top-3 md:bottom-3 md:right-3 rounded-xl overflow-hidden active:scale-98 transition no-underline block"
+        >
+          <div class="absolute inset-0 pointer-events-none z-10 w-full h-full group-hover:bg-black/30 group-active:bg-black/50 transition duration-300" />
+          <div class="absolute inset-0 pointer-events-none z-20 w-full h-full flex items-center justify-center">
+            <ChevronRightIcon
+              class="transition-all duration-300 opacity-0 group-hover:opacity-100 scale-75 group-hover:scale-100 text-white"
+              size={40}
+              strokeWidth={2}
+            />
+          </div>
+          <img
+            src={post.cover}
+            alt={post.title}
+            loading="lazy"
+            class="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
+          />
+        </a>
+      )}
+
+      {/* Right-side full-height Enter button (when no cover) */}
+      {!hasCover && (
+        <a
+          href={postUrl}
+          aria-label={post.title}
+          class="hidden md:flex fuwari-btn-regular w-13 absolute right-3 top-3 bottom-3 rounded-xl active:scale-95 no-underline items-center justify-center"
+        >
+          <ChevronRightIcon
+            size={32}
+            strokeWidth={2}
+            class="text-(--fuwari-primary) mx-auto"
+          />
+        </a>
+      )}
     </div>
   )
 }

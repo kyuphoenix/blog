@@ -155,7 +155,7 @@ export async function getPost(
     category: meta?.category || frontmatter.category || '未分类',
     tags: meta?.tags || frontmatter.tags || [],
     excerpt: meta?.excerpt || frontmatter.excerpt || extractExcerpt(content),
-    cover: meta?.cover || frontmatter.cover,
+    cover: meta?.cover || frontmatter.cover || frontmatter.image,
     draft: meta?.draft ?? frontmatter.draft ?? false,
     slug: postTitle,
     path: filePath,
