@@ -1,6 +1,12 @@
 import { Hono } from 'hono'
 import { AppEnv } from '../types/env'
-import { recordPageView, getTopPosts, getPostStats } from '../services/stats'
+import {
+  recordPageView,
+  getTopPosts,
+  getPostStats,
+  resolveDatabaseType,
+  isStatsEnabled,
+} from '../services/stats'
 
 const stats = new Hono<AppEnv>()
 
@@ -12,6 +18,10 @@ const BOT_UA_REGEX =
  * 收集页面访问（支持前端 Beacon 或 fetch POST 调用）
  */
 stats.post('/view', async (c) => {
+  if (!isStatsEnabled(c.env)) {
+    return c.json({ success: true, enabled: false, message: 'Stats feature is disabled' })
+  }
+
   const userAgent = c.req.header('user-agent') || ''
 
   // 1. 过滤爬虫
@@ -56,21 +66,27 @@ stats.post('/view', async (c) => {
  * 获取访问量最高的前 N 篇文章
  */
 stats.get('/top', async (c) => {
+  if (!isStatsEnabled(c.env)) {
+    return c.json({ success: true, enabled: false, data: [] })
+  }
   const limit = Math.min(20, Math.max(1, parseInt(c.req.query('limit') || '3', 10)))
   const data = await getTopPosts(c.env, limit)
-  return c.json({ success: true, data })
+  return c.json({ success: true, enabled: true, data })
 })
 
 /**
  * 获取指定文章的访问统计
  */
 stats.get('/post', async (c) => {
+  if (!isStatsEnabled(c.env)) {
+    return c.json({ success: true, enabled: false, data: { views: 0, uv: 0 } })
+  }
   const slug = c.req.query('slug') || ''
   if (!slug) {
     return c.json({ success: false, message: 'Missing slug' }, 400)
   }
   const data = await getPostStats(c.env, slug)
-  return c.json({ success: true, data })
+  return c.json({ success: true, enabled: true, data })
 })
 
 /**
@@ -78,11 +94,13 @@ stats.get('/post', async (c) => {
  */
 stats.get('/status', (c) => {
   const type = resolveDatabaseType(c.env)
+  const enabled = isStatsEnabled(c.env)
   return c.json({
     success: true,
     data: {
       database: type || 'none',
       configured: Boolean(type),
+      enabled,
     },
   })
 })

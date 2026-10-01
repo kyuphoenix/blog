@@ -16,7 +16,7 @@ let cachedSupabaseKey = ''
 
 /**
  * 判定当前环境生效的数据库类型：
- * 1. 优先遵循环境变量/Workflow 显式指定的 DATABASE_TYPE ('d1' | 'supabase')
+ * 1. 优先遵循环境变量/Workflow 显式指定的 DATABASE_TYPE ('d1' | 'supabase' | 'none')
  * 2. auto 或未指定时，根据“配置了谁的信息就用哪个数据库”自动判定
  */
 export function resolveDatabaseType(
@@ -30,6 +30,10 @@ export function resolveDatabaseType(
   }
 
   const explicitType = (env.DATABASE_TYPE || env.DB_TYPE || '').toLowerCase().trim()
+  if (explicitType === 'none' || explicitType === 'off' || explicitType === 'disabled') {
+    return null
+  }
+
   const hasSupabase = Boolean(
     env.SUPABASE_URL && (env.SUPABASE_KEY || env.SUPABASE_ANON_KEY)
   )
@@ -55,6 +59,23 @@ export function resolveDatabaseType(
   }
 
   return null
+}
+
+/**
+ * 判定当前环境是否启用了浏览统计功能：
+ * 1. 若配置了 ENABLE_STATS=false 或 DISABLE_STATS=true 则显式禁用
+ * 2. 若 D1 和 Supabase 均未配置，则不开启浏览统计功能（可选功能）
+ */
+export function isStatsEnabled(env?: AppEnv['Bindings'] | any): boolean {
+  if (!env) return false
+
+  const enableVar = env.ENABLE_STATS
+  if (enableVar === 'false' || enableVar === false) return false
+
+  const disableVar = env.DISABLE_STATS
+  if (disableVar === 'true' || disableVar === true) return false
+
+  return resolveDatabaseType(env) !== null
 }
 
 /**

@@ -39,8 +39,11 @@ function stripD1Databases(text) {
   return text.replace(/,\s*\/\/[^\n]*\n\s*"d1_databases":\s*\[[\s\S]*?\]/, '')
 }
 
-// 2. 数据库绑定逻辑（支持 D1 与 Supabase 双架构切换）
-if (dbType === 'supabase') {
+// 2. 数据库绑定逻辑（支持 D1 与 Supabase 双架构切换，或 none 模式关闭数据库与统计）
+if (dbType === 'none' || dbType === 'off' || dbType === 'disabled') {
+  content = stripD1Databases(content)
+  console.log('✓ 构建目标已指定为 none，已移除 D1 数据库绑定（不连接数据库，浏览统计功能保持关闭）')
+} else if (dbType === 'supabase') {
   content = stripD1Databases(content)
   console.log('✓ 构建目标已指定为 Supabase，已移除 wrangler.jsonc 中的 D1 数据库绑定')
 } else if (dbType === 'd1') {
@@ -64,7 +67,7 @@ if (dbType === 'supabase') {
     console.log('✓ [auto 模式] 检测到 Supabase 配置且无 D1，已移除 D1 绑定并接入 Supabase')
   } else if (content.includes('<YOUR_D1_DATABASE_ID>')) {
     content = stripD1Databases(content)
-    console.warn('⚠️ [auto 模式] 未检测到任何可用数据库凭证，已移除 D1 占位符')
+    console.warn('⚠️ [auto 模式] 未检测到任何可用数据库凭证，已移除 D1 占位符（浏览统计功能将自动保持关闭）')
   }
 }
 

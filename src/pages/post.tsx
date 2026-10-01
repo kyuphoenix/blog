@@ -13,7 +13,7 @@ import {
   EyeIcon,
 } from '../components/Icons'
 import { getPost, getManifest, getSidebarData } from '../services/github'
-import { getPostStats } from '../services/stats'
+import { getPostStats, isStatsEnabled } from '../services/stats'
 import { marked } from 'marked'
 
 const postPage = new Hono<AppEnv>()
@@ -74,8 +74,9 @@ postPage.get('/:title', async (c) => {
     .filter(Boolean).length
   const wordCount = Math.max(100, chineseChars + englishWords)
 
-  // 获取访问量统计（自动适配 D1 或 Supabase）
-  const stats = await getPostStats(c.env, post.title)
+  // 获取访问量统计（可选功能：配置了 D1 或 Supabase 时开启）
+  const statsEnabled = isStatsEnabled(c.env)
+  const stats = statsEnabled ? await getPostStats(c.env, post.title) : { views: 0, uv: 0 }
   const viewsCount = stats.views || 0
 
   // Compute minDepth for TOC numbering (exact flare-stack-blog TableOfContents logic)
@@ -217,12 +218,14 @@ postPage.get('/:title', async (c) => {
               </div>
               <div class="text-sm">{post.readingTime} 分钟</div>
             </div>
-            <div class="flex flex-row items-center">
-              <div class="transition h-6 w-6 rounded-md bg-black/5 dark:bg-white/10 fuwari-text-50 flex items-center justify-center mr-2 text-(--fuwari-primary)">
-                <EyeIcon strokeWidth={1.5} size={16} />
+            {statsEnabled && (
+              <div class="flex flex-row items-center">
+                <div class="transition h-6 w-6 rounded-md bg-black/5 dark:bg-white/10 fuwari-text-50 flex items-center justify-center mr-2 text-(--fuwari-primary)">
+                  <EyeIcon strokeWidth={1.5} size={16} />
+                </div>
+                <div class="text-sm"><span id="post-views-count">{viewsCount}</span> 次阅读</div>
               </div>
-              <div class="text-sm"><span id="post-views-count">{viewsCount}</span> 次阅读</div>
-            </div>
+            )}
           </div>
 
           {/* Title */}
@@ -426,8 +429,9 @@ postPage.get('/:title', async (c) => {
         })();
       </script>`)}
 
-      {/* 访问量统计上报脚本（参考 Umami 隐私优先与会话去重机制） */}
-      {raw(`<script>
+      {/* 访问量统计上报脚本（仅在开启统计功能时注入） */}
+      {statsEnabled &&
+        raw(`<script>
         (function() {
           var slug = ${JSON.stringify(post.title)};
           var storageKey = 'fuwari_pv_' + encodeURIComponent(slug);

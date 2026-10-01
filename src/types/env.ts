@@ -13,11 +13,13 @@ export type Bindings = {
   GISCUS_CATEGORY_ID?: string
   GISCUS_THEME_LIGHT?: string
   GISCUS_THEME_DARK?: string
-  // 数据库选型与 Supabase 访问配置
-  DATABASE_TYPE?: 'd1' | 'supabase' | 'auto'
+  // 数据库选型与 Supabase 访问配置（可选：none 或未配置时关闭统计）
+  DATABASE_TYPE?: 'd1' | 'supabase' | 'none' | 'auto'
   SUPABASE_URL?: string
   SUPABASE_KEY?: string
   SUPABASE_ANON_KEY?: string
+  ENABLE_STATS?: string | boolean
+  DISABLE_STATS?: string | boolean
 }
 
 export type Variables = {

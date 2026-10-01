@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       database_type:
-        description: '选择部署连接的数据库类型 (auto: 自动检测, d1: Cloudflare D1, supabase: Supabase)'
+        description: '选择部署连接的数据库类型 (auto: 自动检测, d1: Cloudflare D1, supabase: Supabase, none: 不使用数据库/关闭统计)'
         required: false
         default: 'auto'
         type: choice
@@ -13,6 +13,7 @@ on:
           - auto
           - d1
           - supabase
+          - none
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

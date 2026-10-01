@@ -3,8 +3,7 @@ import { AppEnv } from '../types/env'
 import { Layout, PostCard, Pagination } from '../components'
 import { PostCardItem } from '../components/PostCard'
 import { getManifest, getSidebarData } from '../services/github'
-import { getTopPosts, getAllPostStats } from '../services/stats'
-import { resolveDatabaseType } from '../services/db'
+import { getTopPosts, getAllPostStats, isStatsEnabled } from '../services/stats'
 import { parsePagination } from '../utils/pagination'
 import { blogConfig } from '../blog.config'
 
@@ -26,15 +25,17 @@ home.get('/', async (c) => {
 
   manifest.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
-  // 获取所有文章的访问量统计（自动适配 D1 或 Supabase）
-  const allStats = await getAllPostStats(c.env)
+  const statsEnabled = isStatsEnabled(c.env)
 
-  // 仅在首页主列表第一页（无分类/标签筛选）时，置顶访问量最高的前 3 篇文章
+  // 仅在开启统计功能时获取访问量映射
+  const allStats = statsEnabled ? await getAllPostStats(c.env) : {}
+
+  // 仅在首页主列表第一页（无分类/标签筛选）且开启统计功能时，置顶访问量最高的前 3 篇文章
   const isMainFeed = page === 1 && !category && !tag
   let topPosts: PostCardItem[] = []
   let regularList = manifest
 
-  if (isMainFeed && resolveDatabaseType(c.env)) {
+  if (isMainFeed && statsEnabled) {
     try {
       const topStats = await getTopPosts(c.env, 3)
       if (topStats.length > 0) {
@@ -65,10 +66,12 @@ home.get('/', async (c) => {
     }
   }
 
-  // 为常规文章列表补充阅读量数据
+  // 为常规文章列表补充阅读量数据（未开启统计时不注入 views）
   const regularWithStats: PostCardItem[] = regularList.map((p) => ({
     ...p,
-    views: allStats[p.title]?.views || allStats[p.slug]?.views || 0,
+    views: statsEnabled
+      ? (allStats[p.title]?.views ?? allStats[p.slug]?.views ?? 0)
+      : undefined,
   }))
 
   const total = regularList.length
