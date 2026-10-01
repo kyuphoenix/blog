@@ -181,71 +181,13 @@ draft: false
 
 ## 🚀 部署指南
 
-### 1. 部署到 Cloudflare Workers (推荐)
+本项目原生支持部署到全球主流边缘计算平台。关于详细的操作步骤、所需权限、必要与可选环境变量清单，请直接参阅完整部署指南：
 
-本项目采用纯 GitHub Actions 自动化部署，无须在代码中硬编码任何私有密钥。
+- ⚡ [cloudflare部署](docs/部署流程.md#cloudflare部署)（主推推荐，支持 GitHub Actions 自动化 CI/CD 与无感建表）
+- ▲ [vercel部署](docs/部署流程.md#vercel部署)（基于 Vercel Edge Runtime 极速上线）
+- 🌐 [netlify部署](docs/部署流程.md#netlify部署)（基于 Netlify Edge Functions 部署）
 
-#### 步骤 1：配置 GitHub 仓库 Secrets 与 Variables
-
-在 GitHub 仓库的 **Settings** -> **Secrets and variables** -> **Actions** 中添加：
-
-##### 🔒 Repository Secrets（敏感密钥）
-| 密钥名称 | 必填 | 说明 |
-| :--- | :---: | :--- |
-| `CLOUDFLARE_API_TOKEN` | **是** | 具备 Worker 部署权限的 Cloudflare API 令牌 |
-| `CLOUDFLARE_ACCOUNT_ID` | **是** | Cloudflare 账户 ID |
-| `CLOUDFLARE_KV_ID` | 推荐 | Cloudflare KV 命名空间 ID（未配置时系统自动以内存缓存平稳运行） |
-| `CLOUDFLARE_D1_ID` | 选填 | Cloudflare D1 数据库 ID（使用 D1 数据库时配置） |
-| `SUPABASE_URL` | 选填 | Supabase 项目 URL（使用 Supabase 数据库时配置） |
-| `SUPABASE_KEY` | 选填 | Supabase API 密钥（使用 Supabase 数据库时配置） |
-| `DATABASE_URL` | 选填 | Supabase PostgreSQL 连接串，**配置后 Action 自动检测并全自动建表** |
-| `SUPABASE_ACCESS_TOKEN` | 选填 | Supabase Personal Access Token，**配置后亦支持 Action 全自动建表** |
-| `PURGE_SECRET` | 推荐 | 自定义缓存刷新密钥（用于防护缓存热刷新 Webhook） |
-| `PAT_TOKEN` | 可选 | GitHub Personal Access Token（仅在仓库为私有仓库时需要） |
-
-##### 🌐 Repository Variables（公开变量）
-| 变量名称 | 必填 | 示例 | 说明 |
-| :--- | :---: | :--- | :--- |
-| `BLOG_URL` | **是** | `https://blog.example.com` 或 `https://blog.workers.dev` | 博客完整访问地址。**自有域名部署时会自动绑定域名路由**。 |
-| `WORKER_NAME` | 否 | `blog` | Cloudflare Worker 实例名称（默认为 `blog`） |
-| `DATABASE_TYPE` | 否 | `auto` | 默认数据库类型（`auto`、`d1`、`supabase`） |
-| `GISCUS_REPO` | 否 | `username/blog` | Giscus 讨论仓库名称 |
-| `GISCUS_REPO_ID` | 否 | `R_...` | 从 [giscus.app](https://giscus.app) 获取的仓库 ID |
-| `GISCUS_CATEGORY` | 否 | `Announcements` | Giscus 讨论分区名称 |
-| `GISCUS_CATEGORY_ID` | 否 | `DIC_...` | 从 [giscus.app](https://giscus.app) 获取的分区 ID |
-
-#### 步骤 2：触发部署
-1. 进入 GitHub 仓库的 **Actions** 标签页。
-2. 点击 **Deploy to Cloudflare Workers**。
-3. 点击 **Run workflow**：
-   - 可在 `database_type` 下拉选项中自由选择：
-     - `auto`: 自动识别（配置了谁就用谁；均未配置时自动关闭统计功能）
-     - `d1`: 强制连接 Cloudflare D1 数据库
-     - `supabase`: 强制连接 Supabase 数据库（会自动清理 D1 绑定，防止部署报错）
-     - `none`: 强制不连接任何数据库（彻底关闭浏览统计，轻量纯净运行）
-4. 部署完成后即可全球极速访问！
-
----
-
-### 2. 部署到 Vercel
-
-1. 将仓库 Fork 或推送至你的 GitHub。
-2. 登录 [Vercel Dashboard](https://vercel.com/)，点击 **Add New...** -> **Project** 导入此仓库。
-3. 在 **Environment Variables** 中配置环境变量：
-   - `BLOG_URL`: 你的 Vercel 站点域名
-   - `GITHUB_OWNER` & `GITHUB_REPO` & `GITHUB_BRANCH`: 你的 GitHub 仓库信息
-   - `SUPABASE_URL` & `SUPABASE_KEY`: 你的 Supabase 数据库凭据
-   - `GISCUS_*`: 评论区配置（可选）
-4. 点击 **Deploy**，Vercel 将通过 Edge Functions 秒级部署上线！
-
----
-
-### 3. 部署到 Netlify
-
-1. 在 [Netlify Dashboard](https://app.netlify.com/) 中点击 **Add new site** -> **Import an existing project**。
-2. 选择本仓库，构建设置会自动读取 [`netlify.toml`](netlify.toml)。
-3. 在 **Site settings** -> **Environment variables** 中填入相同的环境变量。
-4. 点击 **Deploy site** 即完成上线。
+> 📖 完整多平台部署文档请查阅：[`docs/部署流程.md`](docs/部署流程.md)
 
 ---
 
