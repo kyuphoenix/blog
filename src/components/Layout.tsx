@@ -46,11 +46,15 @@ interface LayoutProps {
   ogType?: 'website' | 'article'
   articleMeta?: ArticleMeta
   verification?: VerificationMeta
+  bannerHeightVh?: number
+  contentOffsetVh?: number
   children: any
 }
 
-const BANNER_HEIGHT_HOME = 65
-const BANNER_HEIGHT_PAGE = 35
+const BANNER_HEIGHT_HOME = 100 // 首页背景图高度占满全屏 (100vh)
+const BANNER_HEIGHT_PAGE = 50  // 归档、友链、关于等内页背景高度增加到 50% (50vh)，减少裁切以保留更多上半部分
+const CONTENT_OFFSET_HOME = 65 // 首页内容（头像、文章列表）起始位置保持原来的 65vh 位置不变
+const CONTENT_OFFSET_PAGE = 50 // 内页内容起始位置调整为 50vh
 const MAIN_OVERLAP_REM = 3.5
 const NAVBAR_HEIGHT_REM = 4.5
 
@@ -60,6 +64,8 @@ export const Layout: FC<LayoutProps> = ({
   keywords = [],
   currentPath = '/',
   isHomePage = false,
+  bannerHeightVh: customBannerHeightVh,
+  contentOffsetVh: customContentOffsetVh,
   categories = [],
   tags = [],
   blogUrl,
@@ -70,7 +76,10 @@ export const Layout: FC<LayoutProps> = ({
   children,
 }) => {
   const pageTitle = title ? `${title} - ${blogConfig.title}` : blogConfig.title
-  const bannerHeightVh = isHomePage ? BANNER_HEIGHT_HOME : BANNER_HEIGHT_PAGE
+  const bannerHeightVh =
+    customBannerHeightVh ?? (isHomePage ? BANNER_HEIGHT_HOME : BANNER_HEIGHT_PAGE)
+  const contentOffsetVh =
+    customContentOffsetVh ?? (isHomePage ? CONTENT_OFFSET_HOME : CONTENT_OFFSET_PAGE)
   const defaultHue = blogConfig.theme.fuwari.primaryHue
 
   // 基础域名处理
@@ -331,7 +340,7 @@ export const Layout: FC<LayoutProps> = ({
           {/* Top row: Navbar - sticky */}
           <div class="sticky top-0 z-50 pointer-events-none">
             <div class="pointer-events-auto max-w-(--fuwari-page-width) mx-auto px-0 md:px-4">
-              <Navbar currentPath={currentPath} bannerHeightVh={bannerHeightVh} />
+              <Navbar currentPath={currentPath} bannerHeightVh={contentOffsetVh} />
             </div>
           </div>
 
@@ -344,14 +353,14 @@ export const Layout: FC<LayoutProps> = ({
               src={blogConfig.theme.fuwari.homeBg}
               alt="banner"
               fetchpriority="high"
-              class="w-full h-full object-cover object-center"
+              class="w-full h-full object-cover object-top"
             />
           </div>
 
           {/* Main content - overlaps banner by MAIN_OVERLAP_REM */}
           <div
             class="relative z-30 transition-[margin-top] duration-300 ease-in-out"
-            style={`margin-top: calc(${bannerHeightVh}vh - ${MAIN_OVERLAP_REM}rem - ${NAVBAR_HEIGHT_REM}rem);`}
+            style={`margin-top: calc(${contentOffsetVh}vh - ${MAIN_OVERLAP_REM}rem - ${NAVBAR_HEIGHT_REM}rem);`}
           >
             <div
               class="relative mx-auto px-0 md:px-4 pb-8 grid grid-cols-1 lg:grid-cols-[17.5rem_1fr] gap-4"
