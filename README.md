@@ -46,7 +46,9 @@
 ```text
 .
 ├── .github/workflows/
-│   ├── deploy.yml            # Cloudflare Workers 手动部署工作流（支持切换数据库）
+│   ├── deploy.yml            # Cloudflare Workers 部署工作流（支持切换数据库）
+│   ├── deploy-vercel.yml     # Vercel Edge 自动化部署与环境变量同步工作流
+│   ├── deploy-netlify.yml    # Netlify Edge 自动化部署与环境变量同步工作流
 │   └── sync-posts.yml        # 文章自动同步与缓存热刷新工作流
 ├── api/
 │   └── index.ts              # Vercel Edge Function 入口
@@ -64,7 +66,10 @@
 ├── public/                   # 静态资源 (头像、背景图、Favicon 等)
 ├── scripts/
 │   ├── gen-manifest.mjs      # 文章清单生成脚本
-│   └── prepare-wrangler.mjs  # CI/CD 环境变量动态注入与配置清理脚本
+│   ├── prepare-wrangler.mjs  # CI/CD 环境变量动态注入与配置清理脚本
+│   ├── init-supabase.mjs     # Supabase 数据表与 RPC 自动初始化脚本
+│   ├── deploy-vercel.mjs     # Vercel 自动化部署与环境变量同步脚本
+│   └── deploy-netlify.mjs    # Netlify 自动化部署与环境变量同步脚本
 ├── src/
 │   ├── components/           # Hono JSX 页面组件 (Layout, Navbar, Giscus 等)
 │   ├── pages/                # 页面路由控制器 (首页、文章详情、归档、关于)
@@ -184,8 +189,8 @@ draft: false
 本项目原生支持部署到全球主流边缘计算平台。关于详细的操作步骤、所需权限、必要与可选环境变量清单，请直接参阅完整部署指南：
 
 - ⚡ [cloudflare部署](docs/部署流程.md#cloudflare部署)（主推推荐，支持 GitHub Actions 自动化 CI/CD 与无感建表）
-- ▲ [vercel部署](docs/部署流程.md#vercel部署)（基于 Vercel Edge Runtime 极速上线）
-- 🌐 [netlify部署](docs/部署流程.md#netlify部署)（基于 Netlify Edge Functions 部署）
+- ▲ [vercel部署](docs/部署流程.md#vercel部署)（基于 Vercel Edge Runtime，支持 GitHub Actions 自动化与环境变量一键同步）
+- 🌐 [netlify部署](docs/部署流程.md#netlify部署)（基于 Netlify Edge Functions，支持 GitHub Actions 自动化与环境变量一键同步）
 
 > 📖 完整多平台部署文档请查阅：[`docs/部署流程.md`](docs/部署流程.md)
 

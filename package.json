@@ -7,6 +7,8 @@
     "gen:manifest": "node scripts/gen-manifest.mjs",
     "init:supabase": "node scripts/init-supabase.mjs",
     "prepare:wrangler": "node scripts/prepare-wrangler.mjs",
+    "deploy:vercel": "node scripts/deploy-vercel.mjs",
+    "deploy:netlify": "node scripts/deploy-netlify.mjs",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings"
   },
   "dependencies": {

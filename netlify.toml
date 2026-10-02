@@ -1,4 +1,5 @@
 [build]
+  command = "node scripts/gen-manifest.mjs"
   publish = "public"
 
 [[edge_functions]]
