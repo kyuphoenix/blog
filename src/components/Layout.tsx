@@ -29,7 +29,6 @@ export interface ArticleMeta {
 export interface VerificationMeta {
   google?: string
   bing?: string
-  baidu?: string
   yandex?: string
 }
 
@@ -92,7 +91,6 @@ export const Layout: FC<LayoutProps> = ({
   // 站长平台验证码（直接读取 cfg.seo，用户无需配置环境变量或额外 Token）
   const googleVerification = verification?.google || cfg.seo?.googleSiteVerification
   const bingVerification = verification?.bing || cfg.seo?.bingSiteVerification
-  const baiduVerification = verification?.baidu || cfg.seo?.baiduSiteVerification
 
   // 图片绝对路径处理 (用于 OpenGraph / Twitter Card / Schema.org)
   const defaultImage = cfg.theme.fuwari.homeBg || cfg.theme.fuwari.avatar
@@ -240,9 +238,6 @@ export const Layout: FC<LayoutProps> = ({
           <meta name="google-site-verification" content={googleVerification} />
         )}
         {bingVerification && <meta name="msvalidate.01" content={bingVerification} />}
-        {baiduVerification && (
-          <meta name="baidu-site-verification" content={baiduVerification} />
-        )}
 
         {/* 规范链接 Canonical URL */}
         {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}

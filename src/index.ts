@@ -34,12 +34,106 @@ app.get('/css/giscus-fuwari-dark.css', (c) => {
   })
 })
 
-app.get('/css/giscus-fuwari.css', (c) => {
-  return c.text(giscusLightCss, 200, {
-    'Content-Type': 'text/css; charset=utf-8',
-    'Access-Control-Allow-Origin': '*',
-    'Cache-Control': 'public, max-age=60',
-  })
+function getMimeType(filename: string): string {
+  const ext = filename.split('.').pop()?.toLowerCase()
+  switch (ext) {
+    case 'svg':
+      return 'image/svg+xml'
+    case 'png':
+      return 'image/png'
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg'
+    case 'webp':
+      return 'image/webp'
+    case 'gif':
+      return 'image/gif'
+    case 'ico':
+      return 'image/x-icon'
+    case 'avif':
+      return 'image/avif'
+    default:
+      return 'application/octet-stream'
+  }
+}
+
+// 媒体图片动态边缘代理与缓存路由（支持 Pages CMS 上传新图片后无需重新部署 Worker 即可全球 CDN 加速访问）
+app.get('/images/:path{.+}', async (c) => {
+  const imagePath = c.req.param('path')
+
+  // 1. 优先尝试从 Cloudflare 原生 Cache API 读取
+  let cache: any = null
+  try {
+    // @ts-ignore
+    if (typeof caches !== 'undefined' && caches.default) {
+      // @ts-ignore
+      cache = caches.default
+      const cachedRes = await cache.match(c.req.raw)
+      if (cachedRes) {
+        return cachedRes
+      }
+    }
+  } catch {
+    // 忽略异常
+  }
+
+  // 2. 检查 GitHub 配置
+  const env = c.env
+  if (!env.GITHUB_OWNER || !env.GITHUB_REPO || env.GITHUB_OWNER.startsWith('<')) {
+    return c.notFound()
+  }
+
+  // 3. 从 GitHub Raw 拉取最新的图片资源
+  const branch = env.GITHUB_BRANCH && env.GITHUB_BRANCH.trim() ? env.GITHUB_BRANCH.trim() : 'main'
+  const githubUrl = `https://raw.githubusercontent.com/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/${branch}/public/images/${encodeURI(imagePath)}`
+
+  const headers: Record<string, string> = {
+    'User-Agent': 'Blog-Worker-Image-Proxy',
+  }
+  if (env.GITHUB_TOKEN) {
+    headers['Authorization'] = `token ${env.GITHUB_TOKEN}`
+  }
+
+  try {
+    const res = await fetch(githubUrl, { headers })
+    if (!res.ok) {
+      return c.notFound()
+    }
+
+    const contentType = res.headers.get('content-type') || getMimeType(imagePath)
+    const imageBytes = await res.arrayBuffer()
+
+    const response = new Response(imageBytes, {
+      status: 200,
+      headers: {
+        'Content-Type': contentType,
+        'Cache-Control': 'public, max-age=604800, s-maxage=2592000, stale-while-revalidate=86400',
+        'Access-Control-Allow-Origin': '*',
+        'ETag': res.headers.get('etag') || `"${imageBytes.byteLength}"`,
+      },
+    })
+
+    // 4. 写入 Cloudflare 边缘缓存
+    if (cache && c.executionCtx) {
+      try {
+        c.executionCtx.waitUntil(cache.put(c.req.raw, response.clone()))
+      } catch {
+        // 忽略写入缓存异常
+      }
+    }
+
+    return response
+  } catch (err) {
+    console.error('Failed to fetch image from GitHub:', err)
+    return c.notFound()
+  }
+})
+
+// 根路径 /favicon.ico 自动回退
+app.get('/favicon.ico', async (c) => {
+  const siteConfig = await getBlogConfig(c.env)
+  const iconPath = siteConfig.icons?.faviconIco || '/images/favicon.ico'
+  return c.redirect(iconPath, 302)
 })
 
 // API 路由 (带 CORS)

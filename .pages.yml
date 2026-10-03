@@ -202,10 +202,6 @@ content:
             label: Bing 站长验证代码
             type: string
             description: Bing Webmaster Tools 所有权验证代码（可选）
-          - name: baiduSiteVerification
-            label: 百度站长验证代码
-            type: string
-            description: 百度搜索资源平台验证代码（可选）
       - name: icons
         label: 站点图标与 Favicon
         type: object
@@ -213,19 +209,19 @@ content:
           - name: faviconSvg
             label: SVG 矢量图标
             type: image
-            default: /favicon.svg
+            default: /images/favicon.svg
           - name: faviconIco
             label: ICO 图标
             type: image
-            default: /favicon.ico
+            default: /images/favicon.ico
           - name: favicon96
             label: 96x96 图标
             type: image
-            default: /favicon-96x96.png
+            default: /images/favicon-96x96.png
           - name: appleTouchIcon
             label: Apple Touch 图标
             type: image
-            default: /apple-touch-icon.png
+            default: /images/apple-touch-icon.png
     actions:
       - name: sync-posts
         label: 刷新配置缓存

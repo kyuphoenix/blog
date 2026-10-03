@@ -31,13 +31,12 @@
       "前端开发"
     ],
     "googleSiteVerification": "",
-    "bingSiteVerification": "",
-    "baiduSiteVerification": ""
+    "bingSiteVerification": ""
   },
   "icons": {
-    "faviconSvg": "/favicon.svg",
-    "faviconIco": "/favicon.ico",
-    "favicon96": "/favicon-96x96.png",
-    "appleTouchIcon": "/apple-touch-icon.png"
+    "faviconSvg": "/images/favicon.svg",
+    "faviconIco": "/images/favicon.ico",
+    "favicon96": "/images/favicon-96x96.png",
+    "appleTouchIcon": "/images/apple-touch-icon.png"
   }
 }
