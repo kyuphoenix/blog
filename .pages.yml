@@ -104,6 +104,11 @@ content:
         type: text
         required: true
         description: 博客的一句话简介/描述，展示在侧边栏、SEO Description 与友链交换中
+      - name: repository
+        label: GitHub 仓库链接
+        type: string
+        default: https://github.com/kyuphoenix/blog
+        description: 博客的开源代码仓库链接，展示在网站页脚
       - name: theme
         label: 主题与外观
         type: object

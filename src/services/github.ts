@@ -263,6 +263,7 @@ export async function getBlogConfig(env?: AppEnv['Bindings']): Promise<BlogConfi
         title: parsed.title || defaultBlogConfig.title,
         author: parsed.author || defaultBlogConfig.author,
         description: parsed.description || defaultBlogConfig.description,
+        repository: parsed.repository || defaultBlogConfig.repository,
         nav: Array.isArray(parsed.nav) ? parsed.nav : defaultBlogConfig.nav,
         social: Array.isArray(parsed.social) ? parsed.social : defaultBlogConfig.social,
         icons: {

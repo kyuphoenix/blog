@@ -16,6 +16,7 @@ export interface BlogConfig {
   title: string
   author: string
   description: string
+  repository?: string
   nav: NavItem[]
   social: SocialLink[]
   icons: {
@@ -44,6 +45,7 @@ export const blogConfig: BlogConfig = {
   description:
     rawConfig.description ||
     '这是我的个人网站和博客。在这里，我主要分享与技术和生活相关的内容。欢迎阅读！',
+  repository: (rawConfig as any).repository || 'https://github.com/kyuphoenix/blog',
   nav: (rawConfig.nav as NavItem[]) || [
     { label: '首页', url: '/' },
     { label: '归档', url: '/archive' },
