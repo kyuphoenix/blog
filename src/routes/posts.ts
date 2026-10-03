@@ -115,9 +115,9 @@ posts.get('/:title', async (c) => {
  * POST /api/posts/purge
  */
 posts.post('/purge', async (c) => {
-  // 密钥验证（支持 PURGE_SECRET 或 GITHUB_TOKEN）
+  // 密钥验证（支持 PURGE_SECRET 或 GH_TOKEN / PAT_TOKEN）
   const secret = c.req.header('X-Purge-Secret')
-  const expectedSecret = c.env.PURGE_SECRET || c.env.GITHUB_TOKEN
+  const expectedSecret = c.env.PURGE_SECRET || c.env.GH_TOKEN || c.env.PAT_TOKEN || c.env.GITHUB_TOKEN
   if (expectedSecret && secret !== expectedSecret) {
     return fail(c, 'Unauthorized', 401)
   }

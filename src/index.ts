@@ -82,19 +82,22 @@ app.get('/images/:path{.+}', async (c) => {
     ...(typeof process !== 'undefined' ? process.env : {}),
     ...(c.env || {}),
   }
-  if (!env.GITHUB_OWNER || !env.GITHUB_REPO || env.GITHUB_OWNER.startsWith('<')) {
+  const owner = env.GH_OWNER || env.GITHUB_OWNER
+  const repo = env.GH_REPO || env.GITHUB_REPO
+  if (!owner || !repo || owner.startsWith('<')) {
     return c.notFound()
   }
 
   // 3. 从 GitHub Raw 拉取最新的图片资源
-  const branch = env.GITHUB_BRANCH && env.GITHUB_BRANCH.trim() ? env.GITHUB_BRANCH.trim() : 'main'
-  const githubUrl = `https://raw.githubusercontent.com/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/${branch}/public/images/${encodeURI(imagePath)}`
+  const branch = (env.GH_BRANCH || env.GITHUB_BRANCH || 'main').trim()
+  const githubUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/public/images/${encodeURI(imagePath)}`
 
   const headers: Record<string, string> = {
     'User-Agent': 'Blog-Worker-Image-Proxy',
   }
-  if (env.GITHUB_TOKEN) {
-    headers['Authorization'] = `token ${env.GITHUB_TOKEN}`
+  const token = env.GH_TOKEN || env.PAT_TOKEN || env.GITHUB_TOKEN
+  if (token) {
+    headers['Authorization'] = `token ${token}`
   }
 
   try {

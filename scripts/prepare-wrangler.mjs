@@ -1,6 +1,6 @@
 /**
  * 仅用于处理 Cloudflare 基础设施级别的必须文件配置（如 KV ID、D1 ID、Worker 名称、自定义域名路由）。
- * 应用运行时所需的各种环境变量（BLOG_URL、GISCUS_*、GITHUB_*、DATABASE_TYPE、SUPABASE_* 等）
+ * 应用运行时所需的各种环境变量（BLOG_URL、GISCUS_*、GH_*、DATABASE_TYPE、SUPABASE_* 等）
  * 均通过 CI/CD 直接部署到 Worker 的环境变量（env）中，不向工程文件中写入敏感密钥。
  */
 

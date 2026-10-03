@@ -1,9 +1,16 @@
 export type Bindings = {
   DB?: D1Database
   BLOG_CACHE?: KVNamespace
-  GITHUB_OWNER: string
-  GITHUB_REPO: string
-  GITHUB_BRANCH: string
+  // GitHub 仓库配置 (统一采用 GH_ 前缀，避开 GitHub 变量保留名限制)
+  GH_OWNER?: string
+  GH_REPO?: string
+  GH_BRANCH?: string
+  GH_TOKEN?: string
+  PAT_TOKEN?: string
+  // 兼顾历史/兼容写法
+  GITHUB_OWNER?: string
+  GITHUB_REPO?: string
+  GITHUB_BRANCH?: string
   GITHUB_TOKEN?: string
   PURGE_SECRET?: string
   BLOG_URL?: string

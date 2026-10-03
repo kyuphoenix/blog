@@ -18,14 +18,26 @@ function rawUrl(owner: string, repo: string, branch: string, path: string): stri
 }
 
 /**
+ * 解析并规范化 GitHub 环境变量（优先 GH_*，兼容 GITHUB_*）
+ */
+function getGhConfig(env: AppEnv['Bindings']) {
+  const owner = env?.GH_OWNER || env?.GITHUB_OWNER || ''
+  const repo = env?.GH_REPO || env?.GITHUB_REPO || ''
+  const branch = env?.GH_BRANCH || env?.GITHUB_BRANCH || 'main'
+  const token = env?.GH_TOKEN || env?.PAT_TOKEN || env?.GITHUB_TOKEN
+  return { owner, repo, branch, token }
+}
+
+/**
  * 检查 GitHub 配置是否有效
  */
 function isGitHubConfigured(env: AppEnv['Bindings']): boolean {
+  const { owner, repo } = getGhConfig(env)
   return !!(
-    env.GITHUB_OWNER &&
-    env.GITHUB_REPO &&
-    !env.GITHUB_OWNER.startsWith('<') &&
-    !env.GITHUB_REPO.startsWith('<')
+    owner &&
+    repo &&
+    !owner.startsWith('<') &&
+    !repo.startsWith('<')
   )
 }
 
@@ -73,8 +85,9 @@ export async function getManifest(env: AppEnv['Bindings']): Promise<Manifest> {
   }
 
   // 从 GitHub 拉取
-  const url = rawUrl(env.GITHUB_OWNER, env.GITHUB_REPO, env.GITHUB_BRANCH, 'posts/manifest.json')
-  const content = await fetchFromGitHub(url, env.GITHUB_TOKEN)
+  const { owner, repo, branch, token } = getGhConfig(env)
+  const url = rawUrl(owner, repo, branch, 'posts/manifest.json')
+  const content = await fetchFromGitHub(url, token)
 
   if (!content) {
     return getBuiltinManifest()
@@ -139,9 +152,10 @@ export async function getPost(
     return getBuiltinPost(decoded)
   }
 
+  const { owner, repo, branch, token } = getGhConfig(env)
   const filePath = meta ? meta.path : `posts/${decoded}.md`
-  const url = rawUrl(env.GITHUB_OWNER, env.GITHUB_REPO, env.GITHUB_BRANCH, filePath)
-  const raw = await fetchFromGitHub(url, env.GITHUB_TOKEN)
+  const url = rawUrl(owner, repo, branch, filePath)
+  const raw = await fetchFromGitHub(url, token)
 
   if (!raw) {
     return null
@@ -201,8 +215,9 @@ export async function getFriends(env: AppEnv['Bindings']): Promise<FriendLink[]>
   }
 
   // 3. 从 GitHub 拉取 friends.json
-  const url = rawUrl(env.GITHUB_OWNER, env.GITHUB_REPO, env.GITHUB_BRANCH, 'friends.json')
-  const content = await fetchFromGitHub(url, env.GITHUB_TOKEN)
+  const { owner, repo, branch, token } = getGhConfig(env)
+  const url = rawUrl(owner, repo, branch, 'friends.json')
+  const content = await fetchFromGitHub(url, token)
 
   if (!content) {
     return getBuiltinFriends()
@@ -255,8 +270,9 @@ export async function getBlogConfig(env?: AppEnv['Bindings']): Promise<BlogConfi
 
   // 3. 从 GitHub 拉取最新的 blog.config.json
   try {
-    const url = rawUrl(env.GITHUB_OWNER, env.GITHUB_REPO, env.GITHUB_BRANCH, 'blog.config.json')
-    const content = await fetchFromGitHub(url, env.GITHUB_TOKEN)
+    const { owner, repo, branch, token } = getGhConfig(env)
+    const url = rawUrl(owner, repo, branch, 'blog.config.json')
+    const content = await fetchFromGitHub(url, token)
     if (content) {
       const parsed = JSON.parse(content)
       const merged: BlogConfig = {

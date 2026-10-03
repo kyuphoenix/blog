@@ -52,7 +52,7 @@ jobs:
         run: |
           # 获取博客访问地址
           BLOG_URL="${{ vars.BLOG_URL || secrets.BLOG_URL }}"
-          PURGE_SECRET="${{ secrets.PURGE_SECRET || secrets.GITHUB_TOKEN }}"
+          PURGE_SECRET="${{ secrets.PURGE_SECRET || secrets.GH_TOKEN || secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}"
 
           if [ -z "$BLOG_URL" ]; then
             echo "⚠️ 未配置 BLOG_URL，跳过 Worker 缓存刷新通知。"
