@@ -28,6 +28,10 @@
 - 📝 **Git 驱动与内容解耦**：
   - 文章统一存放在 `posts/*.md` 中，Worker 代码体积极小（不包含任何文章正文）。
   - 运行时动态拉取 GitHub Raw 内容，结合 KV/内存多级缓存加速。
+- 🖥️ **Pages CMS 可视化后台深度支持**：
+  - 预配置 [`.pages.yml`](.pages.yml)，无需本地环境，随时随地在 [Pages CMS](https://pagescms.org/) 网页端**在线可视化创建、排版、编辑与删除文章**（支持 Markdown 与所见即所得富文本双向切换）。
+  - 支持直接在后台可视化编辑**站点基础信息**（博客名称、作者简介、更换头像、首页大背景图、调整 OKLCH 主题色相、导航栏、社交链接）与**友情链接**。
+  - **多云边缘图片反代与长效缓存**：Pages CMS 上传的新图片自动由 Worker/Edge 代理并缓存在 CDN 节点（30 天），免重新部署，国内高速秒开。
 - 🔗 **极简直接的文章路径**：
   - 统一访问路径 `/posts/文章标题`（如 `/posts/Hello World`），无需在 Frontmatter 中手动指定冗余的 `slug`。
 - 💬 **Giscus 评论系统深度定制**：
@@ -50,6 +54,8 @@
 │   ├── deploy-vercel.yml     # Vercel Edge 自动化部署与环境变量同步工作流
 │   ├── deploy-netlify.yml    # Netlify Edge 自动化部署与环境变量同步工作流
 │   └── sync-posts.yml        # 文章自动同步与缓存热刷新工作流
+├── .pages.yml                # Pages CMS 可视化内容管理后台配置文件
+├── blog.config.json          # 博客全局基础设置 (标题、作者、头像、背景图、主题色等)
 ├── api/
 │   └── index.ts              # Vercel Edge Function 入口
 ├── netlify/
@@ -115,9 +121,33 @@ pnpm dev
 
 ## ✍️ 撰写与管理文章
 
-在 `posts/` 目录下创建 `.md` 文件即可撰写新文章。
+你可以选择 **Pages CMS 可视化后台（强烈推荐）** 或 **传统 Git 仓库提交** 两种方式来管理博客文章：
 
-### Frontmatter 格式示例
+### 方式一：通过 Pages CMS 可视化管理（强烈推荐）
+
+本项目已针对 [Pages CMS](https://pagescms.org/) 进行了开箱即用的深度适配：
+
+1. **登录授权**：打开 [Pages CMS](https://pagescms.org/)，使用你的 GitHub 账号登录并授权绑定本博客仓库。
+2. **可视化创建新文章**：
+   - 在左侧菜单点击 **「文章」** -> 右上角 **「New item」**（新建文章）。
+   - 输入文章标题（系统将自动以 `{title}.md` 规范命名保存）、选择发布日期、分类与标签。
+   - 上传或挑选封面图片（图片将自动存储在 `public/images/` 中，并在各大云平台上享受自动边缘代理与 CDN 缓存）。
+   - 正文编辑器支持在 **Markdown 源码** 与 **所见即所得富文本**（WYSIWYG）之间随时切换。
+3. **可视化编辑已有文章**：
+   - 在文章列表中点击任意文章卡片即可进入编辑，修改内容、标签、摘要、封面图或更新日期。
+4. **实时保存与发布**：
+   - 点击右上角 **Save**，Pages CMS 会将修改自动 commit 并推送到 GitHub 仓库。
+   - GitHub Actions 将自动重新生成文章清单并通知 Worker 预热缓存，**几秒内线上即刻展示，无需重新构建部署应用**！
+5. **站点设置与友情链接**：
+   - **「站点设置」**：可直观修改博客标题、作者昵称与简介、一键上传更换站长头像与首页大背景图、调整 OKLCH 主题色相数值（0~360）、自定义导航栏菜单及社交平台链接。
+   - **「友情链接」**：以表单列表形式随时新增、编辑、删除友链，保存后即刻刷新生效。
+
+### 方式二：通过 Git 命令行管理
+
+如果你习惯使用本地文本编辑器（如 VS Code、Obsidian）：
+
+1. 在 `posts/` 目录下创建以文章标题命名的 Markdown 文件，例如 `posts/使用 Hono 构建边缘博客.md`。
+2. 填写 Frontmatter 元数据及正文：
 
 ```markdown
 ---
@@ -126,7 +156,7 @@ date: 2026-09-26
 category: 技术
 tags: [Hono, Cloudflare Workers, TypeScript]
 excerpt: 本文记录了如何结合 Hono 与 Cloudflare Workers 搭建全功能 Fuwari 博客。
-cover: https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800&q=80
+cover: /images/cover.jpg
 draft: false
 ---
 
@@ -137,8 +167,9 @@ draft: false
 
 > **提示**：
 > - `title` 即为文章标题，访问地址将自动对应为 `/posts/使用 Hono 构建边缘博客`。
-> - `draft: true` 的文章仅在本地预览，线上不会公开展示。
-> - 本地可随时执行 `pnpm gen:manifest` 重新生成 `posts/manifest.json` 清单。
+> - `draft: true` 的文章标记为草稿，线上不会公开展示。
+> - 本地开发时可执行 `pnpm gen:manifest` 更新 `posts/manifest.json` 清单。
+> - 推送至 GitHub `main` 分支后，GitHub Actions 会自动更新清单并刷新缓存。
 
 ---
 
@@ -199,11 +230,11 @@ draft: false
 ## 🔄 日常运维与自动刷新
 
 - **发布 / 更新文章**：
-  直接在本地或 GitHub Web 界面修改/添加 `posts/*.md` 并推送到 `main` 分支。
+  推荐直接在 **Pages CMS** 后台新建或编辑文章保存，也可以在本地或 GitHub 仓库修改/添加 `posts/*.md` 并推送到 `main` 分支。
   - GitHub Actions 将自动触发 `Sync Posts & Refresh Cache`。
   - 自动更新清单并向博客发起 Webhook 刷新缓存，**几秒内即可看到更新，无需重新构建部署**。
-- **添加 / 更新友链**：
-  修改根目录的 `friends.json` 推送即可自动生效。
+- **修改站点信息与友链**：
+  在 **Pages CMS** 后台「站点设置」或「友情链接」中可视化编辑并保存（或直接修改 `blog.config.json` / `friends.json` 并推送），保存后自动同步生效。
 - **切换数据库后端**：
   直接在 GitHub Actions 中重新运行 **Deploy to Cloudflare Workers**，在下拉框中选择 `d1` 或 `supabase` 重新构建部署即可无缝切换！
 - **查看数据库运行状态**：
