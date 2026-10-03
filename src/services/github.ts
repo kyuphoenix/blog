@@ -363,7 +363,7 @@ function getBuiltinManifest(): Manifest {
       tags: ['Hono', 'Cloudflare Workers', 'TypeScript'],
       excerpt: '本文介绍如何使用 Hono 框架在 Cloudflare Workers 上构建一个轻量级博客 API。',
       draft: false,
-      path: 'posts/building-blog-with-hono.md',
+      path: 'posts/使用 Hono 构建博客 API.md',
       readingTime: 3,
     },
     {
@@ -375,7 +375,7 @@ function getBuiltinManifest(): Manifest {
       excerpt: '这是我的第一篇博客文章，欢迎来到我的博客！',
       cover: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800&q=80',
       draft: false,
-      path: 'posts/hello-world.md',
+      path: 'posts/Hello World.md',
       readingTime: 1,
     },
   ]
@@ -392,7 +392,7 @@ function getBuiltinPost(identifier: string): Post | null {
       excerpt: '这是我的第一篇博客文章，欢迎来到我的博客！',
       cover: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800&q=80',
       draft: false,
-      path: 'posts/hello-world.md',
+      path: 'posts/Hello World.md',
       readingTime: 1,
       content: `# Hello World
 
@@ -430,7 +430,7 @@ console.log(greeting)
       tags: ['Hono', 'Cloudflare Workers', 'TypeScript'],
       excerpt: '本文介绍如何使用 Hono 框架在 Cloudflare Workers 上构建一个轻量级博客 API。',
       draft: false,
-      path: 'posts/building-blog-with-hono.md',
+      path: 'posts/使用 Hono 构建博客 API.md',
       readingTime: 3,
       content: `# 使用 Hono 构建博客 API
 
