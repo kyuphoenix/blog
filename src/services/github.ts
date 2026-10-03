@@ -2,10 +2,12 @@ import { AppEnv } from '../types/env'
 import { PostMeta, Post, Manifest, FriendLink } from '../types/post'
 import { parseFrontmatter, estimateReadingTime, extractExcerpt } from '../utils/markdown'
 import { getBlogStorage } from './storage'
+import { blogConfig as defaultBlogConfig, BlogConfig } from '../blog.config'
 
 const CACHE_TTL = 60 * 5 // 缓存 5 分钟
 const MANIFEST_CACHE_KEY = 'manifest'
 const FRIENDS_CACHE_KEY = 'friends'
+const CONFIG_CACHE_KEY = 'site_config'
 
 /**
  * 构建 GitHub Raw 内容 URL
@@ -231,16 +233,84 @@ export async function getFriends(env: AppEnv['Bindings']): Promise<FriendLink[]>
 }
 
 /**
- * 清除所有缓存（文章或友链更新后调用）
+ * 获取站点全局配置（优先从 KV/内存 缓存读取；支持从 GitHub 动态同步 blog.config.json）
+ */
+export async function getBlogConfig(env?: AppEnv['Bindings']): Promise<BlogConfig> {
+  const storage = getBlogStorage(env)
+
+  // 1. 先查缓存
+  try {
+    const cached = await storage.getItem<BlogConfig>(CONFIG_CACHE_KEY)
+    if (cached && typeof cached === 'object' && cached.title) {
+      return cached
+    }
+  } catch {
+    // 缓存不可用时忽略
+  }
+
+  // 2. 如果 GitHub 未配置，返回本地默认配置
+  if (!env || !isGitHubConfigured(env)) {
+    return defaultBlogConfig
+  }
+
+  // 3. 从 GitHub 拉取最新的 blog.config.json
+  try {
+    const url = rawUrl(env.GITHUB_OWNER, env.GITHUB_REPO, env.GITHUB_BRANCH, 'blog.config.json')
+    const content = await fetchFromGitHub(url, env.GITHUB_TOKEN)
+    if (content) {
+      const parsed = JSON.parse(content)
+      const merged: BlogConfig = {
+        title: parsed.title || defaultBlogConfig.title,
+        author: parsed.author || defaultBlogConfig.author,
+        description: parsed.description || defaultBlogConfig.description,
+        nav: Array.isArray(parsed.nav) ? parsed.nav : defaultBlogConfig.nav,
+        social: Array.isArray(parsed.social) ? parsed.social : defaultBlogConfig.social,
+        icons: {
+          ...defaultBlogConfig.icons,
+          ...(parsed.icons || {}),
+        },
+        theme: {
+          fuwari: {
+            ...defaultBlogConfig.theme.fuwari,
+            ...(parsed.theme?.fuwari || {}),
+          },
+        },
+        seo: {
+          ...defaultBlogConfig.seo,
+          ...(parsed.seo || {}),
+        },
+      }
+
+      // 写入缓存
+      try {
+        await storage.setItem(CONFIG_CACHE_KEY, merged, {
+          ttl: CACHE_TTL,
+        })
+      } catch {
+        // 忽略写入缓存失败
+      }
+
+      return merged
+    }
+  } catch (err) {
+    console.warn('动态拉取 blog.config.json 异常，回退至默认配置:', err)
+  }
+
+  return defaultBlogConfig
+}
+
+/**
+ * 清除所有缓存（文章、友链或站点配置更新后调用）
  */
 export async function purgeCache(env: AppEnv['Bindings']): Promise<void> {
   const storage = getBlogStorage(env)
 
   try {
-    // 清除 manifest 与 friends 缓存
+    // 清除 manifest、friends 与 site_config 缓存
     await Promise.all([
       storage.removeItem(MANIFEST_CACHE_KEY),
       storage.removeItem(FRIENDS_CACHE_KEY),
+      storage.removeItem(CONFIG_CACHE_KEY),
     ])
 
     // 列出并清除所有文章缓存

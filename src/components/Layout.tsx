@@ -1,7 +1,7 @@
 import { FC } from 'hono/jsx'
 import { raw } from 'hono/html'
 import { css } from '../styles'
-import { blogConfig } from '../blog.config'
+import { blogConfig, BlogConfig } from '../blog.config'
 import { Navbar, BackToTop, ThemeScript } from './Navbar'
 import { Sidebar } from './Sidebar'
 import { Footer } from './Footer'
@@ -48,6 +48,7 @@ interface LayoutProps {
   verification?: VerificationMeta
   bannerHeightVh?: number
   contentOffsetVh?: number
+  siteConfig?: BlogConfig
   children: any
 }
 
@@ -64,6 +65,7 @@ export const Layout: FC<LayoutProps> = ({
   keywords = [],
   currentPath = '/',
   isHomePage = false,
+  siteConfig,
   bannerHeightVh: customBannerHeightVh,
   contentOffsetVh: customContentOffsetVh,
   categories = [],
@@ -75,24 +77,25 @@ export const Layout: FC<LayoutProps> = ({
   verification,
   children,
 }) => {
-  const pageTitle = title ? `${title} - ${blogConfig.title}` : blogConfig.title
+  const cfg = siteConfig || blogConfig
+  const pageTitle = title ? `${title} - ${cfg.title}` : cfg.title
   const bannerHeightVh =
     customBannerHeightVh ?? (isHomePage ? BANNER_HEIGHT_HOME : BANNER_HEIGHT_PAGE)
   const contentOffsetVh =
     customContentOffsetVh ?? (isHomePage ? CONTENT_OFFSET_HOME : CONTENT_OFFSET_PAGE)
-  const defaultHue = blogConfig.theme.fuwari.primaryHue
+  const defaultHue = cfg.theme.fuwari.primaryHue
 
   // 基础域名处理
   const cleanBlogUrl = (blogUrl || '').replace(/\/$/, '')
   const canonicalUrl = cleanBlogUrl ? `${cleanBlogUrl}${currentPath}` : undefined
 
-  // 站长平台验证码（直接读取 blogConfig.seo，用户无需配置环境变量或额外 Token）
-  const googleVerification = verification?.google || blogConfig.seo?.googleSiteVerification
-  const bingVerification = verification?.bing || blogConfig.seo?.bingSiteVerification
-  const baiduVerification = verification?.baidu || blogConfig.seo?.baiduSiteVerification
+  // 站长平台验证码（直接读取 cfg.seo，用户无需配置环境变量或额外 Token）
+  const googleVerification = verification?.google || cfg.seo?.googleSiteVerification
+  const bingVerification = verification?.bing || cfg.seo?.bingSiteVerification
+  const baiduVerification = verification?.baidu || cfg.seo?.baiduSiteVerification
 
   // 图片绝对路径处理 (用于 OpenGraph / Twitter Card / Schema.org)
-  const defaultImage = blogConfig.theme.fuwari.homeBg || blogConfig.theme.fuwari.avatar
+  const defaultImage = cfg.theme.fuwari.homeBg || cfg.theme.fuwari.avatar
   const rawImage = image || defaultImage
   const ogImage =
     rawImage.startsWith('http://') || rawImage.startsWith('https://')
@@ -104,10 +107,10 @@ export const Layout: FC<LayoutProps> = ({
   // 关键词集合生成
   const computedKeywords = [
     ...(keywords || []),
-    ...(blogConfig.seo?.keywords || []),
+    ...(cfg.seo?.keywords || []),
     ...(articleMeta?.tags || []),
     ...(tags?.map((t) => t.name) || []),
-    blogConfig.author,
+    cfg.author,
     '博客',
     '技术博客',
   ].filter(Boolean)
@@ -121,12 +124,12 @@ export const Layout: FC<LayoutProps> = ({
     jsonLdList.push({
       '@context': 'https://schema.org',
       '@type': 'WebSite',
-      name: blogConfig.title,
+      name: cfg.title,
       url: cleanBlogUrl || '/',
-      description: blogConfig.description,
+      description: cfg.description,
       author: {
         '@type': 'Person',
-        name: blogConfig.author,
+        name: cfg.author,
       },
       inLanguage: 'zh-CN',
       potentialAction: {
@@ -149,18 +152,18 @@ export const Layout: FC<LayoutProps> = ({
         '@type': 'WebPage',
         '@id': canonicalUrl || currentPath,
       },
-      headline: title || blogConfig.title,
-      description: description || blogConfig.description,
+      headline: title || cfg.title,
+      description: description || cfg.description,
       image: ogImage ? [ogImage] : undefined,
       datePublished: articleMeta.publishedTime,
       dateModified: articleMeta.modifiedTime || articleMeta.publishedTime,
       author: {
         '@type': 'Person',
-        name: articleMeta.author || blogConfig.author,
+        name: articleMeta.author || cfg.author,
       },
       publisher: {
         '@type': 'Organization',
-        name: blogConfig.title,
+        name: cfg.title,
         logo: {
           '@type': 'ImageObject',
           url: cleanBlogUrl ? `${cleanBlogUrl}/favicon.svg` : '/favicon.svg',
@@ -224,9 +227,9 @@ export const Layout: FC<LayoutProps> = ({
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>{pageTitle}</title>
-        <meta name="description" content={description || blogConfig.description} />
+        <meta name="description" content={description || cfg.description} />
         {uniqueKeywords && <meta name="keywords" content={uniqueKeywords} />}
-        <meta name="author" content={articleMeta?.author || blogConfig.author} />
+        <meta name="author" content={articleMeta?.author || cfg.author} />
         <meta
           name="robots"
           content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
@@ -245,10 +248,10 @@ export const Layout: FC<LayoutProps> = ({
         {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
 
         {/* OpenGraph 协议元数据 */}
-        <meta property="og:site_name" content={blogConfig.title} />
+        <meta property="og:site_name" content={cfg.title} />
         <meta property="og:locale" content="zh_CN" />
         <meta property="og:title" content={pageTitle} />
-        <meta property="og:description" content={description || blogConfig.description} />
+        <meta property="og:description" content={description || cfg.description} />
         {canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
         <meta property="og:type" content={ogType || (isHomePage ? 'website' : 'article')} />
         {ogImage && <meta property="og:image" content={ogImage} />}
@@ -277,15 +280,15 @@ export const Layout: FC<LayoutProps> = ({
         {/* Twitter Card 元数据 */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={pageTitle} />
-        <meta name="twitter:description" content={description || blogConfig.description} />
+        <meta name="twitter:description" content={description || cfg.description} />
         {ogImage && <meta name="twitter:image" content={ogImage} />}
-        <meta name="twitter:creator" content={blogConfig.author} />
+        <meta name="twitter:creator" content={cfg.author} />
 
         {/* RSS 与 Sitemap 自动发现关联 */}
         <link
           rel="alternate"
           type="application/rss+xml"
-          title={`${blogConfig.title} - RSS`}
+          title={`${cfg.title} - RSS`}
           href={`${cleanBlogUrl || ''}/rss.xml`}
         />
         <link
@@ -305,9 +308,9 @@ export const Layout: FC<LayoutProps> = ({
         <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
-        <link rel="icon" type="image/svg+xml" href={blogConfig.icons.faviconSvg} />
-        <link rel="icon" href={blogConfig.icons.faviconIco} />
-        <link rel="apple-touch-icon" href={blogConfig.icons.appleTouchIcon} />
+        <link rel="icon" type="image/svg+xml" href={cfg.icons.faviconSvg} />
+        <link rel="icon" href={cfg.icons.faviconIco} />
+        <link rel="apple-touch-icon" href={cfg.icons.appleTouchIcon} />
         {/* Tailwind CSS v4 Browser Runtime for full utility support */}
         <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
         {raw(`<style type="text/tailwindcss">
@@ -340,7 +343,7 @@ export const Layout: FC<LayoutProps> = ({
           {/* Top row: Navbar - sticky */}
           <div class="sticky top-0 z-50 pointer-events-none">
             <div class="pointer-events-auto max-w-(--fuwari-page-width) mx-auto px-0 md:px-4">
-              <Navbar currentPath={currentPath} bannerHeightVh={contentOffsetVh} />
+              <Navbar currentPath={currentPath} bannerHeightVh={contentOffsetVh} siteConfig={cfg} />
             </div>
           </div>
 
@@ -350,7 +353,7 @@ export const Layout: FC<LayoutProps> = ({
             style={`height: ${bannerHeightVh}vh`}
           >
             <img
-              src={blogConfig.theme.fuwari.homeBg}
+              src={cfg.theme.fuwari.homeBg}
               alt="banner"
               fetchpriority="high"
               class="w-full h-full object-cover object-top"
@@ -371,6 +374,7 @@ export const Layout: FC<LayoutProps> = ({
                 className="order-2 lg:order-1"
                 categories={categories}
                 tags={tags}
+                siteConfig={cfg}
               />
 
               {/* Main Content Column */}
@@ -383,7 +387,7 @@ export const Layout: FC<LayoutProps> = ({
                 class="order-3 lg:col-start-2 fuwari-onload-animation mt-auto"
                 style="animation-delay: 250ms"
               >
-                <Footer />
+                <Footer siteConfig={cfg} />
               </div>
 
               <BackToTop />

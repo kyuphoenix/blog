@@ -1,3 +1,5 @@
+import rawConfig from '../blog.config.json'
+
 export interface NavItem {
   label: string
   url: string
@@ -5,45 +7,70 @@ export interface NavItem {
 }
 
 export interface SocialLink {
-  platform: 'github' | 'email' | 'rss'
+  platform: 'github' | 'email' | 'rss' | string
   url: string
   label: string
 }
 
-export const blogConfig = {
-  title: 'Fuwari Blog',
-  author: 'Blog Author',
+export interface BlogConfig {
+  title: string
+  author: string
+  description: string
+  nav: NavItem[]
+  social: SocialLink[]
+  icons: {
+    faviconSvg: string
+    faviconIco: string
+    favicon96: string
+    appleTouchIcon: string
+  }
+  theme: {
+    fuwari: {
+      homeBg: string
+      avatar: string
+      primaryHue: number
+    }
+  }
+  seo: {
+    keywords: string[]
+    googleSiteVerification?: string
+    bingSiteVerification?: string
+    baiduSiteVerification?: string
+  }
+}
+
+export const blogConfig: BlogConfig = {
+  title: rawConfig.title || 'Fuwari Blog',
+  author: rawConfig.author || 'Blog Author',
   description:
+    rawConfig.description ||
     '这是我的个人网站和博客。在这里，我主要分享与技术和生活相关的内容。欢迎阅读！',
-  // 顶部导航栏栏位配置（支持站内路径如 '/about' 或外部链接如 'https://github.com/...'）
-  nav: [
+  nav: (rawConfig.nav as NavItem[]) || [
     { label: '首页', url: '/' },
     { label: '归档', url: '/archive' },
     { label: '友链', url: '/links' },
     { label: '关于', url: '/about' },
-  ] as NavItem[],
-  social: [
+  ],
+  social: (rawConfig.social as SocialLink[]) || [
     { platform: 'github', url: 'https://github.com', label: 'GitHub' },
     { platform: 'email', url: 'mailto:example@email.com', label: 'Email' },
     { platform: 'rss', url: '/rss.xml', label: 'RSS' },
-  ] as SocialLink[],
+  ],
   icons: {
-    faviconSvg: '/favicon.svg',
-    faviconIco: '/favicon.ico',
-    favicon96: '/favicon-96x96.png',
-    appleTouchIcon: '/apple-touch-icon.png',
+    faviconSvg: rawConfig.icons?.faviconSvg || '/favicon.svg',
+    faviconIco: rawConfig.icons?.faviconIco || '/favicon.ico',
+    favicon96: rawConfig.icons?.favicon96 || '/favicon-96x96.png',
+    appleTouchIcon: rawConfig.icons?.appleTouchIcon || '/apple-touch-icon.png',
   },
   theme: {
     fuwari: {
-      homeBg: '/images/home-bg.png',
-      avatar: '/images/avatar.png',
-      primaryHue: 250,
+      homeBg: rawConfig.theme?.fuwari?.homeBg || '/images/home-bg.png',
+      avatar: rawConfig.theme?.fuwari?.avatar || '/images/avatar.png',
+      primaryHue: Number(rawConfig.theme?.fuwari?.primaryHue ?? 250),
     },
   },
-  // 搜索引擎收录与展示优化配置
   seo: {
-    // 网站全局关键词（辅助搜索引擎识别站点主题）
-    keywords: [
+    keywords: rawConfig.seo?.keywords || [
       '个人博客',
       '技术分享',
       '全栈开发',
@@ -52,9 +79,8 @@ export const blogConfig = {
       'TypeScript',
       '前端开发',
     ],
-    // 站长平台 HTML 标签所有权验证码（可选；若在域名 DNS 中已添加 TXT 记录验证，此处可直接留空）
-    googleSiteVerification: '', // Google Search Console: content 属性值
-    bingSiteVerification: '',   // Bing Webmaster Tools: content 属性值 (msvalidate.01)
-    baiduSiteVerification: '',  // 百度搜索资源平台: content 属性值
+    googleSiteVerification: rawConfig.seo?.googleSiteVerification || '',
+    bingSiteVerification: rawConfig.seo?.bingSiteVerification || '',
+    baiduSiteVerification: rawConfig.seo?.baiduSiteVerification || '',
   },
 }

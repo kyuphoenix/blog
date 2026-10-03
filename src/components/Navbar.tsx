@@ -1,6 +1,6 @@
 import { FC } from 'hono/jsx'
 import { raw } from 'hono/html'
-import { blogConfig, NavItem } from '../blog.config'
+import { blogConfig, BlogConfig, NavItem } from '../blog.config'
 import {
   HomeIcon,
   SearchIcon,
@@ -15,10 +15,16 @@ import {
 
 export const navOptions = blogConfig.nav
 
-export const Navbar: FC<{ currentPath?: string; bannerHeightVh?: number }> = ({
+export const Navbar: FC<{
+  currentPath?: string
+  bannerHeightVh?: number
+  siteConfig?: BlogConfig
+}> = ({
   currentPath = '/',
   bannerHeightVh = 65,
+  siteConfig,
 }) => {
+  const cfg = siteConfig || blogConfig
   return (
     <>
       {/* Mobile Menu Drawer */}
@@ -31,7 +37,7 @@ export const Navbar: FC<{ currentPath?: string; bannerHeightVh?: number }> = ({
           class="absolute right-4 top-20 w-64 fuwari-card-base p-4 shadow-xl -translate-y-4 transition-transform duration-300"
         >
           <div class="flex items-center justify-between pb-3 mb-2 border-b border-black/5 dark:border-white/10">
-            <span class="font-bold text-sm fuwari-text-90">{blogConfig.title}</span>
+            <span class="font-bold text-sm fuwari-text-90">{cfg.title}</span>
             <button
               id="mobile-menu-close"
               type="button"
@@ -41,7 +47,7 @@ export const Navbar: FC<{ currentPath?: string; bannerHeightVh?: number }> = ({
             </button>
           </div>
           <nav class="flex flex-col gap-1">
-            {blogConfig.nav.map((item) => {
+            {cfg.nav.map((item) => {
               const isExternal =
                 item.external ??
                 (item.url.startsWith('http://') || item.url.startsWith('https://'))
@@ -93,12 +99,12 @@ export const Navbar: FC<{ currentPath?: string; bannerHeightVh?: number }> = ({
                 class="text-(--fuwari-primary) mr-2 shrink-0"
               />
               <span class="text-(--fuwari-primary) text-base">
-                {blogConfig.title}
+                {cfg.title}
               </span>
             </a>
 
             <nav class="hidden md:flex items-center gap-1">
-              {blogConfig.nav.map((item) => {
+              {cfg.nav.map((item) => {
                 const isExternal =
                   item.external ??
                   (item.url.startsWith('http://') || item.url.startsWith('https://'))
@@ -179,7 +185,7 @@ export const Navbar: FC<{ currentPath?: string; bannerHeightVh?: number }> = ({
                         id="hue-value"
                         class="text-xs font-mono px-2 py-0.5 rounded-md bg-(--fuwari-btn-regular-bg) text-(--fuwari-btn-content)"
                       >
-                        {blogConfig.theme.fuwari.primaryHue}
+                        {cfg.theme.fuwari.primaryHue}
                       </span>
                       <button
                         type="button"
@@ -195,7 +201,7 @@ export const Navbar: FC<{ currentPath?: string; bannerHeightVh?: number }> = ({
                     type="range"
                     min="0"
                     max="360"
-                    value={String(blogConfig.theme.fuwari.primaryHue)}
+                    value={String(cfg.theme.fuwari.primaryHue)}
                     class="hue-slider"
                     id="hue-slider"
                     aria-label="Theme Hue Slider"
@@ -284,7 +290,7 @@ export const BackToTop: FC = () => {
   )
 }
 
-export const ThemeScript: FC = () => {
+export const ThemeScript: FC<{ defaultHue?: number }> = ({ defaultHue = blogConfig.theme.fuwari.primaryHue }) => {
   return raw(`<script>
     (function() {
       // 1. Navbar scroll hide/show & BackToTop visibility (exact flare-stack-blog logic)
@@ -342,7 +348,7 @@ export const ThemeScript: FC = () => {
       var hueSlider = document.getElementById('hue-slider');
       var hueValue = document.getElementById('hue-value');
       var hueReset = document.getElementById('hue-reset');
-      var defaultHue = '${blogConfig.theme.fuwari.primaryHue}';
+      var defaultHue = '${defaultHue}';
       var savedHue = localStorage.getItem('hue') || defaultHue;
 
       if (hueSlider && hueValue) {

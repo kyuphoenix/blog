@@ -9,8 +9,7 @@ import postPage from './pages/post'
 import archivePage from './pages/archive'
 import aboutPage from './pages/about'
 import linksPage from './pages/links'
-import { getManifest } from './services/github'
-import { blogConfig } from './blog.config'
+import { getManifest, getBlogConfig } from './services/github'
 import { giscusLightCss, giscusDarkCss } from './styles/giscusTheme'
 
 const app = new Hono<AppEnv>()
@@ -52,7 +51,11 @@ app.route('/api', api)
 
 // RSS 2.0 订阅源 (动态使用 Worker 环境变量 BLOG_URL)
 app.get('/rss.xml', async (c) => {
-  const manifest = (await getManifest(c.env)).filter((p) => !p.draft)
+  const [manifestRaw, siteConfig] = await Promise.all([
+    getManifest(c.env),
+    getBlogConfig(c.env),
+  ])
+  const manifest = manifestRaw.filter((p) => !p.draft)
   const baseUrl = (c.env.BLOG_URL || '').replace(/\/$/, '') || new URL(c.req.url).origin
 
   const items = manifest
@@ -73,9 +76,9 @@ app.get('/rss.xml', async (c) => {
   const rss = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>${blogConfig.title}</title>
+    <title>${siteConfig.title}</title>
     <link>${baseUrl}</link>
-    <description>${blogConfig.description}</description>
+    <description>${siteConfig.description}</description>
     <atom:link href="${baseUrl}/rss.xml" rel="self" type="application/rss+xml"/>
     ${items}
   </channel>

@@ -2,10 +2,9 @@ import { Hono } from 'hono'
 import { AppEnv } from '../types/env'
 import { Layout, PostCard, Pagination } from '../components'
 import { PostCardItem } from '../components/PostCard'
-import { getManifest, getSidebarData } from '../services/github'
+import { getManifest, getSidebarData, getBlogConfig } from '../services/github'
 import { getTopPosts, getAllPostStats, isStatsEnabled } from '../services/stats'
 import { parsePagination } from '../utils/pagination'
-import { blogConfig } from '../blog.config'
 
 const home = new Hono<AppEnv>()
 
@@ -84,7 +83,10 @@ home.get('/', async (c) => {
       ? [...topPosts, ...pagedRegular]
       : pagedRegular
 
-  const { categories, tags } = await getSidebarData(c.env)
+  const [siteConfig, { categories, tags }] = await Promise.all([
+    getBlogConfig(c.env),
+    getSidebarData(c.env),
+  ])
 
   let baseUrl = '/'
   if (category) baseUrl = `/?category=${encodeURIComponent(category)}`
@@ -94,10 +96,10 @@ home.get('/', async (c) => {
   let pageDescription = undefined
   if (category) {
     pageTitle = `分类: ${category}`
-    pageDescription = `${blogConfig.title} - “${category}”分类下的所有精选文章与技术分享（共 ${total} 篇）。`
+    pageDescription = `${siteConfig.title} - “${category}”分类下的所有精选文章与技术分享（共 ${total} 篇）。`
   } else if (tag) {
     pageTitle = `标签: ${tag}`
-    pageDescription = `${blogConfig.title} - 包含“#${tag}”标签的所有相关文章与教程（共 ${total} 篇）。`
+    pageDescription = `${siteConfig.title} - 包含“#${tag}”标签的所有相关文章与教程（共 ${total} 篇）。`
   }
 
   return c.html(
@@ -109,6 +111,7 @@ home.get('/', async (c) => {
       categories={categories}
       tags={tags}
       blogUrl={c.env.BLOG_URL}
+      siteConfig={siteConfig}
     >
       {(category || tag) && (
         <div

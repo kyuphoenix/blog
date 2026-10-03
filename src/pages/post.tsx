@@ -12,7 +12,7 @@ import {
   ChevronRightIcon,
   EyeIcon,
 } from '../components/Icons'
-import { getPost, getManifest, getSidebarData } from '../services/github'
+import { getPost, getManifest, getSidebarData, getBlogConfig } from '../services/github'
 import { getPostStats, isStatsEnabled } from '../services/stats'
 import { marked } from 'marked'
 
@@ -27,12 +27,22 @@ interface TocItem {
 postPage.get('/:title', async (c) => {
   const rawTitle = c.req.param('title')
   const title = decodeURIComponent(rawTitle)
-  const post = await getPost(title, c.env)
-  const { categories, tags } = await getSidebarData(c.env)
+  const [post, { categories, tags }, siteConfig] = await Promise.all([
+    getPost(title, c.env),
+    getSidebarData(c.env),
+    getBlogConfig(c.env),
+  ])
 
   if (!post || post.draft) {
     return c.html(
-      <Layout title="404 - 文章不存在" currentPath="/posts" categories={categories} tags={tags} blogUrl={c.env.BLOG_URL}>
+      <Layout
+        title="404 - 文章不存在"
+        currentPath="/posts"
+        categories={categories}
+        tags={tags}
+        blogUrl={c.env.BLOG_URL}
+        siteConfig={siteConfig}
+      >
         <div class="fuwari-card-base p-12 text-center fuwari-onload-animation">
           <h1 class="text-4xl font-bold fuwari-text-90 mb-3">404</h1>
           <p class="fuwari-text-50 mb-6">抱歉，您访问的文章不存在或已下线。</p>
@@ -109,6 +119,7 @@ postPage.get('/:title', async (c) => {
       blogUrl={c.env.BLOG_URL}
       image={post.cover}
       ogType="article"
+      siteConfig={siteConfig}
       articleMeta={{
         publishedTime: post.date ? new Date(post.date).toISOString() : undefined,
         modifiedTime: post.updated

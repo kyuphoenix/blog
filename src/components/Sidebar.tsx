@@ -1,5 +1,5 @@
 import { FC } from 'hono/jsx'
-import { blogConfig } from '../blog.config'
+import { blogConfig, BlogConfig } from '../blog.config'
 import { GithubIcon, MailIcon, RssIcon } from './Icons'
 
 interface CategoryItem {
@@ -16,6 +16,7 @@ interface SidebarProps {
   className?: string
   categories?: CategoryItem[]
   tags?: TagItem[]
+  siteConfig?: BlogConfig
 }
 
 const renderSocialIcon = (platform: string) => {
@@ -35,7 +36,10 @@ export const Sidebar: FC<SidebarProps> = ({
   className = '',
   categories = [],
   tags = [],
+  siteConfig,
 }) => {
+  const cfg = siteConfig || blogConfig
+
   return (
     <aside class={`flex flex-col gap-4 ${className}`}>
       {/* Profile Card (Exact flare-stack-blog profile.tsx port) */}
@@ -48,24 +52,24 @@ export const Sidebar: FC<SidebarProps> = ({
           >
             <div class="absolute inset-0 z-10 flex items-center justify-center bg-black/0 group-hover:bg-black/30 group-active:bg-black/50 transition-colors pointer-events-none" />
             <img
-              src={blogConfig.theme.fuwari.avatar}
-              alt={blogConfig.author}
+              src={cfg.theme.fuwari.avatar}
+              alt={cfg.author}
               class="w-full h-auto aspect-square object-cover"
             />
           </a>
           <div class="px-2 text-center">
             <div class="font-bold text-xl fuwari-text-90 mb-1">
-              {blogConfig.author}
+              {cfg.author}
             </div>
             <div
               class="h-1 w-5 rounded-full mx-auto mb-2"
               style="background-color: var(--fuwari-primary)"
             />
             <div class="fuwari-text-50 text-sm mb-2.5">
-              {blogConfig.description}
+              {cfg.description}
             </div>
             <div class="flex flex-wrap gap-2 justify-center">
-              {blogConfig.social.map((link) => (
+              {cfg.social.map((link) => (
                 <a
                   href={link.url}
                   target={link.platform === 'email' ? undefined : '_blank'}

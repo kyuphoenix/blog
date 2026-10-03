@@ -8,6 +8,7 @@ on:
     paths:
       - 'posts/**'
       - 'friends.json'
+      - 'blog.config.json'
   workflow_dispatch:
 
 concurrency:

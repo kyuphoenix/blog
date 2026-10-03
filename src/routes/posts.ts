@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { AppEnv } from '../types/env'
-import { getManifest, getPost, getFriends, purgeCache } from '../services/github'
+import { getManifest, getPost, getFriends, getBlogConfig, purgeCache } from '../services/github'
 import { success, paginated, fail } from '../utils/response'
 import { parsePagination } from '../utils/pagination'
 
@@ -122,18 +122,23 @@ posts.post('/purge', async (c) => {
     return fail(c, 'Unauthorized', 401)
   }
 
-  // 1. 清空旧文章及清单/友链缓存
+  // 1. 清空旧文章及清单/友链/配置缓存
   await purgeCache(c.env)
-  // 2. 立即拉取并重新缓存最新文章列表与友链列表
-  const [manifest, friends] = await Promise.all([
+  // 2. 立即拉取并重新缓存最新文章列表、友链与配置
+  const [manifest, friends, siteConfig] = await Promise.all([
     getManifest(c.env),
     getFriends(c.env),
+    getBlogConfig(c.env),
   ])
 
   return success(
     c,
-    { reCachedCount: manifest.length, reCachedFriendsCount: friends.length },
-    'Cache purged and manifest & friends re-cached successfully'
+    {
+      reCachedCount: manifest.length,
+      reCachedFriendsCount: friends.length,
+      siteTitle: siteConfig.title,
+    },
+    'Cache purged and manifest, friends & config re-cached successfully'
   )
 })
 

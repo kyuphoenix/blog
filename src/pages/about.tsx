@@ -1,22 +1,26 @@
 import { Hono } from 'hono'
 import { AppEnv } from '../types/env'
 import { Layout } from '../components'
-import { getSidebarData } from '../services/github'
+import { getSidebarData, getBlogConfig } from '../services/github'
 
 const about = new Hono<AppEnv>()
 
 about.get('/', async (c) => {
-  const { categories, tags } = await getSidebarData(c.env)
+  const [{ categories, tags }, siteConfig] = await Promise.all([
+    getSidebarData(c.env),
+    getBlogConfig(c.env),
+  ])
 
   return c.html(
     <Layout
       title="关于"
-      description="关于本站 - 了解博客的技术架构、个人介绍与建站初衷"
+      description={`关于本站 - 了解 ${siteConfig.title} 的技术架构、个人介绍与建站初衷`}
       currentPath="/about"
       isHomePage={false}
       categories={categories}
       tags={tags}
       blogUrl={c.env.BLOG_URL}
+      siteConfig={siteConfig}
     >
       <div
         class="fuwari-card-base z-10 px-6 md:px-9 pt-6 pb-8 relative w-full fuwari-onload-animation"

@@ -3,26 +3,26 @@ import { raw } from 'hono/html'
 import { AppEnv } from '../types/env'
 import { Layout, Giscus } from '../components'
 import { ExternalLinkIcon } from '../components/Icons'
-import { getSidebarData, getFriends } from '../services/github'
-import { blogConfig } from '../blog.config'
+import { getSidebarData, getFriends, getBlogConfig } from '../services/github'
 
 const links = new Hono<AppEnv>()
 
 links.get('/', async (c) => {
-  const [{ categories, tags }, friends] = await Promise.all([
+  const [{ categories, tags }, friends, siteConfig] = await Promise.all([
     getSidebarData(c.env),
     getFriends(c.env),
+    getBlogConfig(c.env),
   ])
   const baseUrl = (c.env.BLOG_URL || '').replace(/\/$/, '') || new URL(c.req.url).origin
-  const avatarUrl = blogConfig.theme.fuwari.avatar.startsWith('http')
-    ? blogConfig.theme.fuwari.avatar
-    : `${baseUrl}${blogConfig.theme.fuwari.avatar}`
+  const avatarUrl = siteConfig.theme.fuwari.avatar.startsWith('http')
+    ? siteConfig.theme.fuwari.avatar
+    : `${baseUrl}${siteConfig.theme.fuwari.avatar}`
 
-  const emailSocial = blogConfig.social.find((s) => s.platform === 'email')
+  const emailSocial = siteConfig.social.find((s) => s.platform === 'email')
   const adminEmail = emailSocial ? emailSocial.url.replace(/^mailto:/i, '') : ''
 
-  const siteInfoText = `博客名称：${blogConfig.title}
-博客简介：${blogConfig.description}
+  const siteInfoText = `博客名称：${siteConfig.title}
+博客简介：${siteConfig.description}
 博客链接：${baseUrl}
 博客头像：${avatarUrl}`
 
@@ -31,7 +31,7 @@ links.get('/', async (c) => {
 - 博客链接：https://example.com
 - 博客头像：https://example.com/avatar.png`
 
-  const mailtoSubject = encodeURIComponent(`申请交换友链 - 来自 ${blogConfig.title} 的访客`)
+  const mailtoSubject = encodeURIComponent(`申请交换友链 - 来自 ${siteConfig.title} 的访客`)
   const mailtoBody = encodeURIComponent(
     `你好，我想申请与贵站交换友情链接：\n\n${applyTemplateText}\n\n已在贵站先行添加友链，期待回复！`
   )
@@ -48,6 +48,7 @@ links.get('/', async (c) => {
       categories={categories}
       tags={tags}
       blogUrl={c.env.BLOG_URL}
+      siteConfig={siteConfig}
     >
       {/* 头部标题卡片：左侧标题，右侧“申请友链”按钮 */}
       <div
@@ -102,8 +103,8 @@ links.get('/', async (c) => {
                 <span>📋 本站信息（请先添加本站）</span>
               </div>
               <ul class="text-xs fuwari-text-75 space-y-1.5 font-mono leading-relaxed list-none p-0 m-0">
-                <li><span class="fuwari-text-50 font-sans">名称：</span>{blogConfig.title}</li>
-                <li><span class="fuwari-text-50 font-sans">简介：</span>{blogConfig.description}</li>
+                <li><span class="fuwari-text-50 font-sans">名称：</span>{siteConfig.title}</li>
+                <li><span class="fuwari-text-50 font-sans">简介：</span>{siteConfig.description}</li>
                 <li><span class="fuwari-text-50 font-sans">网址：</span>{baseUrl}</li>
                 <li><span class="fuwari-text-50 font-sans">头像：</span>{avatarUrl}</li>
               </ul>
