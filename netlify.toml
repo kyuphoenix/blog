@@ -6,7 +6,6 @@
   path = "/*"
   function = "server"
   excludedPath = [
-    "/images/*",
     "/css/*",
     "/favicon.ico",
     "/favicon.svg",

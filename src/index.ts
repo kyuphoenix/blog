@@ -77,8 +77,11 @@ app.get('/images/:path{.+}', async (c) => {
     // 忽略异常
   }
 
-  // 2. 检查 GitHub 配置
-  const env = c.env
+  // 2. 检查 GitHub 配置（兼容 Cloudflare c.env、Vercel process.env 与 Netlify Deno.env）
+  const env: any = {
+    ...(typeof process !== 'undefined' ? process.env : {}),
+    ...(c.env || {}),
+  }
   if (!env.GITHUB_OWNER || !env.GITHUB_REPO || env.GITHUB_OWNER.startsWith('<')) {
     return c.notFound()
   }
@@ -108,6 +111,8 @@ app.get('/images/:path{.+}', async (c) => {
       headers: {
         'Content-Type': contentType,
         'Cache-Control': 'public, max-age=604800, s-maxage=2592000, stale-while-revalidate=86400',
+        'CDN-Cache-Control': 'public, s-maxage=2592000',
+        'Netlify-CDN-Cache-Control': 'public, s-maxage=2592000',
         'Access-Control-Allow-Origin': '*',
         'ETag': res.headers.get('etag') || `"${imageBytes.byteLength}"`,
       },
