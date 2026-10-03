@@ -1,5 +1,6 @@
 name: Deploy to Vercel
 
+# 仅允许手动运行触发部署
 on:
   workflow_dispatch:
     inputs:
@@ -12,14 +13,6 @@ on:
           - auto
           - supabase
           - none
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - '.github/workflows/deploy.yml'
-      - '.github/workflows/deploy-netlify.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -29,8 +22,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     name: Deploy to Vercel
-    # 仅在配置了 Vercel Token 密钥或手动触发时运行，避免未配置平台时产生红叉
-    if: ${{ secrets.VERCEL_TOKEN != '' || secrets.VERCEL_API_KEY != '' || secrets.VERCEL_AUTH_TOKEN != '' || github.event_name == 'workflow_dispatch' }}
     permissions:
       contents: read
     steps:
