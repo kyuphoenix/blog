@@ -1,7 +1,5 @@
-import { readFileSync } from 'fs'
-
-// We export the raw CSS content for Giscus custom themes.
-// When compiled for Cloudflare Workers, these string constants are embedded directly.
+// Raw CSS content for Giscus custom themes.
+// When compiled for Cloudflare Workers / Edge, these string constants are embedded directly.
 
 export const giscusLightCss = `/*!
  * Fuwari Blog Theme for Giscus (Light Mode)

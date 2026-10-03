@@ -3,7 +3,6 @@ import {
   getDbClient,
   PageViewInput,
   PostStat,
-  ensureStatsTables,
   resolveDatabaseType,
   isStatsEnabled,
 } from './db'

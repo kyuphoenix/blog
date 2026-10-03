@@ -45,14 +45,14 @@ home.get('/', async (c) => {
 
         // 匹配已发布的文章
         topPosts = manifest
-          .filter((p) => topMap.has(p.title) || topMap.has(p.slug))
+          .filter((p) => topMap.has(p.title) || (p.slug ? topMap.has(p.slug) : false))
           .map((p) => {
-            const info = topMap.get(p.title) || topMap.get(p.slug)!
+            const info = topMap.get(p.title) || (p.slug ? topMap.get(p.slug) : undefined)
             return {
               ...p,
               isTop: true,
-              rank: info.rank,
-              views: info.views,
+              rank: info?.rank,
+              views: info?.views,
             }
           })
           .sort((a, b) => (a.rank || 0) - (b.rank || 0))
@@ -70,7 +70,7 @@ home.get('/', async (c) => {
   const regularWithStats: PostCardItem[] = regularList.map((p) => ({
     ...p,
     views: statsEnabled
-      ? (allStats[p.title]?.views ?? allStats[p.slug]?.views ?? 0)
+      ? (allStats[p.title]?.views ?? (p.slug ? allStats[p.slug]?.views : undefined) ?? 0)
       : undefined,
   }))
 

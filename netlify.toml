@@ -5,3 +5,13 @@
 [[edge_functions]]
   path = "/*"
   function = "server"
+  excludedPath = [
+    "/images/*",
+    "/css/*",
+    "/favicon.ico",
+    "/favicon.svg",
+    "/favicon-*.png",
+    "/apple-touch-icon.png",
+    "/web-app-manifest-*.png",
+    "/_headers"
+  ]

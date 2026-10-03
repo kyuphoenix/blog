@@ -37,11 +37,18 @@ stats.post('/view', async (c) => {
       return c.json({ success: false, message: 'Missing slug' }, 400)
     }
 
-    const ip =
+    const rawIp =
       c.req.header('cf-connecting-ip') ||
-      c.req.header('x-forwarded-for') ||
+      c.req.header('x-real-ip') ||
+      c.req.header('x-client-ip') ||
+      c.req.header('x-forwarded-for')?.split(',')[0] ||
       '127.0.0.1'
-    const country = c.req.header('cf-ipcountry') || ''
+    const ip = rawIp.trim()
+    const country =
+      c.req.header('cf-ipcountry') ||
+      c.req.header('x-vercel-ip-country') ||
+      c.req.header('x-country') ||
+      ''
 
     const result = await recordPageView(c.env, {
       slug,

@@ -6,7 +6,13 @@
     "strict": true,
     "skipLibCheck": true,
     "lib": [
-      "ESNext"
+      "ESNext",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "types": [
+      "@cloudflare/workers-types",
+      "node"
     ],
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx"

@@ -11,7 +11,8 @@ const FRIENDS_CACHE_KEY = 'friends'
  * 构建 GitHub Raw 内容 URL
  */
 function rawUrl(owner: string, repo: string, branch: string, path: string): string {
-  return `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${encodeURI(path)}`
+  const safeBranch = branch && branch.trim() ? branch.trim() : 'main'
+  return `https://raw.githubusercontent.com/${owner}/${repo}/${safeBranch}/${encodeURI(path)}`
 }
 
 /**
