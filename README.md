@@ -240,6 +240,7 @@ draft: false
   如果本仓库是通过 GitHub **「Use this template」** 按钮创建的衍生博客，当上游主仓库有新功能或 Bug 修复发布时：
   - 进入 GitHub 仓库的 **Actions** 标签页，在左侧选择 **Sync Template Updates**。
   - 点击 **Run workflow** -> 选择 `direct`（直接合并）即可一键同步！工作流会自动精准关联上游历史，安全保留你自定义的文章（`posts/`）、站点配置（`blog.config.json`）与友链（`friends.json`）。
+  - 💡 **自动部署提示**：若希望代码同步合并后**立即自动触发后续部署工作流**，可在仓库 Secrets 中配置个人访问令牌 `PAT_TOKEN`（或 `GH_TOKEN`），以绕过 GitHub 默认 Token 的防递归触发机制。
 - **切换数据库后端**：
   直接在 GitHub Actions 中重新运行 **Deploy to Cloudflare Workers**，在下拉框中选择 `d1` 或 `supabase` 重新构建部署即可无缝切换！
 - **查看数据库运行状态**：

@@ -1,5 +1,6 @@
 name: Sync Template Updates
 
+# 仅允许手动在 Actions 页面按需触发
 on:
   workflow_dispatch:
     inputs:
@@ -21,9 +22,6 @@ on:
         required: false
         default: 'main'
         type: string
-  # 每月 1 号 UTC 0:00 自动检查上游模板是否有更新 (可选，可通过注释关闭)
-  schedule:
-    - cron: '0 0 1 * *'
 
 concurrency:
   group: sync-template-${{ github.ref }}
@@ -55,12 +53,23 @@ jobs:
           set -e
 
           CURRENT_REPO="${{ github.repository }}"
+          
+          # 精准获取当前目标分支名称
           CURRENT_BRANCH="${{ github.ref_name }}"
+          if [ -z "$CURRENT_BRANCH" ] || [ "$CURRENT_BRANCH" = "HEAD" ]; then
+            CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+          fi
+          if [ -z "$CURRENT_BRANCH" ] || [ "$CURRENT_BRANCH" = "HEAD" ]; then
+            CURRENT_BRANCH=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@')
+          fi
+          if [ -z "$CURRENT_BRANCH" ]; then
+            CURRENT_BRANCH="main"
+          fi
 
           echo "=========================================================="
           echo "🔄 开始模板仓库同步"
-          echo "📌 当前仓库: $CURRENT_REPO (分支: $CURRENT_BRANCH)"
-          echo "📌 上游模板: $UPSTREAM_REPO (分支: $UPSTREAM_BRANCH)"
+          echo "📌 当前仓库: $CURRENT_REPO (目标分支: $CURRENT_BRANCH)"
+          echo "📌 上游模板: $UPSTREAM_REPO (上游分支: $UPSTREAM_BRANCH)"
           echo "📌 同步模式: $SYNC_MODE"
           echo "=========================================================="
 
@@ -139,37 +148,46 @@ jobs:
                 --title "chore: sync updates from template ($UPSTREAM_REPO)" \
                 --body "本 PR 自动从上游模板仓库 [$UPSTREAM_REPO](https://github.com/$UPSTREAM_REPO) 同步了最新的框架代码、部署脚本与功能改进。" || true
             else
-              echo "⚠️ 自动合并存在冲突，推送到分支以便在 PR 中解决..."
-              git push -u origin "$SYNC_BRANCH" || true
+              echo "⚠️ 自动合并存在冲突，正在暂存并提交冲突标记到 $SYNC_BRANCH 分支..."
+              # 关键步骤：必须暂存并提交冲突标记，确保分支生成有效新 Commit，否则 git push 无法推送冲突且 gh pr create 会报无差异错误
+              git add .
+              git commit -m "chore: sync updates from template $UPSTREAM_REPO (contains merge conflicts)"
+              git push -u origin "$SYNC_BRANCH"
+              echo "✓ 冲突已提交至 $SYNC_BRANCH，正在创建 Pull Request 供网页端解决冲突..."
               gh pr create --base "$CURRENT_BRANCH" --head "$SYNC_BRANCH" \
                 --title "⚠️ [冲突需解决] 同步上游模板更新 ($UPSTREAM_REPO)" \
-                --body "从上游模板 [$UPSTREAM_REPO](https://github.com/$UPSTREAM_REPO) 同步代码时存在冲突。请在网页端点击 'Resolve conflicts' 或在本地检出本分支解决冲突后合并。" || true
+                --body "从上游模板 [$UPSTREAM_REPO](https://github.com/$UPSTREAM_REPO) 同步代码时存在冲突。请在网页端点击 'Resolve conflicts' 按钮或在本地检出本分支解决冲突后合并。" || true
             fi
           else
-            # direct 模式（默认）：尝试直接合并到当前分支
+            # direct 模式（默认）：尝试直接合并到当前目标主分支
             if git merge "template/$UPSTREAM_BRANCH" -m "chore: sync updates from template $UPSTREAM_REPO"; then
               echo "✅ 合并成功（无冲突）！准备推送到 $CURRENT_BRANCH..."
               if git push origin "$CURRENT_BRANCH"; then
                 echo "🎉 上游模板更新已成功合并并推送到 $CURRENT_BRANCH 分支！"
               else
-                echo "⚠️ 推送至 $CURRENT_BRANCH 受阻（可能开启了分支保护规则），自动切换为创建 PR 分支..."
+                echo "⚠️ 推送至 $CURRENT_BRANCH 受阻（可能开启了保护分支规则），自动切换为创建 PR 分支..."
                 SYNC_BRANCH="sync/template-$(date +%Y%m%d-%H%M%S)"
                 git checkout -b "$SYNC_BRANCH"
                 git push -u origin "$SYNC_BRANCH"
                 gh pr create --base "$CURRENT_BRANCH" --head "$SYNC_BRANCH" \
                   --title "chore: sync updates from template ($UPSTREAM_REPO)" \
-                  --body "上游模板 [$UPSTREAM_REPO](https://github.com/$UPSTREAM_REPO) 已成功合并代码。因当前分支保护限制，已自动转为 Pull Request 供审核合并。" || true
+                  --body "上游模板 [$UPSTREAM_REPO](https://github.com/$UPSTREAM_REPO) 代码已成功合并。因 $CURRENT_BRANCH 分支开启了保护规则，已自动转为 Pull Request 供审核合并。" || true
               fi
             else
-              echo "⚠️ 检测到合并冲突！自动取消直接推送并转为创建 PR 分支，确保主分支安全..."
+              echo "⚠️ 检测到合并冲突！自动取消当前分支合并，转为在独立分支中提交冲突并创建 PR，保护 $CURRENT_BRANCH 分支安全..."
               git merge --abort || true
               SYNC_BRANCH="sync/template-conflicts-$(date +%Y%m%d-%H%M%S)"
               git checkout -b "$SYNC_BRANCH"
+              # 在独立分支上重新执行合并
               git merge "template/$UPSTREAM_BRANCH" -m "chore: sync updates from template $UPSTREAM_REPO" || true
-              git push -u origin "$SYNC_BRANCH" || true
+              # 关键步骤：必须暂存并提交冲突内容，确保生成新 Commit，才能成功 push 并创建 PR
+              git add .
+              git commit -m "chore: sync updates from template $UPSTREAM_REPO (contains merge conflicts)"
+              git push -u origin "$SYNC_BRANCH"
+              echo "✓ 冲突已提交至 $SYNC_BRANCH 分支，正在创建 Pull Request 供网页端解决冲突..."
               gh pr create --base "$CURRENT_BRANCH" --head "$SYNC_BRANCH" \
                 --title "⚠️ [冲突需解决] 同步上游模板更新 ($UPSTREAM_REPO)" \
-                --body "从上游模板 [$UPSTREAM_REPO](https://github.com/$UPSTREAM_REPO) 同步代码时与本仓库已有文件产生冲突。请在网页端点击 'Resolve conflicts' 或在本地检出分支解决冲突后合并。" || {
+                --body "从上游模板 [$UPSTREAM_REPO](https://github.com/$UPSTREAM_REPO) 同步代码时与本仓库已有文件产生冲突。请在网页端点击 'Resolve conflicts' 按钮或在本地检出分支解决冲突后合并。" || {
                   echo "💡 提示：若 PR 创建受限，可在本地运行以下命令拉取并解决冲突："
                   echo "   git checkout $SYNC_BRANCH"
                   echo "   git status"
