@@ -40,7 +40,7 @@ postPage.get('/:title', async (c) => {
         currentPath="/posts"
         categories={categories}
         tags={tags}
-        blogUrl={c.env.BLOG_URL}
+        blogUrl={c.env.BLOG_URL || new URL(c.req.url).origin}
         siteConfig={siteConfig}
       >
         <div class="fuwari-card-base p-12 text-center fuwari-onload-animation">
@@ -116,7 +116,7 @@ postPage.get('/:title', async (c) => {
       isHomePage={false}
       categories={categories}
       tags={tags}
-      blogUrl={c.env.BLOG_URL}
+      blogUrl={c.env.BLOG_URL || new URL(c.req.url).origin}
       image={post.cover}
       ogType="article"
       siteConfig={siteConfig}

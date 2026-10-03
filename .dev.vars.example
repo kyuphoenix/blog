@@ -10,16 +10,16 @@
 # 1. GitHub 仓库配置（用于运行时拉取文章 Markdown 及元数据）
 # ------------------------------------------------------------------------------
 # 仓库所有者（GitHub 用户名或组织名）
-GITHUB_OWNER="kyuphoenix"
+GH_OWNER="kyuphoenix"
 
 # 仓库名称
-GITHUB_REPO="blog"
+GH_REPO="blog"
 
 # 文章所在分支（默认为 main）
-GITHUB_BRANCH="main"
+GH_BRANCH="main"
 
 # GitHub 访问令牌（可选，若仓库为私有仓库或为避免 GitHub Raw API 频率限制时配置）
-# GITHUB_TOKEN="ghp_xxxx"
+# GH_TOKEN="ghp_xxxx"
 
 # ------------------------------------------------------------------------------
 # 2. 博客基础服务配置

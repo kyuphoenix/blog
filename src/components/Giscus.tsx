@@ -16,9 +16,9 @@ export const Giscus: FC<GiscusProps> = ({ env }) => {
   const isConfigured = Boolean(repo && repoId && categoryId)
 
   // 确定 Giscus 主题：自动适配 Fuwari 设计风格，支持暗色模式动态切换
-  const owner = env?.GITHUB_OWNER || 'kyuphoenix'
-  const repoName = env?.GITHUB_REPO || 'blog'
-  const branch = env?.GITHUB_BRANCH || 'main'
+  const owner = env?.GH_OWNER || env?.GITHUB_OWNER || 'kyuphoenix'
+  const repoName = env?.GH_REPO || env?.GITHUB_REPO || 'blog'
+  const branch = env?.GH_BRANCH || env?.GITHUB_BRANCH || 'main'
   const cdnBase = `https://cdn.jsdelivr.net/gh/${owner}/${repoName}@${branch}/public`
   const configuredLight = env?.GISCUS_THEME_LIGHT || ''
   const configuredDark = env?.GISCUS_THEME_DARK || ''

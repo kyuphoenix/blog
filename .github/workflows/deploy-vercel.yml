@@ -61,14 +61,14 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN || secrets.VERCEL_API_KEY || secrets.VERCEL_AUTH_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID || vars.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID || vars.VERCEL_PROJECT_ID }}
-          VERCEL_PROJECT_NAME: ${{ vars.VERCEL_PROJECT_NAME || vars.PROJECT_NAME || vars.GITHUB_REPO || github.event.repository.name }}
+          VERCEL_PROJECT_NAME: ${{ vars.VERCEL_PROJECT_NAME || vars.PROJECT_NAME || vars.GH_REPO || vars.GITHUB_REPO || github.event.repository.name }}
           DATABASE_TYPE: ${{ github.event.inputs.database_type || vars.DATABASE_TYPE || 'auto' }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY || vars.SUPABASE_KEY || secrets.SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY }}
           BLOG_URL: ${{ vars.BLOG_URL || secrets.BLOG_URL }}
-          GITHUB_OWNER: ${{ vars.GITHUB_OWNER || github.repository_owner }}
-          GITHUB_REPO: ${{ vars.GITHUB_REPO || github.event.repository.name }}
-          GITHUB_BRANCH: ${{ vars.GITHUB_BRANCH || github.ref_name }}
+          GH_OWNER: ${{ vars.GH_OWNER || vars.GITHUB_OWNER || github.repository_owner }}
+          GH_REPO: ${{ vars.GH_REPO || vars.GITHUB_REPO || github.event.repository.name }}
+          GH_BRANCH: ${{ vars.GH_BRANCH || vars.GITHUB_BRANCH || github.ref_name }}
           GISCUS_REPO: ${{ vars.GISCUS_REPO }}
           GISCUS_REPO_ID: ${{ vars.GISCUS_REPO_ID }}
           GISCUS_CATEGORY: ${{ vars.GISCUS_CATEGORY }}
@@ -76,5 +76,5 @@ jobs:
           GISCUS_THEME_LIGHT: ${{ vars.GISCUS_THEME_LIGHT }}
           GISCUS_THEME_DARK: ${{ vars.GISCUS_THEME_DARK }}
           PURGE_SECRET: ${{ secrets.PURGE_SECRET }}
-          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN || secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
         run: pnpm deploy:vercel

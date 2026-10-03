@@ -69,7 +69,7 @@ jobs:
           CLOUDFLARE_D1_ID: ${{ secrets.CLOUDFLARE_D1_ID || vars.CLOUDFLARE_D1_ID || vars.D1_DATABASE_ID }}
         run: pnpm init:supabase
 
-      # 将代码所需的运行期环境变量（BLOG_URL、GISCUS_*、GITHUB_*、数据库配置、密钥等）直接部署到 Worker 环境变量中
+      # 将代码所需的运行期环境变量（BLOG_URL、GISCUS_*、GH_*、数据库配置、密钥等）直接部署到 Worker 环境变量中
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
         with:
@@ -80,9 +80,9 @@ jobs:
             SUPABASE_URL
             SUPABASE_KEY
             BLOG_URL
-            GITHUB_OWNER
-            GITHUB_REPO
-            GITHUB_BRANCH
+            GH_OWNER
+            GH_REPO
+            GH_BRANCH
             GISCUS_REPO
             GISCUS_REPO_ID
             GISCUS_CATEGORY
@@ -90,15 +90,15 @@ jobs:
             GISCUS_THEME_LIGHT
             GISCUS_THEME_DARK
             PURGE_SECRET
-            GITHUB_TOKEN
+            GH_TOKEN
         env:
           DATABASE_TYPE: ${{ github.event.inputs.database_type || vars.DATABASE_TYPE || 'auto' }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY || vars.SUPABASE_KEY || secrets.SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY }}
           BLOG_URL: ${{ vars.BLOG_URL || secrets.BLOG_URL }}
-          GITHUB_OWNER: ${{ vars.GITHUB_OWNER || github.repository_owner }}
-          GITHUB_REPO: ${{ vars.GITHUB_REPO || github.event.repository.name }}
-          GITHUB_BRANCH: ${{ vars.GITHUB_BRANCH || github.ref_name }}
+          GH_OWNER: ${{ vars.GH_OWNER || vars.GITHUB_OWNER || github.repository_owner }}
+          GH_REPO: ${{ vars.GH_REPO || vars.GITHUB_REPO || github.event.repository.name }}
+          GH_BRANCH: ${{ vars.GH_BRANCH || vars.GITHUB_BRANCH || github.ref_name }}
           GISCUS_REPO: ${{ vars.GISCUS_REPO }}
           GISCUS_REPO_ID: ${{ vars.GISCUS_REPO_ID }}
           GISCUS_CATEGORY: ${{ vars.GISCUS_CATEGORY }}
@@ -106,4 +106,4 @@ jobs:
           GISCUS_THEME_LIGHT: ${{ vars.GISCUS_THEME_LIGHT }}
           GISCUS_THEME_DARK: ${{ vars.GISCUS_THEME_DARK }}
           PURGE_SECRET: ${{ secrets.PURGE_SECRET }}
-          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN || secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}

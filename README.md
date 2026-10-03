@@ -53,7 +53,8 @@
 │   ├── deploy.yml            # Cloudflare Workers 部署工作流（支持切换数据库）
 │   ├── deploy-vercel.yml     # Vercel Edge 自动化部署与环境变量同步工作流
 │   ├── deploy-netlify.yml    # Netlify Edge 自动化部署与环境变量同步工作流
-│   └── sync-posts.yml        # 文章自动同步与缓存热刷新工作流
+│   ├── sync-posts.yml        # 文章自动同步与缓存热刷新工作流
+│   └── sync-template.yml     # 一键从上游模板仓库同步最新功能与修复工作流
 ├── .pages.yml                # Pages CMS 可视化内容管理后台配置文件
 ├── blog.config.json          # 博客全局基础设置 (标题、作者、头像、背景图、主题色等)
 ├── api/
@@ -235,6 +236,11 @@ draft: false
   - 自动更新清单并向博客发起 Webhook 刷新缓存，**几秒内即可看到更新，无需重新构建部署**。
 - **修改站点信息与友链**：
   在 **Pages CMS** 后台「站点设置」或「友情链接」中可视化编辑并保存（或直接修改 `blog.config.json` / `friends.json` 并推送），保存后自动同步生效。
+- **同步上游模板更新**：
+  如果本仓库是通过 GitHub **「Use this template」** 按钮创建的衍生博客，当上游主仓库有新功能或 Bug 修复发布时：
+  - 进入 GitHub 仓库的 **Actions** 标签页，在左侧选择 **Sync Template Updates**。
+  - 点击 **Run workflow** -> 选择 `direct`（直接合并）即可一键同步！工作流会自动精准关联上游历史，安全保留你自定义的文章（`posts/`）、站点配置（`blog.config.json`）与友链（`friends.json`）。
+  - 💡 **自动部署提示**：若希望代码同步合并后**立即自动触发后续部署工作流**，可在仓库 Secrets 中配置个人访问令牌 `PAT_TOKEN`（或 `GH_TOKEN`），以绕过 GitHub 默认 Token 的防递归触发机制。
 - **切换数据库后端**：
   直接在 GitHub Actions 中重新运行 **Deploy to Cloudflare Workers**，在下拉框中选择 `d1` 或 `supabase` 重新构建部署即可无缝切换！
 - **查看数据库运行状态**：

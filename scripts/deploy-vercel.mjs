@@ -33,6 +33,7 @@ if (!token) {
 const projectName = (
   process.env.VERCEL_PROJECT_NAME ||
   process.env.PROJECT_NAME ||
+  process.env.GH_REPO ||
   process.env.GITHUB_REPO ||
   'blog'
 ).trim()
@@ -91,16 +92,24 @@ async function main() {
   }
 
   // 2. 收集博客所需的全部环境变量
+  const ghOwner = process.env.GH_OWNER || process.env.GITHUB_OWNER
+  const ghRepo = process.env.GH_REPO || process.env.GITHUB_REPO
+  const ghBranch = process.env.GH_BRANCH || process.env.GITHUB_BRANCH || 'main'
+  const ghToken = process.env.GH_TOKEN || process.env.PAT_TOKEN || process.env.GITHUB_TOKEN
+
   const envVars = [
     { key: 'BLOG_URL', value: process.env.BLOG_URL },
-    { key: 'GITHUB_OWNER', value: process.env.GITHUB_OWNER },
-    { key: 'GITHUB_REPO', value: process.env.GITHUB_REPO },
-    { key: 'GITHUB_BRANCH', value: process.env.GITHUB_BRANCH || 'main' },
+    { key: 'GH_OWNER', value: ghOwner },
+    { key: 'GH_REPO', value: ghRepo },
+    { key: 'GH_BRANCH', value: ghBranch },
+    { key: 'GH_TOKEN', value: ghToken },
+    { key: 'GITHUB_OWNER', value: ghOwner },
+    { key: 'GITHUB_REPO', value: ghRepo },
+    { key: 'GITHUB_BRANCH', value: ghBranch },
     { key: 'DATABASE_TYPE', value: process.env.DATABASE_TYPE || 'auto' },
     { key: 'SUPABASE_URL', value: process.env.SUPABASE_URL },
     { key: 'SUPABASE_KEY', value: process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY },
     { key: 'PURGE_SECRET', value: process.env.PURGE_SECRET },
-    { key: 'GITHUB_TOKEN', value: process.env.PAT_TOKEN || process.env.GITHUB_TOKEN },
     { key: 'GISCUS_REPO', value: process.env.GISCUS_REPO },
     { key: 'GISCUS_REPO_ID', value: process.env.GISCUS_REPO_ID },
     { key: 'GISCUS_CATEGORY', value: process.env.GISCUS_CATEGORY },
@@ -164,6 +173,19 @@ async function main() {
   const deployCmd = `npx --yes vercel deploy --prod --yes --token=${token}`
   execSync(deployCmd, { stdio: 'inherit' })
   console.log('🎉 Vercel 部署成功完成！')
+
+  if (!process.env.BLOG_URL) {
+    console.log('')
+    console.log('====================================================================')
+    console.log('💡 [后续建议] 当前部署未设置 BLOG_URL 环境变量：')
+    console.log('   当前博客已自动适配并使用上方 Vercel 分配的实际请求域名运行。')
+    console.log('   若需要启用推送文章时自动触发边缘缓存刷新 Webhook，可后续配置：')
+    console.log('   1. 前往 GitHub 仓库: Settings -> Secrets and variables -> Actions')
+    console.log('   2. 点击 Variables 标签页 -> New repository variable')
+    console.log('   3. Name 填入: BLOG_URL')
+    console.log('   4. Value 填入上方 Vercel 域名 (如: https://your-project.vercel.app 或自定义域名)')
+    console.log('====================================================================')
+  }
 }
 
 main().catch((err) => {
