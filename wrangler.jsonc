@@ -1,0 +1,25 @@
+{
+  "name": "blog-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2024-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+  // 静态资源目录（托管 /images/home-bg.webp, /images/avatar.png, favicon 等）
+  "assets": {
+    "directory": "./public"
+  },
+  // KV 缓存绑定（用于缓存 GitHub 拉取的文章）
+  "kv_namespaces": [
+    {
+      "binding": "BLOG_CACHE",
+      "id": "<YOUR_KV_NAMESPACE_ID>"
+    }
+  ],
+  // D1 数据库绑定（用于访问量统计与热门文章置顶）
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "blog-db",
+      "database_id": "<YOUR_D1_DATABASE_ID>"
+    }
+  ]
+}

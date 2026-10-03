@@ -1,0 +1,28 @@
+{
+  "name": "blog",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy --minify",
+    "gen:manifest": "node scripts/gen-manifest.mjs",
+    "init:supabase": "node scripts/init-supabase.mjs",
+    "prepare:wrangler": "node scripts/prepare-wrangler.mjs",
+    "deploy:vercel": "node scripts/deploy-vercel.mjs",
+    "deploy:netlify": "node scripts/deploy-netlify.mjs",
+    "typecheck": "tsc --noEmit",
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.117.2",
+    "hono": "^4.13.9",
+    "marked": "^18.0.14",
+    "unstorage": "^1.17.5"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261003.1",
+    "@types/node": "^26.6.4",
+    "pg": "^8.23.0",
+    "typescript": "^7.0.2",
+    "wrangler": "^4.110.0"
+  }
+}

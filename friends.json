@@ -1,0 +1,20 @@
+[
+  {
+    "title": "Fuwari",
+    "url": "https://github.com/saicaca/fuwari",
+    "description": "✨ A static blog theme powered by Astro & Tailwind CSS",
+    "avatar": "https://github.com/saicaca.png"
+  },
+  {
+    "title": "Hono",
+    "url": "https://hono.dev",
+    "description": "Ultrafast web framework for the Cloudflare Workers & Edge",
+    "avatar": "https://github.com/honojs.png"
+  },
+  {
+    "title": "Cloudflare",
+    "url": "https://cloudflare.com",
+    "description": "Connect, protect, and build everywhere",
+    "avatar": "https://github.com/cloudflare.png"
+  }
+]

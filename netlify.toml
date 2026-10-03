@@ -1,0 +1,16 @@
+[build]
+  command = "node scripts/gen-manifest.mjs"
+  publish = "public"
+
+[[edge_functions]]
+  path = "/*"
+  function = "server"
+  excludedPath = [
+    "/css/*",
+    "/favicon.ico",
+    "/favicon.svg",
+    "/favicon-*.png",
+    "/apple-touch-icon.png",
+    "/web-app-manifest-*.png",
+    "/_headers"
+  ]

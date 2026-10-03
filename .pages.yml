@@ -1,0 +1,294 @@
+# Pages CMS 配置文件 (https://pagescms.org/docs/configuration/)
+# 放置在仓库根目录下，作为 Pages CMS 的单一配置源
+
+# 1. 媒体文件配置：上传的图片存储在 public/images，访问路径为 /images
+media:
+  input: public/images
+  output: /images
+  categories:
+    - image
+
+# 2. 内容集合配置
+content:
+  - name: posts
+    label: 文章
+    type: collection
+    path: posts
+    exclude:
+      - manifest.json
+    format: yaml-frontmatter
+    filename:
+      template: "{title}.md"
+      field: true
+    view:
+      fields:
+        - title
+        - date
+        - category
+        - tags
+        - draft
+      primary: title
+      sort:
+        - date
+        - title
+      default:
+        sort: date
+        order: desc
+    fields:
+      - name: title
+        label: 标题
+        type: string
+        required: true
+        description: 文章标题，线上直接通过 /posts/标题 访问
+      - name: date
+        label: 发布日期
+        type: date
+        required: true
+      - name: updated
+        label: 更新日期
+        type: date
+      - name: category
+        label: 分类
+        type: string
+        default: 技术
+      - name: tags
+        label: 标签
+        type: string
+        list: true
+      - name: excerpt
+        label: 摘要
+        type: text
+        description: 文章摘要，展示在首页卡片和文章顶部摘要区
+      - name: cover
+        label: 封面图
+        type: image
+        description: 封面图片（支持上传到图库或直接粘贴外链）
+      - name: draft
+        label: 草稿
+        type: boolean
+        default: false
+        description: 标记为草稿时线上不会展示
+      - name: body
+        label: 正文内容
+        type: rich-text
+        options:
+          format: markdown
+          switcher: true
+    actions:
+      - name: sync-posts
+        label: 重新生成清单并刷新缓存
+        scope: collection
+        workflow: sync-posts.yml
+        confirm:
+          title: 刷新文章缓存？
+          message: 将重新生成 manifest.json 并通知 Cloudflare Worker 预热最新缓存。
+          button: 立即同步
+
+  - name: settings
+    label: 站点设置
+    type: file
+    path: blog.config.json
+    fields:
+      - name: title
+        label: 博客名称
+        type: string
+        required: true
+        description: 博客主标题，展示在浏览器标签页、顶部导航栏及全局品牌位置
+      - name: author
+        label: 站长昵称
+        type: string
+        required: true
+        description: 站长作者名称，用于文章署名、侧边栏个人卡片及版权声明
+      - name: description
+        label: 博客简介
+        type: text
+        required: true
+        description: 博客的一句话简介/描述，展示在侧边栏、SEO Description 与友链交换中
+      - name: repository
+        label: GitHub 仓库链接
+        type: string
+        default: https://github.com/kyuphoenix/blog
+        description: 博客的开源代码仓库链接，展示在网站页脚
+      - name: theme
+        label: 主题与外观
+        type: object
+        fields:
+          - name: fuwari
+            label: Fuwari 风格配置
+            type: object
+            fields:
+              - name: avatar
+                label: 站长头像
+                type: image
+                description: 站长头像图片路径（支持上传至图库或填入 /images/avatar.png）
+              - name: homeBg
+                label: 首页全屏背景图
+                type: image
+                description: 首页大背景图片路径（支持上传至图库或填入 /images/home-bg.png）
+              - name: primaryHue
+                label: 主题色相 (Primary Hue 0-360)
+                type: number
+                default: 250
+                description: OKLCH 主题色相数值，例如 250(经典蓝紫/默认)、210(海蓝)、150(翡翠绿)、340(玫瑰粉)、30(暖金)
+      - name: nav
+        label: 顶部导航栏菜单
+        type: object
+        list:
+          collapsible: true
+          summary: "{fields.label} → {fields.url}"
+        fields:
+          - name: label
+            label: 菜单文字
+            type: string
+            required: true
+          - name: url
+            label: 链接地址
+            type: string
+            required: true
+          - name: external
+            label: 外部链接
+            type: boolean
+            default: false
+            description: 勾选后将在新窗口打开并展示外链图标
+      - name: social
+        label: 社交平台链接
+        type: object
+        list:
+          collapsible: true
+          summary: "{fields.label} ({fields.platform})"
+        fields:
+          - name: platform
+            label: 平台类型
+            type: select
+            options:
+              values:
+                - name: github
+                  label: GitHub
+                - name: email
+                  label: 电子邮箱 (Email)
+                - name: rss
+                  label: RSS 订阅
+                - name: twitter
+                  label: X (Twitter)
+                - name: bilibili
+                  label: 哔哩哔哩 (Bilibili)
+                - name: zhihu
+                  label: 知乎 (Zhihu)
+                - name: weibo
+                  label: 微博 (Weibo)
+                - name: other
+                  label: 其他
+            default: github
+            description: 平台标识（github, email, rss 自带专属矢量图标）
+          - name: label
+            label: 显示名称
+            type: string
+            required: true
+            description: 悬浮或辅助提示文字（如 GitHub、Email、RSS 等）
+          - name: url
+            label: 链接地址
+            type: string
+            required: true
+            description: 平台主页或邮箱地址（邮箱格式如 mailto:you@example.com）
+      - name: seo
+        label: SEO 搜索引擎优化
+        type: object
+        fields:
+          - name: keywords
+            label: 核心关键词
+            type: string
+            list: true
+            description: 博客的全局 SEO 搜索关键词列表
+          - name: googleSiteVerification
+            label: Google 站长验证代码
+            type: string
+            description: Google Search Console HTML 标签验证的 content 属性值（可选）
+          - name: bingSiteVerification
+            label: Bing 站长验证代码
+            type: string
+            description: Bing Webmaster Tools 所有权验证代码（可选）
+      - name: icons
+        label: 站点图标与 Favicon
+        type: object
+        fields:
+          - name: faviconSvg
+            label: SVG 矢量图标
+            type: image
+            default: /images/favicon.svg
+          - name: faviconIco
+            label: ICO 图标
+            type: image
+            default: /images/favicon.ico
+          - name: favicon96
+            label: 96x96 图标
+            type: image
+            default: /images/favicon-96x96.png
+          - name: appleTouchIcon
+            label: Apple Touch 图标
+            type: image
+            default: /images/apple-touch-icon.png
+    actions:
+      - name: sync-posts
+        label: 刷新配置缓存
+        scope: file
+        workflow: sync-posts.yml
+        confirm:
+          title: 刷新配置缓存？
+          message: 将通知 Cloudflare Worker 重新加载最新的 blog.config.json。
+          button: 立即刷新
+
+  - name: friends
+    label: 友情链接
+    type: file
+    path: friends.json
+    list: true
+    fields:
+      - name: title
+        label: 博客名称
+        type: string
+        required: true
+      - name: url
+        label: 博客网址
+        type: string
+        required: true
+      - name: description
+        label: 博客简介
+        type: string
+      - name: avatar
+        label: 头像图片或链接
+        type: string
+    actions:
+      - name: sync-posts
+        label: 刷新友链缓存
+        scope: file
+        workflow: sync-posts.yml
+        confirm:
+          title: 刷新缓存？
+          message: 将通知 Cloudflare Worker 重新加载最新的友链数据。
+          button: 立即刷新
+
+# 3. 仓库级动作（GitHub Actions 快捷触发按钮）
+actions:
+  - name: sync-posts
+    label: 同步文章与配置缓存 (Sync All)
+    workflow: sync-posts.yml
+    confirm:
+      title: 刷新文章与站点配置缓存？
+      message: 重新生成文章清单并通知 Cloudflare Worker 加载最新的文章、友链和站点配置。
+      button: 确认同步
+  - name: deploy-worker
+    label: 部署 Worker (Deploy)
+    workflow: deploy.yml
+    confirm:
+      title: 部署 Worker？
+      message: 触发 GitHub Actions 重新构建并部署 Cloudflare Worker。
+      button: 确认部署
+
+# 4. 全局提交设置
+settings:
+  commit:
+    identity: user
+    templates:
+      create: "docs(post): create {filename} (via Pages CMS)"
+      update: "docs(post): update {filename} (via Pages CMS)"
+      delete: "docs(post): delete {filename} (via Pages CMS)"

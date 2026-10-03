@@ -1,0 +1,59 @@
+# ==============================================================================
+# Cloudflare Worker 本地开发环境变量示例文件 (.dev.vars)
+# 使用说明：
+# 1. 复制本文件并重命名为 `.dev.vars`：
+#    cp .dev.vars.example .dev.vars
+# 2. 运行 `pnpm dev` 时，Wrangler 会自动加载 `.dev.vars` 中的变量并注入到 Worker 的 `c.env`
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. GitHub 仓库配置（用于运行时拉取文章 Markdown 及元数据）
+# ------------------------------------------------------------------------------
+# 仓库所有者（GitHub 用户名或组织名）
+GITHUB_OWNER="kyuphoenix"
+
+# 仓库名称
+GITHUB_REPO="blog"
+
+# 文章所在分支（默认为 main）
+GITHUB_BRANCH="main"
+
+# GitHub 访问令牌（可选，若仓库为私有仓库或为避免 GitHub Raw API 频率限制时配置）
+# GITHUB_TOKEN="ghp_xxxx"
+
+# ------------------------------------------------------------------------------
+# 2. 博客基础服务配置
+# ------------------------------------------------------------------------------
+# 博客完整访问地址（本地开发建议为 http://localhost:8787）
+BLOG_URL="http://localhost:8787"
+
+# 缓存刷新接口密钥（用于验证 POST /api/posts/purge 请求的 X-Purge-Secret 请求头）
+PURGE_SECRET="local-dev-purge-secret"
+
+# ------------------------------------------------------------------------------
+# 3. Giscus 评论系统配置（可选，基于 GitHub Discussions）
+# ------------------------------------------------------------------------------
+# 绑定的公开 GitHub 仓库，格式为 username/repo
+# GISCUS_REPO="kyuphoenix/blog"
+
+# Giscus 仓库 ID（访问 https://giscus.app 输入仓库后自动获取）
+# GISCUS_REPO_ID="R_xxxx"
+
+# Giscus 讨论分区分类名称（默认为 Announcements）
+# GISCUS_CATEGORY="Announcements"
+
+# Giscus 讨论分区分类 ID（在 giscus.app 选择分类后获取）
+# GISCUS_CATEGORY_ID="DIC_xxxx"
+
+# Giscus 自定义主题地址（可选，系统默认已自动适配 Fuwari 设计风格并自动切换明暗模式）
+# 如需强制指定或使用其他主题，可配置以下两项：
+# GISCUS_THEME_LIGHT="https://yourdomain.com/css/giscus-fuwari-light.css"
+# GISCUS_THEME_DARK="https://yourdomain.com/css/giscus-fuwari-dark.css"
+
+# ------------------------------------------------------------------------------
+# 4. Cloudflare D1 数据库配置说明（用于文章访问量统计与首页 Top 3 置顶）
+# ------------------------------------------------------------------------------
+# 本地开发 (pnpm dev) 时，Wrangler 会自动在本地模拟 D1 SQLite 数据库，无需额外配置；
+# 线上生产部署时，只需在 GitHub 仓库 Secrets 中配置 CLOUDFLARE_D1_ID 即可。
+
+

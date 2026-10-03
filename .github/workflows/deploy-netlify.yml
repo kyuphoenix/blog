@@ -1,0 +1,79 @@
+name: Deploy to Netlify
+
+# 仅允许手动运行触发部署
+on:
+  workflow_dispatch:
+    inputs:
+      database_type:
+        description: '选择部署连接的数据库类型 (auto: 自动检测, supabase: Supabase, none: 关闭统计)'
+        required: false
+        default: 'auto'
+        type: choice
+        options:
+          - auto
+          - supabase
+          - none
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy to Netlify
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate post manifest
+        run: pnpm gen:manifest
+
+      # 若使用 Supabase，自动检测数据库状态；未初始化且配置了凭证时自动执行建表
+      - name: Check and initialize Supabase database
+        env:
+          DATABASE_TYPE: ${{ github.event.inputs.database_type || vars.DATABASE_TYPE || 'auto' }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY || vars.SUPABASE_KEY || secrets.SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL || secrets.SUPABASE_DB_URL || vars.DATABASE_URL || vars.SUPABASE_DB_URL }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN || vars.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_ID: ${{ vars.SUPABASE_PROJECT_ID || secrets.SUPABASE_PROJECT_ID }}
+        run: pnpm init:supabase
+
+      # 自动同步环境变量并调用 Netlify CLI 执行构建并发布
+      - name: Deploy to Netlify
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN || secrets.NETLIFY_TOKEN || secrets.NETLIFY_API_KEY }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID || vars.NETLIFY_SITE_ID }}
+          NETLIFY_SITE_NAME: ${{ vars.NETLIFY_SITE_NAME || vars.SITE_NAME || vars.GITHUB_REPO || github.event.repository.name }}
+          DATABASE_TYPE: ${{ github.event.inputs.database_type || vars.DATABASE_TYPE || 'auto' }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY || vars.SUPABASE_KEY || secrets.SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY }}
+          BLOG_URL: ${{ vars.BLOG_URL || secrets.BLOG_URL }}
+          GITHUB_OWNER: ${{ vars.GITHUB_OWNER || github.repository_owner }}
+          GITHUB_REPO: ${{ vars.GITHUB_REPO || github.event.repository.name }}
+          GITHUB_BRANCH: ${{ vars.GITHUB_BRANCH || github.ref_name }}
+          GISCUS_REPO: ${{ vars.GISCUS_REPO }}
+          GISCUS_REPO_ID: ${{ vars.GISCUS_REPO_ID }}
+          GISCUS_CATEGORY: ${{ vars.GISCUS_CATEGORY }}
+          GISCUS_CATEGORY_ID: ${{ vars.GISCUS_CATEGORY_ID }}
+          GISCUS_THEME_LIGHT: ${{ vars.GISCUS_THEME_LIGHT }}
+          GISCUS_THEME_DARK: ${{ vars.GISCUS_THEME_DARK }}
+          PURGE_SECRET: ${{ secrets.PURGE_SECRET }}
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
+        run: pnpm deploy:netlify
