@@ -47,7 +47,7 @@ links.get('/', async (c) => {
       isHomePage={false}
       categories={categories}
       tags={tags}
-      blogUrl={c.env.BLOG_URL}
+      blogUrl={baseUrl}
       siteConfig={siteConfig}
     >
       {/* 头部标题卡片：左侧标题，右侧“申请友链”按钮 */}

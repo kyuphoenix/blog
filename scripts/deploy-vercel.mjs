@@ -164,6 +164,19 @@ async function main() {
   const deployCmd = `npx --yes vercel deploy --prod --yes --token=${token}`
   execSync(deployCmd, { stdio: 'inherit' })
   console.log('🎉 Vercel 部署成功完成！')
+
+  if (!process.env.BLOG_URL) {
+    console.log('')
+    console.log('====================================================================')
+    console.log('💡 [后续建议] 当前部署未设置 BLOG_URL 环境变量：')
+    console.log('   当前博客已自动适配并使用上方 Vercel 分配的实际请求域名运行。')
+    console.log('   若需要启用推送文章时自动触发边缘缓存刷新 Webhook，可后续配置：')
+    console.log('   1. 前往 GitHub 仓库: Settings -> Secrets and variables -> Actions')
+    console.log('   2. 点击 Variables 标签页 -> New repository variable')
+    console.log('   3. Name 填入: BLOG_URL')
+    console.log('   4. Value 填入上方 Vercel 域名 (如: https://your-project.vercel.app 或自定义域名)')
+    console.log('====================================================================')
+  }
 }
 
 main().catch((err) => {

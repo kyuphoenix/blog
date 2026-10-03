@@ -24,7 +24,7 @@ archive.get('/', async (c) => {
       isHomePage={false}
       categories={categories}
       tags={tags}
-      blogUrl={c.env.BLOG_URL}
+      blogUrl={c.env.BLOG_URL || new URL(c.req.url).origin}
       siteConfig={siteConfig}
     >
       <ArchivePanel posts={manifest} />

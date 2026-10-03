@@ -110,7 +110,7 @@ home.get('/', async (c) => {
       isHomePage={!category && !tag}
       categories={categories}
       tags={tags}
-      blogUrl={c.env.BLOG_URL}
+      blogUrl={c.env.BLOG_URL || new URL(c.req.url).origin}
       siteConfig={siteConfig}
     >
       {(category || tag) && (
