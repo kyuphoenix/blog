@@ -49,7 +49,7 @@ writeFileSync(
 )
 console.log('✓ 已生成 .vercel/output/config.json 路由映射')
 
-// 5. 生成 Serverless Function 运行时配置 (.vc-config.json)
+// 5. 生成 Serverless Function 运行时配置与 ESM 声明 (.vc-config.json & package.json)
 writeFileSync(
   resolve(outputFuncDir, '.vc-config.json'),
   JSON.stringify(
@@ -63,7 +63,17 @@ writeFileSync(
     2
   )
 )
-console.log('✓ 已生成 .vercel/output/functions/index.func/.vc-config.json 运行配置')
+writeFileSync(
+  resolve(outputFuncDir, 'package.json'),
+  JSON.stringify(
+    {
+      type: 'module',
+    },
+    null,
+    2
+  )
+)
+console.log('✓ 已生成 .vercel/output/functions/index.func/.vc-config.json 与 package.json (type: module)')
 
 // 6. 使用 esbuild 全量打包 Hono 服务端代码 (包含全站 JSX、样式、路由与适配层)
 console.log('📦 正在使用 esbuild 全量打包服务端代码...')
@@ -93,5 +103,6 @@ await esbuild.build({
   outfile: resolve(outputFuncDir, 'index.js'),
   external: ['pg'],
 })
-console.log('✓ 服务端代码已成功打包为单文件: index.func/index.js')
+cpSync(resolve(outputFuncDir, 'index.js'), resolve(outputFuncDir, 'index.mjs'))
+console.log('✓ 服务端代码已成功打包为单文件: index.func/index.js (与 index.mjs)')
 console.log('🎉 Vercel Build Output API 构建完成！')
