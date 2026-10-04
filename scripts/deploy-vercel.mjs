@@ -70,20 +70,21 @@ async function main() {
     if (res.ok) {
       resolvedProject = await res.json()
       console.log(`✓ 检测到已存在的 Vercel 项目: ${resolvedProject.name} (ID: ${resolvedProject.id})`)
-      if (resolvedProject.framework !== null) {
+      if (resolvedProject.framework !== null || resolvedProject.nodeVersion !== '22.x') {
         try {
           const patchRes = await fetch(`https://api.vercel.com/v9/projects/${encodeURIComponent(projectName)}`, {
             method: 'PATCH',
             headers: apiHeaders,
             body: JSON.stringify({
               framework: null,
+              nodeVersion: '22.x',
             }),
           })
           if (patchRes.ok) {
-            console.log(`✓ 已将 Vercel 项目 Framework Preset 自动设为: Other (Build Output API)`)
+            console.log(`✓ 已将 Vercel 项目配置自动对齐为: Framework=Other, Node.js=22.x`)
           }
         } catch (e) {
-          console.warn(`⚠️ 更新项目 Framework 异常: ${e.message}`)
+          console.warn(`⚠️ 更新项目配置异常: ${e.message}`)
         }
       }
     } else if (res.status === 404) {
@@ -94,6 +95,7 @@ async function main() {
         body: JSON.stringify({
           name: projectName,
           framework: null,
+          nodeVersion: '22.x',
         }),
       })
       if (!createRes.ok) {
