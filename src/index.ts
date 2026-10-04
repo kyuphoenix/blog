@@ -165,7 +165,9 @@ app.get('/rss.xml', async (c) => {
     getManifest(c.env),
     getBlogConfig(c.env),
   ])
-  const manifest = manifestRaw.filter((p) => !p.draft)
+  const manifest = manifestRaw.filter(
+    (p) => p.draft !== true && (p.draft as any) !== 'true'
+  )
   const baseUrl = (c.env.BLOG_URL || '').replace(/\/$/, '') || new URL(c.req.url).origin
 
   const items = manifest
@@ -220,7 +222,9 @@ function escapeXml(str: string): string {
 
 // Sitemap.xml 站点地图生成 (支持 Google, Bing, 百度等全搜索引擎收录标准)
 app.get('/sitemap.xml', async (c) => {
-  const manifest = (await getManifest(c.env)).filter((p) => !p.draft)
+  const manifest = (await getManifest(c.env)).filter(
+    (p) => p.draft !== true && (p.draft as any) !== 'true'
+  )
   const baseUrl = (c.env.BLOG_URL || '').replace(/\/$/, '') || new URL(c.req.url).origin
 
   // 1. 固定页面配置（首页、友链）

@@ -1,10 +1,12 @@
 ---
 title: Hello World
 date: 2024-01-15
+updated: 2026-03-19
 category: 技术
 tags: [博客, 入门]
 excerpt: 这是我的第一篇博客文章，欢迎来到我的博客！
 cover: https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=1000&q=80
+draft: false
 ---
 
 # Hello World

@@ -6,7 +6,10 @@ interface ArchivePanelProps {
 }
 
 export const ArchivePanel: FC<ArchivePanelProps> = ({ posts }) => {
-  const groupedPosts = posts.reduce(
+  const visiblePosts = posts.filter(
+    (p) => p.draft !== true && (p.draft as any) !== 'true'
+  )
+  const groupedPosts = visiblePosts.reduce(
     (acc, post) => {
       if (!post.date) return acc
       const year = new Date(post.date).getUTCFullYear()

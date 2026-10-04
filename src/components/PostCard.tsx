@@ -2,6 +2,7 @@ import { FC } from 'hono/jsx'
 import type { PostMeta } from '../types/post.js'
 import {
   CalendarIcon,
+  EditIcon,
   TagIcon,
   ClockIcon,
   ChevronRightIcon,
@@ -70,6 +71,17 @@ export const PostCard: FC<PostCardProps> = ({ post, index = 0 }) => {
               {post.date}
             </time>
           </div>
+
+          {post.updated && (
+            <div class="flex items-center">
+              <div class="fuwari-meta-icon">
+                <EditIcon size={20} strokeWidth={1.5} />
+              </div>
+              <time datetime={post.updated} class="text-sm font-medium">
+                {post.updated}
+              </time>
+            </div>
+          )}
 
           {(post.category || (post.tags && post.tags.length > 0)) && (
             <div class="flex items-center">

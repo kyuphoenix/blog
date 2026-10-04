@@ -33,7 +33,8 @@ postPage.get('/:title', async (c) => {
     getBlogConfig(c.env),
   ])
 
-  if (!post || post.draft) {
+  const isDraft = post?.draft === true || (post?.draft as any) === 'true'
+  if (!post || isDraft) {
     return c.html(
       <Layout
         title="404 - 文章不存在"
@@ -98,7 +99,7 @@ postPage.get('/:title', async (c) => {
 
   // Compute Prev / Next posts from manifest
   const manifest = (await getManifest(c.env))
-    .filter((p) => !p.draft)
+    .filter((p) => p.draft !== true && (p.draft as any) !== 'true')
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
   const currentIndex = manifest.findIndex((p) => p.title === post.title || p.slug === post.title)
@@ -261,7 +262,7 @@ postPage.get('/:title', async (c) => {
               <time datetime={post.date} itemprop="datePublished" class="text-sm font-medium fuwari-text-50">{post.date}</time>
             </div>
 
-            {post.updated && post.updated !== post.date && (
+            {post.updated && (
               <div class="flex items-center">
                 <div class="fuwari-meta-icon">
                   <EditIcon strokeWidth={1.5} size={20} />

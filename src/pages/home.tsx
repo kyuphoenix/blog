@@ -13,7 +13,9 @@ home.get('/', async (c) => {
   const category = c.req.query('category')
   const tag = c.req.query('tag')
 
-  let manifest = (await getManifest(c.env)).filter((p) => !p.draft)
+  let manifest = (await getManifest(c.env)).filter(
+    (p) => p.draft !== true && (p.draft as any) !== 'true'
+  )
 
   if (category) {
     manifest = manifest.filter((p) => p.category === category)
