@@ -53,12 +53,12 @@ const apiHeaders = {
 }
 
 async function main() {
-  // 0. 预先生成文章清单
-  console.log('📑 正在生成文章清单 (gen:manifest)...')
+  // 0. 执行完整 Netlify 前置构建（生成清单、编译 Tailwind CSS、Swup 客户端与打包 Edge Function）
+  console.log('🏗️  正在执行 Netlify 前置构建 (build:netlify)...')
   try {
-    execSync('node scripts/gen-manifest.mjs', { stdio: 'inherit' })
+    execSync('node scripts/build-netlify.mjs', { stdio: 'inherit' })
   } catch (e) {
-    console.warn(`⚠️ 生成文章清单失败: ${e.message}`)
+    console.warn(`⚠️ Netlify 前置构建失败: ${e.message}`)
   }
 
   // 1. 获取或创建 Netlify 站点
