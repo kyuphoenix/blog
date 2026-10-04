@@ -319,6 +319,7 @@ postPage.get('/:title', async (c) => {
                 alt={post.title}
                 class="w-full h-auto max-h-[650px] object-cover object-center block"
                 loading="eager"
+                decoding="async"
               />
             </div>
           ) : (
