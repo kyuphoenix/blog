@@ -220,7 +220,9 @@ export const Layout: FC<LayoutProps> = ({
   }
 
   return (
-    <html lang="zh-CN" style={`--fuwari-hue: ${defaultHue};`}>
+    <>
+      {raw('<!DOCTYPE html>')}
+      <html lang="zh-CN" style={`--fuwari-hue: ${defaultHue};`}>
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -316,7 +318,7 @@ export const Layout: FC<LayoutProps> = ({
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
         />
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
         {/* Anti-FOUC: apply theme & OKLCH hue before render */}
         {raw(`<script>
           (function() {
@@ -390,8 +392,13 @@ export const Layout: FC<LayoutProps> = ({
           </div>
         </div>
         <ThemeScript />
-        {raw(`<script>hljs.highlightAll();</script>`)}
+        {raw(`<script>
+          window.addEventListener('DOMContentLoaded', function() {
+            if (window.hljs) hljs.highlightAll();
+          });
+        </script>`)}
       </body>
     </html>
+    </>
   )
 }

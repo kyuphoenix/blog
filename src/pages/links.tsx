@@ -29,7 +29,7 @@ links.get('/', async (c) => {
   const applyTemplateText = `- 博客名称：您的博客名称
 - 博客简介：一句话简介
 - 博客链接：https://example.com
-- 博客头像：https://example.com/avatar.png`
+- 博客头像：https://example.com/avatar.webp`
 
   const mailtoSubject = encodeURIComponent(`申请交换友链 - 来自 ${siteConfig.title} 的访客`)
   const mailtoBody = encodeURIComponent(
