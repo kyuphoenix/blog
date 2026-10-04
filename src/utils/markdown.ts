@@ -29,15 +29,26 @@ export function parseFrontmatter(raw: string): {
   const yamlStr = lines.slice(1, closingIndex).join('\n')
   const content = lines.slice(closingIndex + 1).join('\n').trim()
 
-  // 简易 YAML 解析（支持基本的 key: value 和数组）
+  // 简易 YAML 解析（支持基本键值、多行块标量、列表和数组）
   const frontmatter = parseSimpleYaml(yamlStr) as PostFrontmatter
+
+  // 规范化并清洗摘要
+  if (typeof frontmatter.excerpt === 'string') {
+    frontmatter.excerpt = frontmatter.excerpt.replace(/\r?\n+/g, ' ').replace(/\s+/g, ' ').trim()
+    if (/^[|>][+-]?$/.test(frontmatter.excerpt)) {
+      frontmatter.excerpt = ''
+    }
+  }
+  if (!frontmatter.excerpt && content) {
+    frontmatter.excerpt = extractExcerpt(content)
+  }
 
   return { frontmatter, content }
 }
 
 /**
  * 简易 YAML 解析器
- * 支持: 字符串、布尔值、数组（行内 [a, b] 和多行 - item 格式）
+ * 支持: 字符串、布尔值、数组（行内 [a, b] 和多行 - item 格式）、YAML 多行块标量（|、|-、>、>-）与缩进多行文本
  */
 function parseSimpleYaml(yaml: string): Record<string, any> {
   const result: Record<string, any> = {}
@@ -45,15 +56,52 @@ function parseSimpleYaml(yaml: string): Record<string, any> {
 
   let currentKey = ''
   let currentArray: string[] | null = null
+  let blockMode: 'literal' | 'folded' | 'text' | null = null
+  let blockLines: string[] = []
+  let baseIndent = 0
 
-  for (const line of lines) {
+  function flushBlock() {
+    if (currentKey && blockMode) {
+      const text = blockLines.join(blockMode === 'literal' ? '\n' : ' ')
+      result[currentKey] = text.replace(/\r?\n+/g, ' ').replace(/\s+/g, ' ').trim()
+    }
+    blockMode = null
+    blockLines = []
+    baseIndent = 0
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const rawLine = lines[i]
+    const trimmed = rawLine.trim()
+
+    // 处于块文本模式时，处理缩进行
+    if (blockMode) {
+      if (trimmed === '') {
+        blockLines.push('')
+        continue
+      }
+      const indentMatch = rawLine.match(/^(\s+)/)
+      const currentIndent = indentMatch ? indentMatch[1].length : 0
+
+      // 如果仍有缩进，继续作为块内容收集
+      if (currentIndent > 0) {
+        if (baseIndent === 0) baseIndent = currentIndent
+        const lineContent = rawLine.slice(Math.min(baseIndent, currentIndent)).trim()
+        blockLines.push(lineContent)
+        continue
+      } else {
+        // 遇到非缩进行，结束块模式
+        flushBlock()
+      }
+    }
+
     // 跳过空行和注释
-    if (line.trim() === '' || line.trim().startsWith('#')) {
+    if (trimmed === '' || trimmed.startsWith('#')) {
       continue
     }
 
     // 多行数组项: "  - item"
-    const arrayItemMatch = line.match(/^\s+-\s+(.+)/)
+    const arrayItemMatch = rawLine.match(/^\s+-\s+(.+)/)
     if (arrayItemMatch && currentKey) {
       if (!currentArray) {
         currentArray = []
@@ -63,14 +111,21 @@ function parseSimpleYaml(yaml: string): Record<string, any> {
       continue
     }
 
-    // 新的 key: value 对
-    const kvMatch = line.match(/^(\w+)\s*:\s*(.*)/)
+    // 新的 key: value 对（要求 key 不带多余缩进）
+    const kvMatch = rawLine.match(/^([a-zA-Z0-9_-]+)\s*:\s*(.*)/)
     if (kvMatch) {
-      // 保存之前的数组
+      flushBlock()
       currentArray = null
-
       currentKey = kvMatch[1]
       let value = kvMatch[2].trim()
+
+      // YAML 块标量语法: |, |-, |+, >, >-, >+
+      if (/^[|>][+-]?$/.test(value)) {
+        blockMode = value.startsWith('|') ? 'literal' : 'folded'
+        blockLines = []
+        baseIndent = 0
+        continue
+      }
 
       // 行内数组: [a, b, c]
       if (value.startsWith('[') && value.endsWith(']')) {
@@ -82,9 +137,17 @@ function parseSimpleYaml(yaml: string): Record<string, any> {
         continue
       }
 
-      // 空值（可能是多行数组的开始）
+      // 空值（可能是后续多行数组或多行缩进文本）
       if (value === '') {
-        result[currentKey] = ''
+        const nextLine = lines[i + 1]
+        // 若下一行是普通缩进文本（不是以 - 开头），作为多行缩进文本收集
+        if (nextLine && /^\s+\S/.test(nextLine) && !/^\s*-\s+/.test(nextLine)) {
+          blockMode = 'text'
+          blockLines = []
+          baseIndent = 0
+        } else {
+          result[currentKey] = ''
+        }
         continue
       }
 
@@ -99,6 +162,7 @@ function parseSimpleYaml(yaml: string): Record<string, any> {
     }
   }
 
+  flushBlock()
   return result
 }
 
