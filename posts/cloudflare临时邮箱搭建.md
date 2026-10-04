@@ -13,6 +13,7 @@ excerpt: 本教程介绍如何利用 Cloudflare 邮件路由、D1 数据库和 K
 draft: false
 ---
 # 前言
+
 有了域名之后，配置自己的邮箱也是值得折腾的一环。这个项目利用cloudflare的电子邮件路由功能把接收到的邮件转发到worker，实现了临时邮箱的功能，并且只使用了d1和kv，没有使用r2储存桶，无需绑卡
 
 本教程参考linuxdo论坛内的教程编写而成，原文地址：[https://linux.do/t/topic/1666961](https://linux.do/t/topic/1666961)
@@ -25,7 +26,6 @@ draft: false
 
 ### [GitHub - dreamhunter2333/cloudflare_temp_email: CloudFlare free temp domain email 免费收发 临时域名邮箱 支持附件 IMAP SMTP TelegramBot](https://github.com/dreamhunter2333/cloudflare_temp_email)
 
-
 项目原文档：[临时邮箱文档](https://temp-mail-docs.awsl.uk/zh/)
 
 # 在Cloudflare上部署
@@ -33,56 +33,69 @@ draft: false
 ## 1.创建D1数据库
 
 ### 名称自己随便起个就可以
+
 ![](https://img-bucket.303302.xyz/2026/07/20260724181730685.png)
 ![](https://img-bucket.303302.xyz/2026/07/20260724181952994.png)
-
 
 ### 打开项目的 `db/schema.sql` 文件复制并复制
 
 链接：[https://github.com/dreamhunter2333/cloudflare_temp_email/blob/main/db/schema.sql](https://github.com/dreamhunter2333/cloudflare_temp_email/blob/main/db/schema.sql)
 
-
 从Github复制过来后，粘贴到d1控制台输入框内，点击`执行`
 ![](https://img-bucket.303302.xyz/2026/07/20260724182233050.png)
 
 ### 输出类似下面内容就可以了
+
 ![](https://img-bucket.303302.xyz/2026/07/20260724182357395.png)
 
 ### 回到概述刷新一下，如果表数量是10就代表成功
+
 ![](https://img-bucket.303302.xyz/2026/07/20260724182539506.png)
 
 ## 2.创建KV命名空间
 
 ### 也是随便起一个名字，点击创建
+
 ![](https://img-bucket.303302.xyz/2026/07/20260724182748294.png)
 ![](https://img-bucket.303302.xyz/2026/07/20260724182918564.png)
 
 ## 3.创建 Worker，部署临时邮箱后端
 
 ### 新建一个worker，选择`从 hello world! 开始`，名字随意
+
 ![](https://img-bucket.303302.xyz/2026/07/20260724183316101.png)
 ![](https://img-bucket.303302.xyz/2026/07/20260724185434712.png)
 ![](https://img-bucket.303302.xyz/2026/07/20260724185644851.png)
 
 ### 绑定DB数据库和KV缓存
+
 ![](https://img-bucket.303302.xyz/2026/07/20260724185822935.png)
+
 #### 绑定d1
 
 ![](https://img-bucket.303302.xyz/2026/07/20260724190022933.png)
 ![](https://img-bucket.303302.xyz/2026/07/20260724190326397.png)
+
 #### 绑定KV
+
 ![](https://img-bucket.303302.xyz/2026/07/20260724190622293.png)
 ![](https://img-bucket.303302.xyz/2026/07/20260724190813533.png)
 
 ### 部署代码
+
 #### 配置兼容性标志
+
 配置兼容性标志为`nodejs_compat`
+
 ```
 nodejs_compat
 ```
+
 ![](https://img-bucket.303302.xyz/2026/07/20260724191147629.png)
 ![](https://img-bucket.303302.xyz/2026/07/20260724191508433.png)
+
 #### 部署代码文件
+
 前往项目releases下载代码文件
 [https://github.com/dreamhunter2333/cloudflare_temp_email/releases/latest](https://github.com/dreamhunter2333/cloudflare_temp_email/releases/latest)
 ![](https://img-bucket.303302.xyz/2026/07/20260724191935197.png)
@@ -91,10 +104,12 @@ nodejs_compat
 ![](https://img-bucket.303302.xyz/2026/07/20260724192655502.png)
 
 ### 配置变量参数
+
 进入下图页面开始配置变量参数
 ![](https://img-bucket.303302.xyz/2026/07/20260724192944587.png)
 
 #### 下面是一些主要变量名称与格式，请全部配置
+
 #### DOMAINS
 
 参数类型：JSON
@@ -222,6 +237,7 @@ false
     }
 ]
 ```
+
 解释：配置用户的角色，及角色可以使用的域名列表
 
 #### ADMIN_USER_ROLE
@@ -244,15 +260,18 @@ false
 
 解释：否允许自动回复邮件，这个直接false就行
 
->请按上面给的参数配置好！
+> 请按上面给的参数配置好！
 
 ### 配置自定义域
->worker.dev后缀在大陆无法访问，需要配置自定义域名
+
+> worker.dev后缀在大陆无法访问，需要配置自定义域名
 
 ![](https://img-bucket.303302.xyz/2026/07/20260724195256679.png)
 填入自己的域名，例如我填的`mail-api.a-o.cc.cd`
 ![](https://img-bucket.303302.xyz/2026/07/20260724195542129.png)
+
 ### 配置域名电子路由
+
 ![](https://img-bucket.303302.xyz/2026/07/20260724200023005.png)
 选择接入临时邮箱的域名并激活
 ![](https://img-bucket.303302.xyz/2026/07/20260724200611661.png)
@@ -261,41 +280,51 @@ false
 ![](https://img-bucket.303302.xyz/2026/07/20260724201339247.png)
 
 ## 4.部署前端页面
+
 ### 获取前端页面资源
 
 生成前端页面代码地址：[Cloudflare Pages 前端 | 临时邮箱文档](https://temp-mail-docs.awsl.uk/zh/guide/ui/pages)
 
->在图中所示输入框填入worker后端的自定义域名
->例如我的自定义域名是mail-api.a-o.cc.cd，这里要填https://mail-api.a-o.cc.cd
+> 在图中所示输入框填入worker后端的自定义域名
+> 例如我的自定义域名是mail-api.a-o.cc.cd，这里要填[https://mail-api.a-o.cc.cd](https://mail-api.a-o.cc.cd)
 
 ![](https://img-bucket.303302.xyz/2026/07/20260724202026010.png)
 点击生成之后，生成按钮右侧会出现下载按钮，点击下载即可。
 
 ### 部署前端
+
 进入创建worker页面
 ![](https://img-bucket.303302.xyz/2026/07/20260724202709652.png)
 这里选择上方的直接上传，或者下方的使用pages，再上传资源，效果是一样的，按照自己喜好选择，名称随意填写，也可以设置自定义域名
->我个人倾向于使用pages部署，用worker部署遇到了一些奇怪的问题
 
+> 我个人倾向于使用pages部署，用worker部署遇到了一些奇怪的问题
 
 # 使用邮箱
 
 ## 管理员登录
+
 连续点击5下左上角的图标输入管理员密码并确认，进入管理员后台
 ![](https://img-bucket.303302.xyz/2026/07/20260724215719371.png)
+
 #### 检查一下数据库配置
+
 进入下图路径，虽然创建数据库的时候初始化过，但是这里仍然可能会显示需要初始化，点击一下初始化即可。下图是点击过的状态
 ![](https://img-bucket.303302.xyz/2026/07/20260724220229462.png)
 
 ## 创建用户或者邮箱
+
 ### 创建用户
+
 下图路径可以在管理员面板创建用户
 ![](https://img-bucket.303302.xyz/2026/07/20260724221113586.png)
 
 ### 创建邮箱
+
 #### 进入下图路径可以通过管理员面板直接创建邮箱
+
 ![](https://img-bucket.303302.xyz/2026/07/20260724220822073.png)
 
 #### 通过用户创建邮箱
+
 用户登录之后进入下图路径可以创建邮箱
 ![](https://img-bucket.303302.xyz/2026/07/20260724221438993.png)
