@@ -8,9 +8,15 @@ importers:
 
   .:
     dependencies:
+      '@cloudflare/workers-types':
+        specifier: ^5.20261003.1
+        version: 5.20261003.1
       '@supabase/supabase-js':
         specifier: ^2.117.2
         version: 2.117.2
+      '@types/node':
+        specifier: ^26.6.4
+        version: 26.6.4
       hono:
         specifier: ^4.13.9
         version: 4.13.9
@@ -21,12 +27,6 @@ importers:
         specifier: ^1.17.5
         version: 1.17.5
     devDependencies:
-      '@cloudflare/workers-types':
-        specifier: ^5.20261003.1
-        version: 5.20261003.1
-      '@types/node':
-        specifier: ^26.6.4
-        version: 26.6.4
       pg:
         specifier: ^8.23.0
         version: 8.23.0
