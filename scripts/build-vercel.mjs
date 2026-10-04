@@ -54,7 +54,7 @@ writeFileSync(
   resolve(outputFuncDir, '.vc-config.json'),
   JSON.stringify(
     {
-      runtime: 'nodejs20.x',
+      runtime: 'nodejs22.x',
       handler: 'index.js',
       launcherType: 'Nodejs',
       shouldAddHelpers: true,
@@ -89,7 +89,7 @@ await esbuild.build({
   bundle: true,
   platform: 'node',
   format: 'esm',
-  target: 'node20',
+  target: 'node22',
   outfile: resolve(outputFuncDir, 'index.js'),
   external: ['pg'],
 })
