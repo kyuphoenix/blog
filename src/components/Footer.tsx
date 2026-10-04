@@ -4,10 +4,6 @@ import { blogConfig, BlogConfig } from '../blog.config.js'
 export const Footer: FC<{ siteConfig?: BlogConfig }> = ({ siteConfig }) => {
   const currentYear = new Date().getFullYear()
   const cfg = siteConfig || blogConfig
-  const repoUrl =
-    cfg.repository ||
-    cfg.social.find((s) => s.platform === 'github')?.url ||
-    'https://github.com/kyuphoenix/blog'
 
   return (
     <>
@@ -16,12 +12,12 @@ export const Footer: FC<{ siteConfig?: BlogConfig }> = ({ siteConfig }) => {
         <div class="fuwari-text-50 text-sm text-center leading-relaxed">
           © {currentYear} {cfg.author}. All Rights Reserved. /{' '}
           <a
-            href={repoUrl}
+            href="/sitemap.xml"
             target="_blank"
-            rel="noreferrer"
+            data-no-swup
             class="fuwari-expand-animation rounded-md px-1 -m-1 font-medium hover:text-(--fuwari-primary) text-(--fuwari-primary) no-underline"
           >
-            GitHub
+            Sitemap
           </a>
           <br />
           Powered by{' '}
@@ -35,12 +31,12 @@ export const Footer: FC<{ siteConfig?: BlogConfig }> = ({ siteConfig }) => {
           </a>{' '}
           &{' '}
           <a
-            href="https://github.com/saicaca/fuwari"
+            href="https://github.com/kyuphoenix/honoki"
             target="_blank"
             rel="noreferrer"
             class="fuwari-expand-animation rounded-md px-1 -m-1 font-medium hover:text-(--fuwari-primary) text-(--fuwari-primary) no-underline"
           >
-            Fuwari Theme
+            Honoki
           </a>
         </div>
       </div>
