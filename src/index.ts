@@ -223,12 +223,10 @@ app.get('/sitemap.xml', async (c) => {
   const manifest = (await getManifest(c.env)).filter((p) => !p.draft)
   const baseUrl = (c.env.BLOG_URL || '').replace(/\/$/, '') || new URL(c.req.url).origin
 
-  // 1. 固定页面配置（首页、归档、友链、关于）
+  // 1. 固定页面配置（首页、友链）
   const staticPages = [
     { url: '/', changefreq: 'daily', priority: '1.0' },
-    { url: '/archive', changefreq: 'weekly', priority: '0.8' },
     { url: '/links', changefreq: 'monthly', priority: '0.7' },
-    { url: '/about', changefreq: 'monthly', priority: '0.7' },
   ]
 
   // 2. 提取所有已发布文章页面（支持 Google Image Sitemap 扩展）
@@ -262,32 +260,6 @@ app.get('/sitemap.xml', async (c) => {
   </url>`
   })
 
-  // 3. 提取所有分类与标签聚合页面
-  const categorySet = new Set<string>()
-  const tagSet = new Set<string>()
-  manifest.forEach((p) => {
-    if (p.category) categorySet.add(p.category)
-    if (Array.isArray(p.tags)) {
-      p.tags.forEach((t) => tagSet.add(t))
-    }
-  })
-
-  const categoryPages = Array.from(categorySet).map(
-    (cat) => `  <url>
-    <loc>${escapeXml(`${baseUrl}/?category=${encodeURIComponent(cat)}`)}</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>`
-  )
-
-  const tagPages = Array.from(tagSet).map(
-    (tag) => `  <url>
-    <loc>${escapeXml(`${baseUrl}/?tag=${encodeURIComponent(tag)}`)}</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.5</priority>
-  </url>`
-  )
-
   const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
 <?xml-stylesheet type="text/xsl" href="/sitemap.xsl"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
@@ -301,8 +273,6 @@ ${staticPages
   )
   .join('\n')}
 ${articlePages.join('\n')}
-${categoryPages.join('\n')}
-${tagPages.join('\n')}
 </urlset>`
 
   return c.text(sitemapXml, 200, {
