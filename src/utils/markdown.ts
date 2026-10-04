@@ -63,7 +63,8 @@ function parseSimpleYaml(yaml: string): Record<string, any> {
   function flushBlock() {
     if (currentKey && blockMode) {
       const text = blockLines.join(blockMode === 'literal' ? '\n' : ' ')
-      result[currentKey] = text.replace(/\r?\n+/g, ' ').replace(/\s+/g, ' ').trim()
+      const cleaned = text.replace(/\r?\n+/g, ' ').replace(/\s+/g, ' ').trim()
+      result[currentKey] = cleaned.replace(/^['"]|['"]$/g, '')
     }
     blockMode = null
     blockLines = []
@@ -148,6 +149,17 @@ function parseSimpleYaml(yaml: string): Record<string, any> {
         } else {
           result[currentKey] = ''
         }
+        continue
+      }
+
+      // 检查后续行是否是当前标量值的缩进续行 (Plain / Quoted Multiline Continuation)
+      const nextLine = lines[i + 1]
+      const hasContinuation = nextLine && /^\s+\S/.test(nextLine) && !/^\s*-\s+/.test(nextLine) && !/^\s*([a-zA-Z0-9_-]+)\s*:/.test(nextLine)
+
+      if (hasContinuation) {
+        blockMode = 'folded'
+        blockLines = [value]
+        baseIndent = 0
         continue
       }
 
