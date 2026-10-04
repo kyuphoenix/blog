@@ -292,11 +292,18 @@ actions:
       message: 重新生成文章清单并通知 Cloudflare Worker 加载最新的文章、友链和站点配置。
       button: 确认同步
   - name: deploy-worker
-    label: 部署 Worker (Deploy)
+    label: 部署 Worker (Cloudflare)
     workflow: deploy.yml
     confirm:
       title: 部署 Worker？
       message: 触发 GitHub Actions 重新构建并部署 Cloudflare Worker。
+      button: 确认部署
+  - name: deploy-vercel
+    label: 部署到 Vercel
+    workflow: deploy-vercel.yml
+    confirm:
+      title: 部署到 Vercel？
+      message: 触发 GitHub Actions 重新构建并部署到 Vercel。
       button: 确认部署
 
 # 4. 全局提交设置
