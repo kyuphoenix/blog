@@ -58,10 +58,10 @@ export const blogConfig: BlogConfig = {
     { platform: 'rss', url: '/rss.xml', label: 'RSS' },
   ],
   icons: {
-    faviconSvg: rawConfig.icons?.faviconSvg || '/images/favicon.svg',
-    faviconIco: rawConfig.icons?.faviconIco || '/images/favicon.ico',
-    favicon96: rawConfig.icons?.favicon96 || '/images/favicon-96x96.png',
-    appleTouchIcon: rawConfig.icons?.appleTouchIcon || '/images/apple-touch-icon.png',
+    faviconSvg: rawConfig.icons?.faviconSvg || '/favicon.svg',
+    faviconIco: rawConfig.icons?.faviconIco || '/favicon.ico',
+    favicon96: rawConfig.icons?.favicon96 || '/favicon-96x96.png',
+    appleTouchIcon: rawConfig.icons?.appleTouchIcon || '/apple-touch-icon.png',
   },
   theme: {
     fuwari: {
