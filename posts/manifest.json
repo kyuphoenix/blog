@@ -25,7 +25,7 @@
       "Cloudflare",
       "域名"
     ],
-    "excerpt": "|-",
+    "excerpt": "本文介绍如何将域名托管至 Cloudflare。首先注册账号并切换语言为中文，然后添加 DigitalPlat 或 DNSHE",
     "draft": false,
     "path": "posts/托管域名到cloudflare.md",
     "readingTime": 3
