@@ -7,8 +7,6 @@
   function = "server"
   excludedPath = [
     "/css/*",
-    "/js/*",
-    "/sitemap.xsl",
     "/favicon.ico",
     "/favicon.svg",
     "/favicon-*.png",
