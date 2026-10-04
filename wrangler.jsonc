@@ -3,7 +3,7 @@
   "main": "src/index.ts",
   "compatibility_date": "2024-11-01",
   "compatibility_flags": ["nodejs_compat"],
-  // 静态资源目录（托管 /images/home-bg.webp, /images/avatar.png, favicon 等）
+  // 静态资源目录（托管 /images/home-bg.webp, /images/avatar.webp, favicon 等）
   "assets": {
     "directory": "./public"
   },

@@ -120,11 +120,11 @@ content:
               - name: avatar
                 label: 站长头像
                 type: image
-                description: 站长头像图片路径（支持上传至图库或填入 /images/avatar.png）
+                description: 站长头像图片路径（支持上传至图库或填入 /images/avatar.webp）
               - name: homeBg
                 label: 首页全屏背景图
                 type: image
-                description: 首页大背景图片路径（支持上传至图库或填入 /images/home-bg.png）
+                description: 首页大背景图片路径（支持上传至图库或填入 /images/home-bg.webp）
               - name: primaryHue
                 label: 主题色相 (Primary Hue 0-360)
                 type: number
