@@ -22,6 +22,11 @@ on:
         required: false
         default: 'main'
         type: string
+      protected_dirs:
+        description: '同步时排除并保护的本地目录（空格分隔，默认排除 posts 与 public）'
+        required: false
+        default: 'posts public'
+        type: string
       payload:
         description: 'Pages CMS 上下文 Payload'
         required: false
@@ -52,6 +57,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN || secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
           UPSTREAM_REPO: ${{ github.event.inputs.template_repo || vars.TEMPLATE_REPO || 'kyuphoenix/honoki' }}
           UPSTREAM_BRANCH: ${{ github.event.inputs.template_branch || vars.TEMPLATE_BRANCH || 'main' }}
+          PROTECTED_DIRS: ${{ github.event.inputs.protected_dirs || vars.PROTECTED_DIRS || 'posts public' }}
           SYNC_MODE: ${{ github.event.inputs.sync_mode || 'direct' }}
         run: |
           set -e
@@ -75,6 +81,7 @@ jobs:
           echo "📌 当前仓库: $CURRENT_REPO (目标分支: $CURRENT_BRANCH)"
           echo "📌 上游模板: $UPSTREAM_REPO (上游分支: $UPSTREAM_BRANCH)"
           echo "📌 同步模式: $SYNC_MODE"
+          echo "📌 保护目录: $PROTECTED_DIRS"
           echo "=========================================================="
 
           # 0. 若在模板仓库本身运行，直接退出
@@ -139,33 +146,79 @@ jobs:
 
           echo "🚀 检测到上游模板有新更新，准备执行同步..."
 
+          # 定义保护目录函数：保护 posts/ 与 public/ 不被上游覆盖或混入模板演示资源
+          protect_directories() {
+            echo "🛡️ 正在保护用户文章与静态资源目录（$PROTECTED_DIRS）..."
+            for dir in $PROTECTED_DIRS; do
+              dir="${dir%/}"
+              [ -z "$dir" ] && continue
+              if [ -n "$(git ls-tree HEAD "$dir" 2>/dev/null)" ]; then
+                echo "   🔒 还原目录: $dir (保留本地 HEAD 状态)"
+                git reset HEAD -- "$dir" 2>/dev/null || true
+                git checkout HEAD -- "$dir" 2>/dev/null || true
+                git clean -fd "$dir" 2>/dev/null || true
+              else
+                echo "   🧹 清理上游新增目录: $dir"
+                git rm -rf --cached "$dir" 2>/dev/null || true
+                rm -rf "$dir" 2>/dev/null || true
+              fi
+            done
+            echo "✓ 已成功排除上游 [$PROTECTED_DIRS]，本地文章与自定义资源保持原样！"
+          }
+
           # 5. 执行同步策略
           if [ "$SYNC_MODE" = "pr" ]; then
             SYNC_BRANCH="sync/template-$(date +%Y%m%d-%H%M%S)"
             echo "🔀 正在创建更新分支: $SYNC_BRANCH"
             git checkout -b "$SYNC_BRANCH"
 
-            if git merge "template/$UPSTREAM_BRANCH" -m "chore: sync updates from template $UPSTREAM_REPO"; then
-              echo "✓ 自动合并成功，正在推送到远程并创建 PR..."
-              git push -u origin "$SYNC_BRANCH"
-              gh pr create --base "$CURRENT_BRANCH" --head "$SYNC_BRANCH" \
-                --title "chore: sync updates from template ($UPSTREAM_REPO)" \
-                --body "本 PR 自动从上游模板仓库 [$UPSTREAM_REPO](https://github.com/$UPSTREAM_REPO) 同步了最新的框架代码、部署脚本与功能改进。" || true
-            else
-              echo "⚠️ 自动合并存在冲突，正在暂存并提交冲突标记到 $SYNC_BRANCH 分支..."
-              # 关键步骤：必须暂存并提交冲突标记，确保分支生成有效新 Commit，否则 git push 无法推送冲突且 gh pr create 会报无差异错误
+            # 暂停自动提交，以便在合并时排除受保护的目录
+            git merge --no-commit --no-ff --allow-unrelated-histories "template/$UPSTREAM_BRANCH" || true
+            protect_directories
+
+            # 检查是否有未解决的代码冲突
+            UNRESOLVED=$(git diff --name-only --diff-filter=U)
+            if [ -n "$UNRESOLVED" ]; then
+              echo "⚠️ 核心代码存在合并冲突：$UNRESOLVED"
+              echo "正在暂存并提交代码冲突标记到 $SYNC_BRANCH 分支..."
               git add .
               git commit -m "chore: sync updates from template $UPSTREAM_REPO (contains merge conflicts)"
               git push -u origin "$SYNC_BRANCH"
               echo "✓ 冲突已提交至 $SYNC_BRANCH，正在创建 Pull Request 供网页端解决冲突..."
               gh pr create --base "$CURRENT_BRANCH" --head "$SYNC_BRANCH" \
                 --title "⚠️ [冲突需解决] 同步上游模板更新 ($UPSTREAM_REPO)" \
-                --body "从上游模板 [$UPSTREAM_REPO](https://github.com/$UPSTREAM_REPO) 同步代码时存在冲突。请在网页端点击 'Resolve conflicts' 按钮或在本地检出本分支解决冲突后合并。" || true
+                --body "从上游模板 [$UPSTREAM_REPO](https://github.com/$UPSTREAM_REPO) 同步代码时存在代码冲突（已自动保护并排除 $PROTECTED_DIRS 目录）。请在网页端点击 'Resolve conflicts' 按钮或在本地检出本分支解决冲突后合并。" || true
+            else
+              # 无代码冲突，检查是否有实际代码变更
+              if git diff --cached --quiet; then
+                echo "🎉 排除 $PROTECTED_DIRS 目录后，上游模板无其他代码变动，仓库已是最新状态！"
+                exit 0
+              fi
+              echo "✓ 自动合并成功（无冲突），正在推送到远程并创建 PR..."
+              git commit -m "chore: sync updates from template $UPSTREAM_REPO"
+              git push -u origin "$SYNC_BRANCH"
+              gh pr create --base "$CURRENT_BRANCH" --head "$SYNC_BRANCH" \
+                --title "chore: sync updates from template ($UPSTREAM_REPO)" \
+                --body "本 PR 自动从上游模板仓库 [$UPSTREAM_REPO](https://github.com/$UPSTREAM_REPO) 同步了最新的框架代码、部署脚本与功能改进（已自动保护并排除 $PROTECTED_DIRS 目录）。" || true
             fi
           else
-            # direct 模式（默认）：尝试直接合并到当前目标主分支
-            if git merge "template/$UPSTREAM_BRANCH" -m "chore: sync updates from template $UPSTREAM_REPO"; then
-              echo "✅ 合并成功（无冲突）！准备推送到 $CURRENT_BRANCH..."
+            # direct 模式（默认）：直接合并到当前目标主分支
+            git merge --no-commit --no-ff --allow-unrelated-histories "template/$UPSTREAM_BRANCH" || true
+            protect_directories
+
+            # 检查是否有未解决的代码冲突
+            UNRESOLVED=$(git diff --name-only --diff-filter=U)
+            if [ -z "$UNRESOLVED" ]; then
+              # 无代码冲突
+              if git diff --cached --quiet; then
+                echo "🎉 排除 $PROTECTED_DIRS 目录后，上游模板无其他代码变动，仓库已是最新状态！"
+                git merge --abort 2>/dev/null || true
+                exit 0
+              fi
+
+              echo "✅ 代码合并成功（无冲突）！准备提交并推送到 $CURRENT_BRANCH..."
+              git commit -m "chore: sync updates from template $UPSTREAM_REPO"
+
               if git push origin "$CURRENT_BRANCH"; then
                 echo "🎉 上游模板更新已成功合并并推送到 $CURRENT_BRANCH 分支！"
               else
@@ -175,15 +228,17 @@ jobs:
                 git push -u origin "$SYNC_BRANCH"
                 gh pr create --base "$CURRENT_BRANCH" --head "$SYNC_BRANCH" \
                   --title "chore: sync updates from template ($UPSTREAM_REPO)" \
-                  --body "上游模板 [$UPSTREAM_REPO](https://github.com/$UPSTREAM_REPO) 代码已成功合并。因 $CURRENT_BRANCH 分支开启了保护规则，已自动转为 Pull Request 供审核合并。" || true
+                  --body "上游模板 [$UPSTREAM_REPO](https://github.com/$UPSTREAM_REPO) 代码已成功合并（已自动保护并排除 $PROTECTED_DIRS 目录）。因 $CURRENT_BRANCH 分支开启了保护规则，已自动转为 Pull Request 供审核合并。" || true
               fi
             else
-              echo "⚠️ 检测到合并冲突！自动取消当前分支合并，转为在独立分支中提交冲突并创建 PR，保护 $CURRENT_BRANCH 分支安全..."
+              echo "⚠️ 检测到核心代码冲突：$UNRESOLVED"
+              echo "自动取消当前分支合并，转为在独立分支中提交冲突并创建 PR，保护 $CURRENT_BRANCH 分支安全..."
               git merge --abort || true
               SYNC_BRANCH="sync/template-conflicts-$(date +%Y%m%d-%H%M%S)"
               git checkout -b "$SYNC_BRANCH"
-              # 在独立分支上重新执行合并
-              git merge "template/$UPSTREAM_BRANCH" -m "chore: sync updates from template $UPSTREAM_REPO" || true
+              # 在独立分支上重新执行合并并保护目录
+              git merge --no-commit --no-ff --allow-unrelated-histories "template/$UPSTREAM_BRANCH" || true
+              protect_directories
               # 关键步骤：必须暂存并提交冲突内容，确保生成新 Commit，才能成功 push 并创建 PR
               git add .
               git commit -m "chore: sync updates from template $UPSTREAM_REPO (contains merge conflicts)"
@@ -191,7 +246,7 @@ jobs:
               echo "✓ 冲突已提交至 $SYNC_BRANCH 分支，正在创建 Pull Request 供网页端解决冲突..."
               gh pr create --base "$CURRENT_BRANCH" --head "$SYNC_BRANCH" \
                 --title "⚠️ [冲突需解决] 同步上游模板更新 ($UPSTREAM_REPO)" \
-                --body "从上游模板 [$UPSTREAM_REPO](https://github.com/$UPSTREAM_REPO) 同步代码时与本仓库已有文件产生冲突。请在网页端点击 'Resolve conflicts' 按钮或在本地检出分支解决冲突后合并。" || {
+                --body "从上游模板 [$UPSTREAM_REPO](https://github.com/$UPSTREAM_REPO) 同步代码时与本仓库已有文件产生冲突（已自动保护并排除 $PROTECTED_DIRS 目录）。请在网页端点击 'Resolve conflicts' 按钮或在本地检出分支解决冲突后合并。" || {
                   echo "💡 提示：若 PR 创建受限，可在本地运行以下命令拉取并解决冲突："
                   echo "   git checkout $SYNC_BRANCH"
                   echo "   git status"
