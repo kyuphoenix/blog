@@ -194,6 +194,16 @@ async function main() {
   })
   console.log('🎉 Netlify 部署成功完成！')
 
+  console.log('')
+  console.log('====================================================================')
+  console.log('💡 [重要提示] 若访问该 Netlify 站点时提示重定向到登录页面：')
+  console.log('   Netlify 对部分团队默认开启了访问保护 (Project visibility: Private)。')
+  console.log('   请登录 Netlify 控制台将其调整为公开访问：')
+  console.log('   1. 登录 https://app.netlify.com/ 进入对应站点')
+  console.log('   2. 点击 Site configuration -> Access & security (或 Visitor access)')
+  console.log('   3. 在 Project visibility 中将 Private 改为 Public，点击 Save 即可！')
+  console.log('====================================================================')
+
   if (!process.env.BLOG_URL) {
     console.log('')
     console.log('====================================================================')
