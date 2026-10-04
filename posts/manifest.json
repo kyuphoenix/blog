@@ -10,7 +10,7 @@
       "Cloudflare",
       "电子邮件"
     ],
-    "excerpt": "本教程介绍如何利用 Cloudflare 邮件路由、D1 数据库和 KV 命名空间，配合 Worker 部署免费临时邮箱。主要步骤包括：创建",
+    "excerpt": "本教程介绍如何利用 Cloudflare 邮件路由、D1 数据库和 KV 命名空间，配合 Worker 部署免费临时邮箱。主要步骤包括：创建 D1 数据库并导入 SQL，创建 KV 命名空间，配置 Worker 及其环境变量（如 JWT_SECRET、ADMIN_PASSWORDS），设置自定义域名和邮件路由，最后部署前端页面。",
     "draft": false,
     "path": "posts/cloudflare临时邮箱搭建.md",
     "readingTime": 6
@@ -43,7 +43,7 @@
       "easytier",
       "组网"
     ],
-    "excerpt": "EasyTier官方公共服务器已停运，用户需自建节点。文章介绍了利用免费容器（如ClawCloudRun）搭建节点的具体步骤，包括部署指定版本镜像、配置WSS端口及保活注意事项。此外，还提供了通过内网穿透（如Cloudflare",
+    "excerpt": "EasyTier官方公共服务器已停运，用户需自建节点。文章介绍了利用免费容器（如ClawCloudRun）搭建节点的具体步骤，包括部署指定版本镜像、配置WSS端口及保活注意事项。此外，还提供了通过内网穿透（如Cloudflare Tunnel）将本地端口穿透至公网作为节点的方案。",
     "draft": false,
     "path": "posts/easytier自建节点.md",
     "readingTime": 5
@@ -58,7 +58,7 @@
       "域名",
       "Cloudflare"
     ],
-    "excerpt": "本文介绍利用社区优选IP优化Cloudflare",
+    "excerpt": "本文介绍利用社区优选IP优化Cloudflare Worker和Tunnel访问速度的方法。首先需获取优选IP并添加CNAME记录。Worker优化需在设置中配置路由，再添加指向优选域名的CNAME记录。Tunnel优化需利用SaaS功能，在连接器创建规则，修改DNS记录指向优选域名，并添加TXT记录验证。操作完成后可有效降低延迟。",
     "draft": false,
     "path": "posts/cloudflare优选ip.md",
     "readingTime": 4
@@ -75,7 +75,7 @@
       "内网穿透",
       "Zero Trust"
     ],
-    "excerpt": "本文介绍了利用 Cloudflare Tunnel 将内网服务穿透至公网的方法。主要步骤包括在官网开启 Zero Trust、创建连接器、安装",
+    "excerpt": "本文介绍了利用 Cloudflare Tunnel 将内网服务穿透至公网的方法。主要步骤包括在官网开启 Zero Trust、创建连接器、安装 cloudflared 并配置隧道。该工具免费且支持自动申请证书，非常适合 HTTP 服务穿透。尽管存在国内节点少、访问速度慢的缺点，但因其便捷性仍是一个不错的选择。",
     "draft": false,
     "path": "posts/使用cloudflare tunnel穿透内网服务.md",
     "readingTime": 3
@@ -105,7 +105,7 @@
       "ddns-go",
       "IPv6"
     ],
-    "excerpt": "本文指导如何将公网 IPv6 地址解析到 Cloudflare 域名。首先需确认拥有公网 IPv6，随后下载并安装 ddns-go",
+    "excerpt": "本文指导如何将公网 IPv6 地址解析到 Cloudflare 域名。首先需确认拥有公网 IPv6，随后下载并安装 ddns-go 服务。在管理后台配置Cloudflare API 令牌，取消 IPv4 选项，选择网卡获取 IPv6 地址并设置域名。保存配置后，通过在线工具测试解析是否成功。",
     "draft": false,
     "path": "posts/使用ddns-go把ip解析到域名.md",
     "readingTime": 4
@@ -120,7 +120,7 @@
       "Cloudflare",
       "域名"
     ],
-    "excerpt": "本文介绍如何将域名托管至 Cloudflare。首先注册账号并切换语言为中文，然后添加 DigitalPlat 或 DNSHE",
+    "excerpt": "本文介绍如何将域名托管至 Cloudflare。首先注册账号并切换语言为中文，然后添加 DigitalPlat 或 DNSHE 域名，选择免费计划并获取CF 分配的名称服务器。接着在域名管理页面修改名称服务器，最后在 CF 确认。等待 DNS 传播后，状态显示为“活动”即表示托管成功。",
     "draft": false,
     "path": "posts/托管域名到cloudflare.md",
     "readingTime": 3
