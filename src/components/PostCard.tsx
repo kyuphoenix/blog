@@ -24,6 +24,7 @@ interface PostCardProps {
 export const PostCard: FC<PostCardProps> = ({ post, index = 0 }) => {
   const delay = 150 + index * 50
   const postUrl = `/posts/${encodeURIComponent(post.title)}`
+  const cleanTitle = post.title.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
   const hasCover = Boolean(post.cover && post.cover.trim())
 
   return (
@@ -50,7 +51,7 @@ export const PostCard: FC<PostCardProps> = ({ post, index = 0 }) => {
               class="inline-block text-[#f97316] dark:text-[#fb923c] mr-2 align-middle -mt-1 shrink-0"
             />
           )}
-          {post.title}
+          {cleanTitle}
           <ChevronRightIcon
             size={28}
             class="inline-block md:hidden text-(--fuwari-primary) align-middle -mt-1 ml-1"

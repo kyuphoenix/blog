@@ -49,12 +49,13 @@ export const ArchivePanel: FC<ArchivePanelProps> = ({ posts }) => {
             const dateObj = new Date(post.date)
             const mmdd = `${String(dateObj.getUTCMonth() + 1).padStart(2, '0')}-${String(dateObj.getUTCDate()).padStart(2, '0')}`
             const postUrl = `/posts/${encodeURIComponent(post.title)}`
+            const cleanTitle = post.title.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
 
             return (
               <a
                 href={postUrl}
                 class="group block! h-10 w-full rounded-lg hover:bg-(--fuwari-btn-plain-bg-hover) active:bg-(--fuwari-btn-plain-bg-active) transition-colors no-underline"
-                aria-label={post.title}
+                aria-label={cleanTitle}
               >
                 <div class="flex flex-row justify-start items-center h-full">
                   {/* Date */}
@@ -80,7 +81,7 @@ export const ArchivePanel: FC<ArchivePanelProps> = ({ posts }) => {
                       group-hover:translate-x-1 transition-all group-hover:text-(--fuwari-primary)
                       fuwari-text-75 pr-8 whitespace-nowrap overflow-ellipsis overflow-hidden"
                   >
-                    {post.title}
+                    {cleanTitle}
                   </div>
 
                   {/* Tag List */}
