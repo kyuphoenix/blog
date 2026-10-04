@@ -1,6 +1,6 @@
 import { FC } from 'hono/jsx'
-import { blogConfig, BlogConfig } from '../blog.config'
-import { GithubIcon, MailIcon, RssIcon } from './Icons'
+import { blogConfig, BlogConfig } from '../blog.config.js'
+import { GithubIcon, MailIcon, RssIcon } from './Icons.js'
 
 interface CategoryItem {
   name: string

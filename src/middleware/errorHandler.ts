@@ -1,6 +1,6 @@
 import { ErrorHandler } from 'hono'
 import { HTTPException } from 'hono/http-exception'
-import { AppEnv } from '../types/env'
+import type { AppEnv } from '../types/env.js'
 
 export const errorHandler: ErrorHandler<AppEnv> = (err, c) => {
   console.error(`[Error] ${err.message}`, err.stack)

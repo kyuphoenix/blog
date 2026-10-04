@@ -1,12 +1,12 @@
 import { Hono } from 'hono'
-import { AppEnv } from '../types/env'
+import type { AppEnv } from '../types/env.js'
 import {
   recordPageView,
   getTopPosts,
   getPostStats,
   resolveDatabaseType,
   isStatsEnabled,
-} from '../services/stats'
+} from '../services/stats.js'
 
 const stats = new Hono<AppEnv>()
 

@@ -1,8 +1,8 @@
-import { AppEnv } from '../types/env'
-import { PostMeta, Post, Manifest, FriendLink } from '../types/post'
-import { parseFrontmatter, estimateReadingTime, extractExcerpt } from '../utils/markdown'
-import { getBlogStorage } from './storage'
-import { blogConfig as defaultBlogConfig, BlogConfig } from '../blog.config'
+import type { AppEnv } from '../types/env.js'
+import type { PostMeta, Post, Manifest, FriendLink } from '../types/post.js'
+import { parseFrontmatter, estimateReadingTime, extractExcerpt } from '../utils/markdown.js'
+import { getBlogStorage } from './storage.js'
+import { blogConfig as defaultBlogConfig, BlogConfig } from '../blog.config.js'
 
 const CACHE_TTL = 60 * 5 // 缓存 5 分钟
 const MANIFEST_CACHE_KEY = 'manifest'

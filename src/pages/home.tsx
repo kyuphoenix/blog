@@ -1,10 +1,10 @@
 import { Hono } from 'hono'
-import { AppEnv } from '../types/env'
-import { Layout, PostCard, Pagination } from '../components'
-import { PostCardItem } from '../components/PostCard'
-import { getManifest, getSidebarData, getBlogConfig } from '../services/github'
-import { getTopPosts, getAllPostStats, isStatsEnabled } from '../services/stats'
-import { parsePagination } from '../utils/pagination'
+import type { AppEnv } from '../types/env.js'
+import { Layout, PostCard, Pagination } from '../components/index.js'
+import { PostCardItem } from '../components/PostCard.js'
+import { getManifest, getSidebarData, getBlogConfig } from '../services/github.js'
+import { getTopPosts, getAllPostStats, isStatsEnabled } from '../services/stats.js'
+import { parsePagination } from '../utils/pagination.js'
 
 const home = new Hono<AppEnv>()
 

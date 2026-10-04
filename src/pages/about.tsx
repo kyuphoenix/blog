@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
-import { AppEnv } from '../types/env'
-import { Layout } from '../components'
-import { getSidebarData, getBlogConfig } from '../services/github'
+import type { AppEnv } from '../types/env.js'
+import { Layout } from '../components/index.js'
+import { getSidebarData, getBlogConfig } from '../services/github.js'
 
 const about = new Hono<AppEnv>()
 

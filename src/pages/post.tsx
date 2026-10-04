@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { raw } from 'hono/html'
-import { AppEnv } from '../types/env'
-import { Layout, Giscus } from '../components'
+import type { AppEnv } from '../types/env.js'
+import { Layout, Giscus } from '../components/index.js'
 import {
   FileTextIcon,
   ClockIcon,
@@ -11,9 +11,9 @@ import {
   QuoteIcon,
   ChevronRightIcon,
   EyeIcon,
-} from '../components/Icons'
-import { getPost, getManifest, getSidebarData, getBlogConfig } from '../services/github'
-import { getPostStats, isStatsEnabled } from '../services/stats'
+} from '../components/Icons.js'
+import { getPost, getManifest, getSidebarData, getBlogConfig } from '../services/github.js'
+import { getPostStats, isStatsEnabled } from '../services/stats.js'
 import { marked } from 'marked'
 
 const postPage = new Hono<AppEnv>()

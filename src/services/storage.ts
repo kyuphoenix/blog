@@ -1,7 +1,7 @@
 import { createStorage, Storage } from 'unstorage'
 import cloudflareKVBindingDriver from 'unstorage/drivers/cloudflare-kv-binding'
 import memoryDriver from 'unstorage/drivers/memory'
-import { AppEnv } from '../types/env'
+import type { AppEnv } from '../types/env.js'
 
 let cachedStorage: Storage | null = null
 let cachedBinding: any = null

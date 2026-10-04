@@ -1,2 +1,2 @@
-export { default as postRoutes } from './posts'
-export { default as statsRoutes } from './stats'
+export { default as postRoutes } from './posts.js'
+export { default as statsRoutes } from './stats.js'

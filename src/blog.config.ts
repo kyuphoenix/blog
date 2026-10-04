@@ -1,4 +1,4 @@
-import rawConfig from '../blog.config.json'
+import rawConfig from '../blog.config.json' with { type: 'json' }
 
 export interface NavItem {
   label: string

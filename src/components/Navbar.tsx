@@ -1,6 +1,6 @@
 import { FC } from 'hono/jsx'
 import { raw } from 'hono/html'
-import { blogConfig, BlogConfig, NavItem } from '../blog.config'
+import { blogConfig, BlogConfig, NavItem } from '../blog.config.js'
 import {
   HomeIcon,
   SearchIcon,
@@ -11,7 +11,7 @@ import {
   PaletteIcon,
   ArrowUpIcon,
   ExternalLinkIcon,
-} from './Icons'
+} from './Icons.js'
 
 export const navOptions = blogConfig.nav
 
