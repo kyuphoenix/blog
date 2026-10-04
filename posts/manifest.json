@@ -1,5 +1,21 @@
 [
   {
+    "title": "cloudflare临时邮箱搭建",
+    "slug": "cloudflare临时邮箱搭建",
+    "date": "2026-07-24",
+    "updated": "2026-07-24",
+    "category": "技术",
+    "tags": [
+      "域名",
+      "Cloudflare",
+      "电子邮件"
+    ],
+    "excerpt": "本教程介绍如何利用 Cloudflare 邮件路由、D1 数据库和 KV 命名空间，配合 Worker 部署免费临时邮箱。主要步骤包括：创建",
+    "draft": false,
+    "path": "posts/cloudflare临时邮箱搭建.md",
+    "readingTime": 6
+  },
+  {
     "title": "搭建节点记录",
     "slug": "搭建节点记录",
     "date": "2026-04-29",
