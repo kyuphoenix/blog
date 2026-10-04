@@ -65,8 +65,8 @@ export const blogConfig: BlogConfig = {
   },
   theme: {
     fuwari: {
-      homeBg: rawConfig.theme?.fuwari?.homeBg || '/images/home-bg.png',
-      avatar: rawConfig.theme?.fuwari?.avatar || '/images/avatar.png',
+      homeBg: rawConfig.theme?.fuwari?.homeBg || '/images/home-bg.webp',
+      avatar: rawConfig.theme?.fuwari?.avatar || '/images/avatar.webp',
       primaryHue: Number(rawConfig.theme?.fuwari?.primaryHue ?? 250),
     },
   },

@@ -16,8 +16,8 @@
   ],
   "theme": {
     "fuwari": {
-      "avatar": "/images/avatar.png",
-      "homeBg": "/images/home-bg.png",
+      "avatar": "/images/avatar.webp",
+      "homeBg": "/images/home-bg.webp",
       "primaryHue": 250
     }
   },
