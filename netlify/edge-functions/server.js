@@ -31748,7 +31748,7 @@ var src_default = app;
 // netlify-edge-entry.js
 async function netlify_edge_entry_default(request, context) {
   const url = new URL(request.url);
-  if (url.pathname.startsWith("/images/")) {
+  if (url.pathname.startsWith("/js/") || url.pathname.startsWith("/css/") || url.pathname.startsWith("/images/") || url.pathname.endsWith(".js") || url.pathname.endsWith(".css") || url.pathname.endsWith(".xsl") || url.pathname.endsWith(".ico") || url.pathname.endsWith(".svg") || url.pathname.endsWith(".png") || url.pathname.endsWith(".jpg") || url.pathname.endsWith(".webp")) {
     try {
       const staticRes = await context.next();
       if (staticRes && staticRes.status < 400) {

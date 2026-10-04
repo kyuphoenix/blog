@@ -53,8 +53,20 @@ await esbuild.build({
 
       export default async function (request, context) {
         const url = new URL(request.url);
-        // 如果是 /images/* 请求，优先尝试命中 Netlify 部署的静态资产
-        if (url.pathname.startsWith('/images/')) {
+        // 静态资源文件优先尝试从 Netlify 部署的静态 CDN 资产命中
+        if (
+          url.pathname.startsWith('/js/') ||
+          url.pathname.startsWith('/css/') ||
+          url.pathname.startsWith('/images/') ||
+          url.pathname.endsWith('.js') ||
+          url.pathname.endsWith('.css') ||
+          url.pathname.endsWith('.xsl') ||
+          url.pathname.endsWith('.ico') ||
+          url.pathname.endsWith('.svg') ||
+          url.pathname.endsWith('.png') ||
+          url.pathname.endsWith('.jpg') ||
+          url.pathname.endsWith('.webp')
+        ) {
           try {
             const staticRes = await context.next();
             if (staticRes && staticRes.status < 400) {
@@ -63,7 +75,7 @@ await esbuild.build({
           } catch {}
         }
 
-        // 静态未命中时（如 Pages CMS 新上传图片），转由 Hono 边缘代理拉取与缓存
+        // 静态未命中时（如 Pages CMS 新上传图片或 SSR 页面请求），转由 Hono 边缘服务处理
         const env = typeof Deno !== 'undefined'
           ? Deno.env.toObject()
           : (typeof process !== 'undefined' ? process.env : {});
