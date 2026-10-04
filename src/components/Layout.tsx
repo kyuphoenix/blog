@@ -303,16 +303,11 @@ export const Layout: FC<LayoutProps> = ({
         {/* DNS-Prefetch 与 CDN Preconnect 优化 (显著降低 Core Web Vitals LCP 延迟) */}
         <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com" />
         <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossOrigin="anonymous" />
-        <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
-        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
         <link rel="icon" type="image/svg+xml" href={cfg.icons.faviconSvg} />
         <link rel="icon" href={cfg.icons.faviconIco} />
         <link rel="apple-touch-icon" href={cfg.icons.appleTouchIcon} />
-        {/* Tailwind CSS v4 Browser Runtime for full utility support */}
-        <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-        {raw(`<style type="text/tailwindcss">
-          @custom-variant dark (&:where(.dark, .dark *));
-        </style>`)}
+        {/* Pre-compiled static Tailwind CSS v4 (AOT, 0 JS runtime overhead) */}
+        <link rel="stylesheet" href="/css/tailwind.css" />
         {/* Highlight.js for code syntax highlighting */}
         <link
           rel="stylesheet"
