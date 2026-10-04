@@ -1,5 +1,5 @@
 [build]
-  command = "node scripts/gen-manifest.mjs"
+  command = "node scripts/build-netlify.mjs"
   publish = "public"
 
 [[edge_functions]]

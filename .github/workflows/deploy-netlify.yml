@@ -44,8 +44,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Generate post manifest
-        run: pnpm gen:manifest
+      - name: Build Netlify assets and edge functions
+        run: pnpm build:netlify
 
       # 若使用 Supabase，自动检测数据库状态；未初始化且配置了凭证时自动执行建表
       - name: Check and initialize Supabase database
