@@ -6,9 +6,9 @@ category: 技术
 tags:
   - Cloudflare
   - 域名
-excerpt: |-
-  本文介绍如何将域名托管至 Cloudflare。首先注册账号并切换语言为中文，然后添加 DigitalPlat 或 DNSHE 域名，选择免费计划并获取
-    CF 分配的名称服务器。接着在域名管理页面修改名称服务器，最后在 CF 确认。等待 DNS 传播后，状态显示为“活动”即表示托管成功。
+excerpt: 本文介绍如何将域名托管至 Cloudflare。首先注册账号并切换语言为中文，然后添加 DigitalPlat 或 DNSHE
+  域名，选择免费计划并获取CF 分配的名称服务器。接着在域名管理页面修改名称服务器，最后在 CF 确认。等待 DNS
+  传播后，状态显示为“活动”即表示托管成功。
 draft: false
 ---
 # 引言
@@ -16,22 +16,20 @@ draft: false
 之前教大家获取了自己的域名(详见[获取自己的域名](/posts/获取自己的域名/))，现在我来教大家把域名托管到cloudflare，方便以后使用自己的域名，以下简称cf
 
 这是[视频教程](https://www.bilibili.com/video/BV1p6AXz2ErB/)
-<iframe src="//player.bilibili.com/player.html?isOutside=true&aid=116143549321150&bvid=BV1p6AXz2ErB&cid=36335389802&p=1&autoplay=0" 
-		scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true" 
-        loading="lazy"
-        style="width: 100%; height: 500px;"></iframe>
+
+
 
 # 注册一个cf账号
 
 1. 我们先来到[cf官网](https://dash.cloudflare.com/)注册一个账号(有账号的可以直接登录)
-   ![点击注册](https://img-bucket.303302.xyz/2026/02/20260228133505832.png)
-   
+  ![点击注册](https://img-bucket.303302.xyz/2026/02/20260228133505832.png)
+
    输一个能用邮箱注册就行了，点击注册之后记得去邮箱点击确认邮件![注册账号|667](https://img-bucket.303302.xyz/2026/02/20260228133640933.png)
-   
+
    注册完账号来到这个界面点击跳过![点击跳过](https://img-bucket.303302.xyz/2026/02/20260228134003571.png)
-   
 2. 切换语言为中文
-   点击跳过之后，来到仪表盘主界面。此时语言默认是英文，跟着下面的图片设置语言为中文![设置中文1](https://img-bucket.303302.xyz/2026/02/20260228134331625.png)![设置中文2](https://img-bucket.303302.xyz/2026/02/20260228134710439.png)![设置中文3|667](https://img-bucket.303302.xyz/2026/02/20260228134905829.png)
+
+  点击跳过之后，来到仪表盘主界面。此时语言默认是英文，跟着下面的图片设置语言为中文![设置中文1](https://img-bucket.303302.xyz/2026/02/20260228134331625.png)![设置中文2](https://img-bucket.303302.xyz/2026/02/20260228134710439.png)![设置中文3|667](https://img-bucket.303302.xyz/2026/02/20260228134905829.png)
 
 这样账号就注册好了，可以开始托管域名了
 
@@ -59,6 +57,7 @@ draft: false
 点击加入域之后的流程跟之前一样，不过是把域名换成了另一个
 
 # 托管DNSHE域名
+
 DNSHE域名托管的流程与DigitalPlat大致相同，只有修改name server部分不同，这里就只讲如何修改name server
 
 来到[DNSHE域名管理页面](https://my.dnshe.com/index.php?m=domain_hub)，点击DNS服务器![点击DNS服务器](https://img-bucket.303302.xyz/2026/02/20260228150635448.png)
