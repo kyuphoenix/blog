@@ -17,6 +17,14 @@ const app = new Hono<AppEnv>()
 // 全局中间件
 app.use('*', logger())
 
+// 多平台环境兼容适配中间件：确保在 Vercel / Node.js 环境下 process.env 能无缝透传到 c.env
+app.use('*', async (c, next) => {
+  if (typeof process !== 'undefined' && process.env) {
+    c.env = { ...process.env, ...(c.env || {}) } as any
+  }
+  await next()
+})
+
 // Giscus 自定义主题样式路由（附带 CORS 响应头，确保 giscus.app iframe 可以跨域加载）
 app.get('/css/giscus-fuwari-light.css', (c) => {
   return c.text(giscusLightCss, 200, {

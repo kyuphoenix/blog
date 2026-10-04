@@ -42,7 +42,7 @@ const orgId = process.env.VERCEL_ORG_ID?.trim()
 const projectId = process.env.VERCEL_PROJECT_ID?.trim()
 
 console.log('----------------------------------------------------')
-console.log('🚀 准备执行 Vercel 自动化部署 (Edge Runtime)')
+console.log('🚀 准备执行 Vercel 自动化部署 (Hono Native / Fluid Compute)')
 console.log(`📌 目标项目名称: ${projectName}`)
 console.log('----------------------------------------------------')
 
@@ -69,6 +69,22 @@ async function main() {
     if (res.ok) {
       resolvedProject = await res.json()
       console.log(`✓ 检测到已存在的 Vercel 项目: ${resolvedProject.name} (ID: ${resolvedProject.id})`)
+      if (resolvedProject.framework !== 'hono') {
+        try {
+          const patchRes = await fetch(`https://api.vercel.com/v9/projects/${encodeURIComponent(projectName)}`, {
+            method: 'PATCH',
+            headers: apiHeaders,
+            body: JSON.stringify({
+              framework: 'hono',
+            }),
+          })
+          if (patchRes.ok) {
+            console.log(`✓ 已将 Vercel 项目 Framework Preset 自动对齐为: hono`)
+          }
+        } catch (e) {
+          console.warn(`⚠️ 更新项目 Framework 异常: ${e.message}`)
+        }
+      }
     } else if (res.status === 404) {
       console.log(`ℹ️ Vercel 项目 ${projectName} 尚不存在，正在通过 API 自动创建...`)
       const createRes = await fetch('https://api.vercel.com/v11/projects', {
@@ -76,7 +92,7 @@ async function main() {
         headers: apiHeaders,
         body: JSON.stringify({
           name: projectName,
-          framework: null,
+          framework: 'hono',
         }),
       })
       if (!createRes.ok) {
