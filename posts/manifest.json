@@ -1,5 +1,22 @@
 [
   {
+    "title": "使用cloudflare tunnel穿透内网服务",
+    "slug": "使用cloudflare tunnel穿透内网服务",
+    "date": "2026-03-22",
+    "updated": "2026-04-19",
+    "category": "技术",
+    "tags": [
+      "域名",
+      "Cloudflare",
+      "内网穿透",
+      "Zero Trust"
+    ],
+    "excerpt": "本文介绍了利用 Cloudflare Tunnel 将内网服务穿透至公网的方法。主要步骤包括在官网开启 Zero Trust、创建连接器、安装",
+    "draft": false,
+    "path": "posts/使用cloudflare tunnel穿透内网服务.md",
+    "readingTime": 3
+  },
+  {
     "title": "openclaw的部署，接入平台，切换模型提供商以及卸载",
     "slug": "openclaw的部署，接入平台，切换模型提供商以及卸载",
     "date": "2026-03-16",
