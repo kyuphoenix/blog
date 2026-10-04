@@ -1,4 +1,4 @@
-# ✦ Fuwari Blog (Hono SSR Multi-Cloud)
+# Honoki
 
 基于 [Hono](https://hono.dev/) 框架构建的轻量级、高性能个人博客系统，支持在 **Cloudflare Workers**、**Vercel Edge** 和 **Netlify Edge** 上全球边缘部署。前端视觉与交互风格深度移植自优雅清爽的 [Fuwari](https://github.com/saicaca/fuwari) 主题。
 
