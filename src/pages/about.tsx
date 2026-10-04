@@ -34,8 +34,7 @@ about.get('/', async (c) => {
 
         <div class="prose dark:prose-invert prose-base max-w-none! fuwari-custom-md">
           <p>
-            欢迎来到我的个人博客！本站基于 <a href="https://hono.dev" target="_blank" rel="noreferrer">Hono</a> 框架与{' '}
-            <a href="https://workers.cloudflare.com" target="_blank" rel="noreferrer">Cloudflare Workers</a> 构建
+            欢迎来到我的个人博客！本站基于 <a href="https://hono.dev" target="_blank" rel="noreferrer">Hono</a> 框架构建
           </p>
 
           <h2>核心特性</h2>

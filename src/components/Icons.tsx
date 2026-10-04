@@ -174,4 +174,12 @@ export const ExternalLinkIcon: FC<IconProps> = ({ size = 14, strokeWidth = 2, cl
   </svg>
 )
 
+export const AddressCardIcon: FC<IconProps> = ({ size = 36, class: cls = '' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width={1.75} stroke-linecap="round" stroke-linejoin="round" class={cls}>
+    <rect width="20" height="14" x="2" y="5" rx="2" />
+    <circle cx="8" cy="12" r="2" />
+    <path d="M14 10h4" /><path d="M14 14h3" />
+  </svg>
+)
+
 

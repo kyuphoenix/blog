@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "wrangler dev",
     "build:css": "tailwindcss -i src/tailwind.css -o public/css/tailwind.css --minify",
+    "build:js": "node scripts/build-client.mjs",
     "build": "node scripts/build-vercel.mjs",
     "deploy": "wrangler deploy --minify",
     "gen:manifest": "node scripts/gen-manifest.mjs",
@@ -25,6 +26,7 @@
     "@types/node": "^26.6.4",
     "hono": "^4.13.9",
     "marked": "^18.0.14",
+    "swup": "^4.10.0",
     "unstorage": "^1.17.5"
   },
   "devDependencies": {
