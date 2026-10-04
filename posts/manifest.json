@@ -1,5 +1,21 @@
 [
   {
+    "title": "使用ddns-go把ip解析到域名",
+    "slug": "使用ddns-go把ip解析到域名",
+    "date": "2026-03-04",
+    "updated": "2026-03-20",
+    "category": "技术",
+    "tags": [
+      "Cloudflare",
+      "ddns-go",
+      "IPv6"
+    ],
+    "excerpt": "本文指导如何将公网 IPv6 地址解析到 Cloudflare 域名。首先需确认拥有公网 IPv6，随后下载并安装 ddns-go",
+    "draft": false,
+    "path": "posts/使用ddns-go把ip解析到域名.md",
+    "readingTime": 4
+  },
+  {
     "title": "托管域名到cloudflare",
     "slug": "托管域名到cloudflare",
     "date": "2026-02-28",
