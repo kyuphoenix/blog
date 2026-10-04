@@ -32,11 +32,49 @@ function parseFrontmatter(raw) {
   const meta = {}
   let currentKey = ''
   let currentArray = null
+  let blockMode = null // 'literal' (|) | 'folded' (>) | 'text'
+  let blockLines = []
+  let baseIndent = 0
 
-  for (const line of yamlLines) {
-    if (line.trim() === '' || line.trim().startsWith('#')) continue
+  function flushBlock() {
+    if (currentKey && blockMode) {
+      const text = blockLines.join(blockMode === 'literal' ? '\n' : ' ')
+      meta[currentKey] = text.replace(/\r?\n+/g, ' ').replace(/\s+/g, ' ').trim()
+    }
+    blockMode = null
+    blockLines = []
+    baseIndent = 0
+  }
 
-    const arrayItemMatch = line.match(/^\s+-\s+(.+)/)
+  for (let i = 0; i < yamlLines.length; i++) {
+    const rawLine = yamlLines[i]
+    const trimmed = rawLine.trim()
+
+    // 处于块文本模式时，处理缩进行
+    if (blockMode) {
+      if (trimmed === '') {
+        blockLines.push('')
+        continue
+      }
+      const indentMatch = rawLine.match(/^(\s+)/)
+      const currentIndent = indentMatch ? indentMatch[1].length : 0
+
+      // 如果仍有缩进，继续作为块内容收集
+      if (currentIndent > 0) {
+        if (baseIndent === 0) baseIndent = currentIndent
+        const lineContent = rawLine.slice(Math.min(baseIndent, currentIndent)).trim()
+        blockLines.push(lineContent)
+        continue
+      } else {
+        // 遇到非缩进行，结束块模式
+        flushBlock()
+      }
+    }
+
+    if (trimmed === '' || trimmed.startsWith('#')) continue
+
+    // 多行数组项: "  - item"
+    const arrayItemMatch = rawLine.match(/^\s+-\s+(.+)/)
     if (arrayItemMatch && currentKey) {
       if (!currentArray) currentArray = []
       currentArray.push(arrayItemMatch[1].trim().replace(/^['"]|['"]$/g, ''))
@@ -44,11 +82,20 @@ function parseFrontmatter(raw) {
       continue
     }
 
-    const kvMatch = line.match(/^(\w+)\s*:\s*(.*)/)
+    const kvMatch = rawLine.match(/^([a-zA-Z0-9_-]+)\s*:\s*(.*)/)
     if (kvMatch) {
+      flushBlock()
       currentArray = null
       currentKey = kvMatch[1]
       let value = kvMatch[2].trim()
+
+      // YAML 块标量语法: |, |-, |+, >, >-, >+
+      if (/^[|>][+-]?$/.test(value)) {
+        blockMode = value.startsWith('|') ? 'literal' : 'folded'
+        blockLines = []
+        baseIndent = 0
+        continue
+      }
 
       if (value.startsWith('[') && value.endsWith(']')) {
         meta[currentKey] = value
@@ -59,7 +106,15 @@ function parseFrontmatter(raw) {
         continue
       }
       if (value === '') {
-        meta[currentKey] = ''
+        const nextLine = yamlLines[i + 1]
+        // 若下一行是纯文本缩进（非 - 开头的列表项），作为缩进多行文本收集
+        if (nextLine && /^\s+\S/.test(nextLine) && !/^\s*-\s+/.test(nextLine)) {
+          blockMode = 'text'
+          blockLines = []
+          baseIndent = 0
+        } else {
+          meta[currentKey] = ''
+        }
         continue
       }
       const unquoted = value.replace(/^['"]|['"]$/g, '').trim()
@@ -75,6 +130,8 @@ function parseFrontmatter(raw) {
     }
   }
 
+  flushBlock()
+
   // 阅读时间估算
   const chineseChars = (content.match(/[\u4e00-\u9fff]/g) || []).length
   const englishWords = content
@@ -86,8 +143,19 @@ function parseFrontmatter(raw) {
     Math.ceil(chineseChars / 300 + englishWords / 200)
   )
 
-  // 自动提取摘要 (若 Frontmatter 未填写 excerpt，自动提取正文纯文本前 160 字作为 SEO 搜索结果摘要)
-  let excerpt = meta.excerpt || ''
+  // 规范化并清洗 Frontmatter 摘要 (若 Frontmatter 未填写 excerpt，自动提取正文纯文本前 160 字作为 SEO 搜索结果摘要)
+  let rawExcerpt = meta.excerpt || ''
+  if (typeof rawExcerpt === 'string') {
+    rawExcerpt = rawExcerpt.replace(/\r?\n+/g, ' ').replace(/\s+/g, ' ').trim()
+    // 防御性过滤：若为 YAML 块标记符号（如 |-、> 等），视为无效值
+    if (/^[|>][+-]?$/.test(rawExcerpt)) {
+      rawExcerpt = ''
+    }
+  } else {
+    rawExcerpt = ''
+  }
+
+  let excerpt = rawExcerpt
   if (!excerpt && content) {
     const plain = content
       .replace(/```[\s\S]*?```/g, '') // 去除代码块
