@@ -15,9 +15,15 @@
     "readingTime": 3
   },
   {
+<<<<<<< HEAD
     "title": "第一篇文章",
     "slug": "第一篇文章",
     "date": "2026-02-26",
+=======
+    "title": "Hello World",
+    "slug": "Hello World",
+    "date": "2024-01-15",
+>>>>>>> template/main
     "updated": "2026-03-19",
     "category": "技术",
     "tags": [

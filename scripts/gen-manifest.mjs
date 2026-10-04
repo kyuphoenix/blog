@@ -62,15 +62,16 @@ function parseFrontmatter(raw) {
         meta[currentKey] = ''
         continue
       }
-      if (value === 'true') {
+      const unquoted = value.replace(/^['"]|['"]$/g, '').trim()
+      if (unquoted === 'true' || unquoted === 'yes') {
         meta[currentKey] = true
         continue
       }
-      if (value === 'false') {
+      if (unquoted === 'false' || unquoted === 'no') {
         meta[currentKey] = false
         continue
       }
-      meta[currentKey] = value.replace(/^['"]|['"]$/g, '')
+      meta[currentKey] = unquoted
     }
   }
 
@@ -125,16 +126,23 @@ async function main() {
     // slug 默认为 title，不再需要另外配置路径
     const slug = meta.slug || title
 
+    const isDraft = typeof meta.draft === 'boolean'
+      ? meta.draft
+      : (meta.draft === 'true' || meta.draft === 'yes')
+
+    const date = meta.date ? String(meta.date).trim().replace(/^['"]|['"]$/g, '') : new Date().toISOString().split('T')[0]
+    const updated = meta.updated ? String(meta.updated).trim().replace(/^['"]|['"]$/g, '') : undefined
+
     manifest.push({
       title,
       slug,
-      date: meta.date || new Date().toISOString().split('T')[0],
-      updated: meta.updated || undefined,
+      date,
+      updated: updated || undefined,
       category: meta.category || '未分类',
       tags: Array.isArray(meta.tags) ? meta.tags : [],
       excerpt: meta.excerpt || parsed.excerpt || '',
       cover: meta.cover || meta.image || undefined,
-      draft: meta.draft || false,
+      draft: isDraft,
       path: `posts/${file}`,
       readingTime,
     })
