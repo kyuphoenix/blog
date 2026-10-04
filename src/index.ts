@@ -11,6 +11,8 @@ import aboutPage from './pages/about.js'
 import linksPage from './pages/links.js'
 import { getManifest, getBlogConfig } from './services/github.js'
 import { giscusLightCss, giscusDarkCss } from './styles/giscusTheme.js'
+import { swupClientJs } from './scripts/swupBundle.js'
+import { sitemapXsl } from './styles/sitemapXsl.js'
 
 const app = new Hono<AppEnv>()
 
@@ -39,6 +41,24 @@ app.get('/css/giscus-fuwari-dark.css', (c) => {
     'Content-Type': 'text/css; charset=utf-8',
     'Access-Control-Allow-Origin': '*',
     'Cache-Control': 'public, max-age=60',
+  })
+})
+
+// 客户端无缝切换引擎与交互脚本 (Swup + Lightbox)
+app.get('/js/swup.js', (c) => {
+  return c.body(swupClientJs, 200, {
+    'Content-Type': 'application/javascript; charset=utf-8',
+    'Access-Control-Allow-Origin': '*',
+    'Cache-Control': 'public, max-age=86400, s-maxage=86400',
+  })
+})
+
+// Sitemap.xml 可视化 XSL 样式表
+app.get('/sitemap.xsl', (c) => {
+  return c.text(sitemapXsl, 200, {
+    'Content-Type': 'application/xml; charset=utf-8',
+    'Access-Control-Allow-Origin': '*',
+    'Cache-Control': 'public, max-age=86400, s-maxage=86400',
   })
 })
 

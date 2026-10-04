@@ -53,14 +53,12 @@ await esbuild.build({
 
       export default async function (request, context) {
         const url = new URL(request.url);
+
         // 静态资源文件优先尝试从 Netlify 部署的静态 CDN 资产命中
         if (
-          url.pathname.startsWith('/js/') ||
           url.pathname.startsWith('/css/') ||
           url.pathname.startsWith('/images/') ||
-          url.pathname.endsWith('.js') ||
           url.pathname.endsWith('.css') ||
-          url.pathname.endsWith('.xsl') ||
           url.pathname.endsWith('.ico') ||
           url.pathname.endsWith('.svg') ||
           url.pathname.endsWith('.png') ||
@@ -75,13 +73,26 @@ await esbuild.build({
           } catch {}
         }
 
-        // 静态未命中时（如 Pages CMS 新上传图片或 SSR 页面请求），转由 Hono 边缘服务处理
+        // 静态未命中、SSR 页面请求、以及 Hono 内置资源（如 /js/swup.js, /sitemap.xsl, /sitemap.xml, /robots.txt 等），转由 Hono 边缘服务处理
         const env = typeof Deno !== 'undefined'
           ? Deno.env.toObject()
           : (typeof process !== 'undefined' ? process.env : {});
 
         return app.fetch(request, env, context);
       }
+
+      export const config = {
+        path: "/*",
+        excludedPath: [
+          "/css/*",
+          "/favicon.ico",
+          "/favicon.svg",
+          "/favicon-*.png",
+          "/apple-touch-icon.png",
+          "/web-app-manifest-*.png",
+          "/_headers"
+        ],
+      };
     `,
     resolveDir: process.cwd(),
     sourcefile: 'netlify-edge-entry.js',
