@@ -186,9 +186,9 @@ app.get('/rss.xml', async (c) => {
   const rss = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>${siteConfig.title}</title>
+    <title><![CDATA[${siteConfig.title}]]></title>
     <link>${baseUrl}</link>
-    <description>${siteConfig.description}</description>
+    <description><![CDATA[${siteConfig.description}]]></description>
     <atom:link href="${baseUrl}/rss.xml" rel="self" type="application/rss+xml"/>
     ${items}
   </channel>
@@ -204,6 +204,19 @@ app.get('/rss.xml', async (c) => {
 app.get('/feed', (c) => c.redirect('/rss.xml', 301))
 app.get('/feed.xml', (c) => c.redirect('/rss.xml', 301))
 app.get('/atom.xml', (c) => c.redirect('/rss.xml', 301))
+
+/**
+ * 转义 XML 实体，防止破坏 XML 格式标准 (&, <, >, ", ')
+ */
+function escapeXml(str: string): string {
+  if (!str) return ''
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
+}
 
 // Sitemap.xml 站点地图生成 (支持 Google, Bing, 百度等全搜索引擎收录标准)
 app.get('/sitemap.xml', async (c) => {
@@ -232,15 +245,17 @@ app.get('/sitemap.xml', async (c) => {
       const coverUrl = post.cover.startsWith('http')
         ? post.cover
         : `${baseUrl}${post.cover.startsWith('/') ? '' : '/'}${post.cover}`
+      const safeTitle = (post.title || '').replace(/\]\]>/g, ']]&gt;')
+      const safeCaption = (post.excerpt || post.title || '').replace(/\]\]>/g, ']]&gt;')
       imageXml = `\n    <image:image>
-      <image:loc>${coverUrl}</image:loc>
-      <image:title><![CDATA[${post.title}]]></image:title>
-      <image:caption><![CDATA[${post.excerpt || post.title}]]></image:caption>
+      <image:loc>${escapeXml(coverUrl)}</image:loc>
+      <image:title><![CDATA[${safeTitle}]]></image:title>
+      <image:caption><![CDATA[${safeCaption}]]></image:caption>
     </image:image>`
     }
 
     return `  <url>
-    <loc>${baseUrl}/posts/${encodeURIComponent(post.title)}</loc>
+    <loc>${escapeXml(`${baseUrl}/posts/${encodeURIComponent(post.title)}`)}</loc>
     <lastmod>${lastmod}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>${imageXml}
@@ -259,7 +274,7 @@ app.get('/sitemap.xml', async (c) => {
 
   const categoryPages = Array.from(categorySet).map(
     (cat) => `  <url>
-    <loc>${baseUrl}/?category=${encodeURIComponent(cat)}</loc>
+    <loc>${escapeXml(`${baseUrl}/?category=${encodeURIComponent(cat)}`)}</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>`
@@ -267,18 +282,19 @@ app.get('/sitemap.xml', async (c) => {
 
   const tagPages = Array.from(tagSet).map(
     (tag) => `  <url>
-    <loc>${baseUrl}/?tag=${encodeURIComponent(tag)}</loc>
+    <loc>${escapeXml(`${baseUrl}/?tag=${encodeURIComponent(tag)}`)}</loc>
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>
   </url>`
   )
 
   const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="/sitemap.xsl"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
 ${staticPages
   .map(
     (p) => `  <url>
-    <loc>${baseUrl}${p.url}</loc>
+    <loc>${escapeXml(`${baseUrl}${p.url}`)}</loc>
     <changefreq>${p.changefreq}</changefreq>
     <priority>${p.priority}</priority>
   </url>`

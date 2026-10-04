@@ -40,7 +40,7 @@ export interface BlogConfig {
 }
 
 export const blogConfig: BlogConfig = {
-  title: rawConfig.title || 'Fuwari Blog',
+  title: rawConfig.title || 'Honoki',
   author: rawConfig.author || 'Blog Author',
   description:
     rawConfig.description ||
