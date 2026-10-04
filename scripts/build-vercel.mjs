@@ -13,6 +13,15 @@ try {
   console.warn(`⚠️ 生成文章清单失败: ${e.message}`)
 }
 
+// 1.5 编译生产级静态 Tailwind CSS (AOT)
+console.log('🎨 正在编译生产级静态 Tailwind CSS (AOT)...')
+try {
+  execSync('npx @tailwindcss/cli -i src/tailwind.css -o public/css/tailwind.css --minify', { stdio: 'inherit' })
+  console.log('✓ 静态 Tailwind CSS 编译完成: public/css/tailwind.css')
+} catch (e) {
+  console.warn(`⚠️ 编译 Tailwind CSS 失败: ${e.message}`)
+}
+
 // 2. 准备目录结构
 const vercelDir = resolve(process.cwd(), '.vercel')
 const outputDir = resolve(vercelDir, 'output')
