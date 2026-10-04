@@ -1,5 +1,20 @@
 [
   {
+    "title": "cloudflare优选ip",
+    "slug": "cloudflare优选ip",
+    "date": "2026-04-12",
+    "updated": "2026-04-12",
+    "category": "技术",
+    "tags": [
+      "域名",
+      "Cloudflare"
+    ],
+    "excerpt": "本文介绍利用社区优选IP优化Cloudflare",
+    "draft": false,
+    "path": "posts/cloudflare优选ip.md",
+    "readingTime": 4
+  },
+  {
     "title": "使用cloudflare tunnel穿透内网服务",
     "slug": "使用cloudflare tunnel穿透内网服务",
     "date": "2026-03-22",
