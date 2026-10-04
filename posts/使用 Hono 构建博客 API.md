@@ -23,10 +23,10 @@ draft: false
 ![](https://img-bucket.303302.xyz/2026/02/20260227141806605.png)
 这里的邮箱要填写自己可以长期接收到邮件的邮箱，不要太小众，有gmail可以用，qq邮箱，outlook之类的也可以用。其他的信息可以去[身份大全](https://shenfendaquan.com/)或者其他身份生成网站生成后填写。填写完成之后点击注册
 ![点击注册](https://img-bucket.303302.xyz/2026/02/20260227142648991.png)
-  
+
 出现success就是注册成功了
 ![注册成功](https://img-bucket.303302.xyz/2026/02/20260227142852982.png)
-  
+
 然后要去自己注册的时候填写的邮箱点击邮件内的链接验证，出现success就是验证成功了3. 回到[DigitalPlat](https://dash.domain.digitalplat.org/)登录刚刚注册的账号并进行github验证  
 登录账号就不说了。  
 网站要求关联github账号进行身份认证。这里选择也只能选择github认证，没有github账号的去注册一个。
@@ -42,12 +42,12 @@ draft: false
 ![注册域名](https://img-bucket.303302.xyz/2026/02/20260227145123552.png)
 
 ![查找域名](https://img-bucket.303302.xyz/2026/02/20260227150009927.png)
-  
-name server可以先随便填两个，先把域名拿到。[可以直接填ns1.provider.com和ns2.provider.com](http://可以直接填ns1.provider.com和ns2.provider.com)
+
+name server可以先随便填两个，先把域名拿到。可以直接填ns1.provider.com和ns2.provider.com
 ![填写ns](https://img-bucket.303302.xyz/2026/02/20260227150507810.png)
 
 ![域名注册成功](https://img-bucket.303302.xyz/2026/02/20260227151051673.png)
-  
+
 同理再注册第二个域名
 从[DNSHE](https://my.dnshe.com/)可以获取免费的二级域名
 
@@ -76,12 +76,10 @@ name server可以先随便填两个，先把域名拿到。[可以直接填ns1.p
 
 ![搜索域名](https://img-bucket.303302.xyz/2026/02/20260227171818747.png)
 
-  
 以这个域名为例
 
 ![购买域名](https://img-bucket.303302.xyz/2026/02/20260227172646466.png)
 
-  
 在注册账号并登录之后就可以加入购物车并购买了  
 spaceship支持支付宝付款，可以直接添加支付宝为支付方式。  
 添加付款方式的时候地址可以填真的也可以填假的，没什么关系。
