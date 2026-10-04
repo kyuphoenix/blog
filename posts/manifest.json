@@ -1,5 +1,22 @@
 [
   {
+    "title": "easytier自建节点",
+    "slug": "easytier自建节点",
+    "date": "2026-04-19",
+    "updated": "2026-06-05",
+    "category": "技术",
+    "tags": [
+      "Cloudflare",
+      "内网穿透",
+      "easytier",
+      "组网"
+    ],
+    "excerpt": "EasyTier官方公共服务器已停运，用户需自建节点。文章介绍了利用免费容器（如ClawCloudRun）搭建节点的具体步骤，包括部署指定版本镜像、配置WSS端口及保活注意事项。此外，还提供了通过内网穿透（如Cloudflare",
+    "draft": false,
+    "path": "posts/easytier自建节点.md",
+    "readingTime": 5
+  },
+  {
     "title": "cloudflare优选ip",
     "slug": "cloudflare优选ip",
     "date": "2026-04-12",
