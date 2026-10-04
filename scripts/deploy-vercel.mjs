@@ -52,12 +52,13 @@ const apiHeaders = {
 }
 
 async function main() {
-  // 0. 预先生成文章清单
-  console.log('📑 正在生成文章清单 (gen:manifest)...')
+  // 0. 执行 Vercel Build Output API 全量构建
+  console.log('🏗️  正在执行 Vercel 生产产物构建 (build:vercel)...')
   try {
-    execSync('node scripts/gen-manifest.mjs', { stdio: 'inherit' })
+    execSync('node scripts/build-vercel.mjs', { stdio: 'inherit' })
   } catch (e) {
-    console.warn(`⚠️ 生成文章清单失败: ${e.message}`)
+    console.error(`❌ 构建 Vercel 产物失败: ${e.message}`)
+    process.exit(1)
   }
 
   // 1. 获取或创建 Vercel 项目
@@ -69,17 +70,17 @@ async function main() {
     if (res.ok) {
       resolvedProject = await res.json()
       console.log(`✓ 检测到已存在的 Vercel 项目: ${resolvedProject.name} (ID: ${resolvedProject.id})`)
-      if (resolvedProject.framework !== 'hono') {
+      if (resolvedProject.framework !== null) {
         try {
           const patchRes = await fetch(`https://api.vercel.com/v9/projects/${encodeURIComponent(projectName)}`, {
             method: 'PATCH',
             headers: apiHeaders,
             body: JSON.stringify({
-              framework: 'hono',
+              framework: null,
             }),
           })
           if (patchRes.ok) {
-            console.log(`✓ 已将 Vercel 项目 Framework Preset 自动对齐为: hono`)
+            console.log(`✓ 已将 Vercel 项目 Framework Preset 自动设为: Other (Build Output API)`)
           }
         } catch (e) {
           console.warn(`⚠️ 更新项目 Framework 异常: ${e.message}`)
@@ -92,7 +93,7 @@ async function main() {
         headers: apiHeaders,
         body: JSON.stringify({
           name: projectName,
-          framework: 'hono',
+          framework: null,
         }),
       })
       if (!createRes.ok) {
@@ -167,7 +168,18 @@ async function main() {
     mkdirSync(vercelDir, { recursive: true })
   }
   const projectJsonPath = resolve(vercelDir, 'project.json')
-  const finalOrgId = orgId || resolvedProject?.accountId || ''
+  let finalOrgId = orgId || resolvedProject?.accountId || ''
+  if (!finalOrgId) {
+    try {
+      const userRes = await fetch('https://api.vercel.com/v2/user', { headers: apiHeaders })
+      if (userRes.ok) {
+        const userData = await userRes.json()
+        finalOrgId = userData.user?.id || ''
+      }
+    } catch {
+      // 忽略 fallback 错误
+    }
+  }
   const finalProjectId = projectId || resolvedProject?.id || ''
   if (finalProjectId) {
     writeFileSync(
@@ -181,12 +193,12 @@ async function main() {
         2
       )
     )
-    console.log(`✓ 已生成 .vercel/project.json 绑定配置`)
+    console.log(`✓ 已生成 .vercel/project.json 绑定配置 (Project: ${finalProjectId}, Org: ${finalOrgId || 'default'})`)
   }
 
   // 5. 调用 Vercel CLI 执行正式部署
-  console.log('📦 正在调用 Vercel CLI 执行生产环境部署...')
-  const deployCmd = `npx --yes vercel deploy --prod --yes --token=${token}`
+  console.log('📦 正在调用 Vercel CLI 执行生产环境部署 (Build Output API --prebuilt)...')
+  const deployCmd = `npx --yes vercel deploy --prebuilt --prod --yes --token=${token}`
   execSync(deployCmd, { stdio: 'inherit' })
   console.log('🎉 Vercel 部署成功完成！')
 
