@@ -1,19 +1,8 @@
 {
-  "title": "Fuwari Blog",
-  "author": "Blog Author",
+  "title": "玖凰的个人博客",
+  "author": "玖凰",
   "description": "这是我的个人网站和博客。在这里，我主要分享与技术和生活相关的内容。欢迎阅读！",
   "repository": "https://github.com/kyuphoenix/blog",
-  "nav": [
-    { "label": "首页", "url": "/" },
-    { "label": "归档", "url": "/archive" },
-    { "label": "友链", "url": "/links" },
-    { "label": "关于", "url": "/about" }
-  ],
-  "social": [
-    { "platform": "github", "url": "https://github.com/kyuphoenix/blog", "label": "GitHub" },
-    { "platform": "email", "url": "mailto:example@email.com", "label": "Email" },
-    { "platform": "rss", "url": "/rss.xml", "label": "RSS" }
-  ],
   "theme": {
     "fuwari": {
       "avatar": "/images/avatar.webp",
@@ -21,18 +10,58 @@
       "primaryHue": 250
     }
   },
+  "nav": [
+    {
+      "label": "首页",
+      "url": "/",
+      "external": false
+    },
+    {
+      "label": "归档",
+      "url": "/archive",
+      "external": false
+    },
+    {
+      "label": "友链",
+      "url": "/links",
+      "external": false
+    },
+    {
+      "label": "关于",
+      "url": "/about",
+      "external": false
+    }
+  ],
+  "social": [
+    {
+      "platform": "github",
+      "label": "GitHub",
+      "url": "https://github.com/kyuphoenix"
+    },
+    {
+      "platform": "email",
+      "label": "Email",
+      "url": "mailto:kyuphoenix@qq.com"
+    },
+    {
+      "platform": "bilibili",
+      "label": "bilibili",
+      "url": "https://space.bilibili.com/2098853202"
+    },
+    {
+      "platform": "rss",
+      "label": "RSS",
+      "url": "/rss.xml"
+    }
+  ],
   "seo": {
     "keywords": [
       "个人博客",
       "技术分享",
-      "全栈开发",
       "Cloudflare Workers",
       "Hono",
-      "TypeScript",
-      "前端开发"
-    ],
-    "googleSiteVerification": "",
-    "bingSiteVerification": ""
+      "TypeScript"
+    ]
   },
   "icons": {
     "faviconSvg": "/favicon.svg",
