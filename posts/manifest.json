@@ -1,5 +1,20 @@
 [
   {
+    "title": "获取自己的域名",
+    "slug": "获取自己的域名",
+    "date": "2026-02-27",
+    "updated": "2026-03-19",
+    "category": "技术",
+    "tags": [
+      "域名",
+      "免费域名"
+    ],
+    "excerpt": "本文介绍了获取免费二级域名和购买一级域名的方法。在DigitalPlat，需注册、验证邮箱、关联GitHub并Star仓库获取dpdns.org域名；在DNSHE可注册免费域名，部分后缀需邀请码。注意免费域名默认一年有效期，需手动续期。购买一级域名推荐Spaceship，搜索6-9位数字加xyz域名，每年约5元，支持支付宝。",
+    "draft": false,
+    "path": "posts/使用 Hono 构建博客 API.md",
+    "readingTime": 3
+  },
+  {
     "title": "第一篇文章",
     "slug": "第一篇文章",
     "date": "2026-02-26",
@@ -12,20 +27,5 @@
     "draft": false,
     "path": "posts/第一篇文章.md",
     "readingTime": 1
-  },
-  {
-    "title": "使用 Hono 构建博客 API",
-    "slug": "使用 Hono 构建博客 API",
-    "date": "2024-01-20",
-    "category": "技术",
-    "tags": [
-      "Hono",
-      "Cloudflare Workers",
-      "TypeScript"
-    ],
-    "excerpt": "本文介绍如何使用 Hono 框架在 Cloudflare Workers 上构建一个轻量级博客 API。",
-    "draft": false,
-    "path": "posts/使用 Hono 构建博客 API.md",
-    "readingTime": 2
   }
 ]
