@@ -165,15 +165,18 @@ export async function getPost(
   const { frontmatter, content } = parseFrontmatter(raw)
 
   const postTitle = meta?.title || frontmatter.title || decoded
+  const rawDraft = meta?.draft ?? frontmatter.draft
+  const isDraft = typeof rawDraft === 'boolean' ? rawDraft : (rawDraft === 'true' || rawDraft === 'yes')
 
   const post: Post = {
     title: postTitle,
     date: meta?.date || frontmatter.date || new Date().toISOString().split('T')[0],
+    updated: meta?.updated || frontmatter.updated || undefined,
     category: meta?.category || frontmatter.category || '未分类',
     tags: meta?.tags || frontmatter.tags || [],
     excerpt: meta?.excerpt || frontmatter.excerpt || extractExcerpt(content),
     cover: meta?.cover || frontmatter.cover || frontmatter.image,
-    draft: meta?.draft ?? frontmatter.draft ?? false,
+    draft: isDraft,
     slug: postTitle,
     path: filePath,
     readingTime: estimateReadingTime(content),
@@ -344,7 +347,7 @@ export async function purgeCache(env: AppEnv['Bindings']): Promise<void> {
  * 获取侧边栏分类与标签统计数据
  */
 export async function getSidebarData(env: AppEnv['Bindings']) {
-  const manifest = (await getManifest(env)).filter((p) => !p.draft)
+  const manifest = (await getManifest(env)).filter((p) => p.draft !== true && (p.draft as any) !== 'true')
   const categoryMap = new Map<string, number>()
   const tagMap = new Map<string, number>()
 
@@ -386,6 +389,7 @@ function getBuiltinManifest(): Manifest {
       title: 'Hello World',
       slug: 'Hello World',
       date: '2024-01-15',
+      updated: '2026-03-19',
       category: '技术',
       tags: ['博客', '入门'],
       excerpt: '这是我的第一篇博客文章，欢迎来到我的博客！',
@@ -403,6 +407,7 @@ function getBuiltinPost(identifier: string): Post | null {
       title: 'Hello World',
       slug: 'Hello World',
       date: '2024-01-15',
+      updated: '2026-03-19',
       category: '技术',
       tags: ['博客', '入门'],
       excerpt: '这是我的第一篇博客文章，欢迎来到我的博客！',

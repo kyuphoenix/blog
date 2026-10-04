@@ -19,7 +19,7 @@ posts.get('/', async (c) => {
   let manifest = await getManifest(c.env)
 
   // 过滤草稿
-  manifest = manifest.filter((p) => !p.draft)
+  manifest = manifest.filter((p) => p.draft !== true && (p.draft as any) !== 'true')
 
   // 按分类筛选
   if (category) {
@@ -56,7 +56,7 @@ posts.get('/', async (c) => {
  */
 posts.get('/categories', async (c) => {
   const manifest = await getManifest(c.env)
-  const published = manifest.filter((p) => !p.draft)
+  const published = manifest.filter((p) => p.draft !== true && (p.draft as any) !== 'true')
 
   const categoryMap = new Map<string, number>()
   for (const post of published) {
@@ -75,7 +75,7 @@ posts.get('/categories', async (c) => {
  */
 posts.get('/tags', async (c) => {
   const manifest = await getManifest(c.env)
-  const published = manifest.filter((p) => !p.draft)
+  const published = manifest.filter((p) => p.draft !== true && (p.draft as any) !== 'true')
 
   const tagMap = new Map<string, number>()
   for (const post of published) {
@@ -103,7 +103,7 @@ posts.get('/:title', async (c) => {
     return fail(c, 'Post not found', 404)
   }
 
-  if (post.draft) {
+  if (post.draft === true || (post.draft as any) === 'true') {
     return fail(c, 'Post not found', 404)
   }
 

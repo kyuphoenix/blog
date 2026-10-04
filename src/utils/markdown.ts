@@ -88,13 +88,14 @@ function parseSimpleYaml(yaml: string): Record<string, any> {
         continue
       }
 
-      // 布尔值
-      if (value === 'true') { result[currentKey] = true; continue }
-      if (value === 'false') { result[currentKey] = false; continue }
+      // 去掉两端引号与空格
+      const unquoted = value.replace(/^['"]|['"]$/g, '').trim()
 
-      // 去掉引号
-      value = value.replace(/^['"]|['"]$/g, '')
-      result[currentKey] = value
+      // 布尔值
+      if (unquoted === 'true' || unquoted === 'yes') { result[currentKey] = true; continue }
+      if (unquoted === 'false' || unquoted === 'no') { result[currentKey] = false; continue }
+
+      result[currentKey] = unquoted
     }
   }
 

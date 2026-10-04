@@ -33,7 +33,8 @@ postPage.get('/:title', async (c) => {
     getBlogConfig(c.env),
   ])
 
-  if (!post || post.draft) {
+  const isDraft = post?.draft === true || (post?.draft as any) === 'true'
+  if (!post || isDraft) {
     return c.html(
       <Layout
         title="404 - 文章不存在"
@@ -61,13 +62,38 @@ postPage.get('/:title', async (c) => {
   // Extract TOC headings and render markdown
   const toc: TocItem[] = []
   const renderer = new marked.Renderer()
-  renderer.heading = ({ text, depth }: { text: string; depth: number }) => {
-    const cleanText = text.replace(/<[^>]+>/g, '')
+  renderer.heading = function ({ tokens, depth }: { tokens: any; depth: number }) {
+    const content = (this as any).parser.parseInline(tokens)
+    const cleanText = content.replace(/<[^>]+>/g, '').trim()
     const id = 'heading-' + toc.length
     if (depth >= 1 && depth <= 3) {
       toc.push({ id, text: cleanText, level: depth })
     }
-    return `<h${depth} id="${id}">${text}</h${depth}>`
+    return `<h${depth} id="${id}">${content}</h${depth}>`
+  }
+
+  renderer.link = function ({ href, title, tokens }: any) {
+    const linkText = (this as any).parser.parseInline(tokens)
+    const isExternal = typeof href === 'string' && (href.startsWith('http://') || href.startsWith('https://'))
+    const targetAttr = isExternal ? ' target="_blank" rel="noopener noreferrer"' : ''
+    const titleAttr = title ? ` title="${title}"` : ''
+    return `<a href="${href}"${targetAttr}${titleAttr}>${linkText}</a>`
+  }
+
+  renderer.image = function ({ href, title, text }: any) {
+    const caption = title || text || ''
+    const escapedCaption = caption.replace(/"/g, '&quot;')
+    return `<span class="post-image-wrapper block my-6 text-center">
+      <img
+        src="${href}"
+        alt="${escapedCaption}"
+        title="${escapedCaption}"
+        loading="lazy"
+        data-zoomable="true"
+        class="post-image zoomable rounded-xl shadow-md cursor-zoom-in inline-block max-h-[75vh] max-w-full object-contain transition duration-300 hover:shadow-lg hover:scale-[1.01]"
+      />
+      ${caption ? `<span class="post-image-caption block mt-2 text-center text-xs fuwari-text-50">${caption}</span>` : ''}
+    </span>`
   }
 
   const htmlContent = await marked.parse(post.content, {
@@ -98,7 +124,7 @@ postPage.get('/:title', async (c) => {
 
   // Compute Prev / Next posts from manifest
   const manifest = (await getManifest(c.env))
-    .filter((p) => !p.draft)
+    .filter((p) => p.draft !== true && (p.draft as any) !== 'true')
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
   const currentIndex = manifest.findIndex((p) => p.title === post.title || p.slug === post.title)
@@ -108,9 +134,15 @@ postPage.get('/:title', async (c) => {
       ? manifest[currentIndex + 1]
       : null
 
+  const cleanTitle = post.title.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+  const renderedTitle = post.title.replace(
+    /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+    '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-(--fuwari-primary) underline hover:opacity-80 transition">$1</a>'
+  )
+
   return c.html(
     <Layout
-      title={post.title}
+      title={cleanTitle}
       description={post.excerpt}
       currentPath={`/posts/${encodeURIComponent(post.title)}`}
       isHomePage={false}
@@ -248,7 +280,7 @@ postPage.get('/:title', async (c) => {
                 md:before:w-1 before:h-5 before:rounded-md before:bg-(--fuwari-primary)
                 before:absolute before:top-3 before:-left-4.5"
             >
-              {post.title}
+              {raw(renderedTitle)}
             </h1>
           </div>
 
@@ -261,7 +293,7 @@ postPage.get('/:title', async (c) => {
               <time datetime={post.date} itemprop="datePublished" class="text-sm font-medium fuwari-text-50">{post.date}</time>
             </div>
 
-            {post.updated && post.updated !== post.date && (
+            {post.updated && (
               <div class="flex items-center">
                 <div class="fuwari-meta-icon">
                   <EditIcon strokeWidth={1.5} size={20} />

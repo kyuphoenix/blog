@@ -478,4 +478,124 @@ html.is-animating .transition-swup-fade {
 .giscus-frame {
   width: 100%;
 }
+
+/* ==========================================
+   Image Lightbox (点击放大与遮罩预览)
+   ========================================== */
+.fuwari-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.25s ease;
+  user-select: none;
+}
+.fuwari-lightbox.is-open {
+  opacity: 1;
+  visibility: visible;
+}
+.fuwari-lightbox__backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  cursor: zoom-out;
+}
+.fuwari-lightbox__container {
+  position: relative;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  max-width: 94vw;
+  max-height: 92vh;
+  transform: scale(0.95);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.fuwari-lightbox.is-open .fuwari-lightbox__container {
+  transform: scale(1);
+}
+.fuwari-lightbox__image {
+  max-width: 92vw;
+  max-height: 84vh;
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  object-fit: contain;
+  cursor: zoom-out;
+}
+.fuwari-lightbox__caption {
+  margin-top: 0.75rem;
+  padding: 0.35rem 1rem;
+  background: rgba(0, 0, 0, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  color: #f8fafc;
+  font-size: 0.875rem;
+  font-weight: 500;
+  max-width: 85vw;
+  text-align: center;
+  white-space: normal;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.fuwari-lightbox__close {
+  position: absolute;
+  top: -2.75rem;
+  right: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border: none;
+  border-radius: 9999px;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+.fuwari-lightbox__close:hover {
+  background: rgba(255, 255, 255, 0.4);
+  transform: scale(1.1);
+}
+
+.prose img,
+.post-image.zoomable {
+  cursor: zoom-in;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.prose img:hover,
+.post-image.zoomable:hover {
+  transform: scale(1.01);
+}
+
+.prose h1 a,
+.prose h2 a,
+.prose h3 a,
+.prose h4 a,
+.prose h5 a,
+.prose h6 a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--fuwari-primary);
+  text-underline-offset: 4px;
+  transition: color 0.15s ease;
+}
+.prose h1 a:hover,
+.prose h2 a:hover,
+.prose h3 a:hover,
+.prose h4 a:hover,
+.prose h5 a:hover,
+.prose h6 a:hover {
+  color: var(--fuwari-primary);
+}
 `;

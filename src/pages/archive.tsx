@@ -13,7 +13,7 @@ archive.get('/', async (c) => {
   ])
 
   const manifest = manifestRaw
-    .filter((p) => !p.draft)
+    .filter((p) => p.draft !== true && (p.draft as any) !== 'true')
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
   return c.html(
