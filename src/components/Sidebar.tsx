@@ -1,6 +1,14 @@
 import { FC } from 'hono/jsx'
 import { blogConfig, BlogConfig } from '../blog.config.js'
-import { GithubIcon, MailIcon, RssIcon } from './Icons.js'
+import {
+  GithubIcon,
+  MailIcon,
+  RssIcon,
+  BilibiliIcon,
+  TwitterIcon,
+  ExternalLinkIcon,
+  AddressCardIcon,
+} from './Icons.js'
 
 interface CategoryItem {
   name: string
@@ -20,15 +28,20 @@ interface SidebarProps {
 }
 
 const renderSocialIcon = (platform: string) => {
-  switch (platform) {
+  switch (platform.toLowerCase()) {
     case 'github':
       return <GithubIcon size={20} strokeWidth={1.5} />
     case 'email':
       return <MailIcon size={20} strokeWidth={1.5} />
     case 'rss':
       return <RssIcon size={20} strokeWidth={1.5} />
+    case 'bilibili':
+      return <BilibiliIcon size={20} />
+    case 'twitter':
+    case 'x':
+      return <TwitterIcon size={20} />
     default:
-      return null
+      return <ExternalLinkIcon size={18} strokeWidth={1.5} />
   }
 }
 
@@ -46,15 +59,20 @@ export const Sidebar: FC<SidebarProps> = ({
       <div class="fuwari-onload-animation" style="animation-delay: 100ms">
         <div class="fuwari-card-base p-4">
           <a
-            href="/"
-            class="group block relative mx-auto mb-3 max-w-48 lg:max-w-none overflow-hidden rounded-xl active:scale-95"
-            aria-label="头像"
+            href="/about"
+            class="group block relative mx-auto mb-3 max-w-48 lg:max-w-none overflow-hidden rounded-xl active:scale-95 no-underline"
+            aria-label="查看关于我"
           >
-            <div class="absolute inset-0 z-10 flex items-center justify-center bg-black/0 group-hover:bg-black/30 group-active:bg-black/50 transition-colors pointer-events-none" />
+            <div class="absolute inset-0 z-10 flex items-center justify-center bg-black/0 group-hover:bg-black/35 group-active:bg-black/50 transition-all duration-300 pointer-events-none">
+              <AddressCardIcon
+                size={40}
+                class="transition-all duration-300 opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100 text-white drop-shadow-md"
+              />
+            </div>
             <img
               src={cfg.theme.fuwari.avatar}
               alt={cfg.author}
-              class="w-full h-auto aspect-square object-cover"
+              class="w-full h-auto aspect-square object-cover transition-transform duration-500 group-hover:scale-105"
             />
           </a>
           <div class="px-2 text-center">

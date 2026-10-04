@@ -22,6 +22,13 @@ try {
   console.warn(`⚠️ 编译 Tailwind CSS 失败: ${e.message}`)
 }
 
+// 1.6 编译客户端页面无缝切换脚本 (Swup)
+try {
+  execSync('node scripts/build-client.mjs', { stdio: 'inherit' })
+} catch (e) {
+  console.warn(`⚠️ 编译 Swup 脚本失败: ${e.message}`)
+}
+
 // 2. 准备目录结构
 const vercelDir = resolve(process.cwd(), '.vercel')
 const outputDir = resolve(vercelDir, 'output')

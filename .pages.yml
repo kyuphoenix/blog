@@ -1,12 +1,21 @@
 # Pages CMS 配置文件 (https://pagescms.org/docs/configuration/)
 # 放置在仓库根目录下，作为 Pages CMS 的单一配置源
 
-# 1. 媒体文件配置：上传的图片存储在 public/images，访问路径为 /images
+# 1. 媒体文件配置：静态文件存储在 public/，网站访问根路径为 /
 media:
-  input: public/images
-  output: /images
+  input: public
+  output: /
   categories:
     - image
+  extensions:
+    - png
+    - jpg
+    - jpeg
+    - webp
+    - svg
+    - ico
+    - gif
+    - avif
 
 # 2. 内容集合配置
 content:
@@ -62,6 +71,8 @@ content:
       - name: cover
         label: 封面图
         type: image
+        options:
+          path: images
         description: 封面图片（支持上传到图库或直接粘贴外链）
       - name: draft
         label: 草稿
@@ -120,10 +131,14 @@ content:
               - name: avatar
                 label: 站长头像
                 type: image
+                options:
+                  path: images
                 description: 站长头像图片路径（支持上传至图库或填入 /images/avatar.webp）
               - name: homeBg
                 label: 首页全屏背景图
                 type: image
+                options:
+                  path: images
                 description: 首页大背景图片路径（支持上传至图库或填入 /images/home-bg.webp）
               - name: primaryHue
                 label: 主题色相 (Primary Hue 0-360)
@@ -179,7 +194,7 @@ content:
                 - name: other
                   label: 其他
             default: github
-            description: 平台标识（github, email, rss 自带专属矢量图标）
+            description: 平台标识（github, email, rss, bilibili, twitter 自带专属矢量图标）
           - name: label
             label: 显示名称
             type: string
@@ -214,19 +229,19 @@ content:
           - name: faviconSvg
             label: SVG 矢量图标
             type: image
-            default: /images/favicon.svg
+            default: /favicon.svg
           - name: faviconIco
             label: ICO 图标
             type: image
-            default: /images/favicon.ico
+            default: /favicon.ico
           - name: favicon96
             label: 96x96 图标
             type: image
-            default: /images/favicon-96x96.png
+            default: /favicon-96x96.png
           - name: appleTouchIcon
             label: Apple Touch 图标
             type: image
-            default: /images/apple-touch-icon.png
+            default: /apple-touch-icon.png
     actions:
       - name: sync-posts
         label: 刷新配置缓存

@@ -7,7 +7,7 @@ export interface NavItem {
 }
 
 export interface SocialLink {
-  platform: 'github' | 'email' | 'rss' | string
+  platform: 'github' | 'email' | 'rss' | 'bilibili' | 'twitter' | string
   url: string
   label: string
 }
@@ -40,7 +40,7 @@ export interface BlogConfig {
 }
 
 export const blogConfig: BlogConfig = {
-  title: rawConfig.title || 'Fuwari Blog',
+  title: rawConfig.title || 'Honoki',
   author: rawConfig.author || 'Blog Author',
   description:
     rawConfig.description ||

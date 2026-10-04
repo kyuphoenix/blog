@@ -244,6 +244,15 @@ body {
   animation: 300ms fuwari-fade-in-up ease-out forwards;
 }
 
+/* Page transition animations with Swup (Exact Fuwari transition) */
+html.is-changing .transition-swup-fade {
+  transition: opacity 200ms ease-in-out, transform 200ms ease-in-out;
+}
+html.is-animating .transition-swup-fade {
+  opacity: 0;
+  transform: translateY(1rem);
+}
+
 ::selection {
   background-color: var(--fuwari-selection-bg);
   color: inherit;

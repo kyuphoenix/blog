@@ -341,6 +341,7 @@ export const Layout: FC<LayoutProps> = ({
 
           {/* Banner - full width background */}
           <div
+            id="fuwari-banner-wrapper"
             class="absolute left-0 right-0 top-0 z-10 overflow-hidden transition-[height] duration-300 ease-in-out"
             style={`height: ${bannerHeightVh}vh`}
           >
@@ -354,6 +355,7 @@ export const Layout: FC<LayoutProps> = ({
 
           {/* Main content - overlaps banner by MAIN_OVERLAP_REM */}
           <div
+            id="fuwari-main-wrapper"
             class="relative z-30 transition-[margin-top] duration-300 ease-in-out"
             style={`margin-top: calc(${contentOffsetVh}vh - ${MAIN_OVERLAP_REM}rem - ${NAVBAR_HEIGHT_REM}rem);`}
           >
@@ -369,8 +371,8 @@ export const Layout: FC<LayoutProps> = ({
                 siteConfig={cfg}
               />
 
-              {/* Main Content Column */}
-              <main class="order-1 lg:order-2 flex flex-col gap-4 min-w-0">
+              {/* Main Content Column with Swup transition */}
+              <main id="swup-container" class="transition-swup-fade order-1 lg:order-2 flex flex-col gap-4 min-w-0">
                 {children}
               </main>
 
@@ -387,6 +389,7 @@ export const Layout: FC<LayoutProps> = ({
           </div>
         </div>
         <ThemeScript />
+        <script src="/js/swup.js" defer></script>
         {raw(`<script>
           window.addEventListener('DOMContentLoaded', function() {
             if (window.hljs) hljs.highlightAll();
