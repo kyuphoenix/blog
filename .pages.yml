@@ -305,6 +305,20 @@ actions:
       title: 部署到 Vercel？
       message: 触发 GitHub Actions 重新构建并部署到 Vercel。
       button: 确认部署
+  - name: deploy-netlify
+    label: 部署到 Netlify
+    workflow: deploy-netlify.yml
+    confirm:
+      title: 部署到 Netlify？
+      message: 触发 GitHub Actions 重新构建并部署到 Netlify。
+      button: 确认部署
+  - name: sync-template
+    label: 同步上游模板 (Honoki)
+    workflow: sync-template.yml
+    confirm:
+      title: 同步上游模板更新？
+      message: 检查并合并上游 honoki 模板的最新功能与代码优化。
+      button: 确认同步
 
 # 4. 全局提交设置
 settings:

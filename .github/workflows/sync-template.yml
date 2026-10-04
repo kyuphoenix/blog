@@ -22,6 +22,10 @@ on:
         required: false
         default: 'main'
         type: string
+      payload:
+        description: 'Pages CMS 上下文 Payload'
+        required: false
+        type: string
 
 concurrency:
   group: sync-template-${{ github.ref }}
