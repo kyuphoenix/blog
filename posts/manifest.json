@@ -1,5 +1,19 @@
 [
   {
+    "title": "openclaw的部署，接入平台，切换模型提供商以及卸载",
+    "slug": "openclaw的部署，接入平台，切换模型提供商以及卸载",
+    "date": "2026-10-04",
+    "updated": "2026-10-04",
+    "category": "技术",
+    "tags": [
+      "openclaw"
+    ],
+    "excerpt": "本视频教程介绍了OpenCLaw与飞书的集成，指出最新版插件支持扫码一键创建机器人，无需接入教程。内容涵盖在WSL中安装Ubuntu24.04，通过命令行安装OpenCLaw及飞书插件，并提供了查看模型、配置及卸载等常用操作指令。",
+    "draft": false,
+    "path": "posts/openclaw的部署，接入平台，切换模型提供商以及卸载.md",
+    "readingTime": 1
+  },
+  {
     "title": "使用ddns-go把ip解析到域名",
     "slug": "使用ddns-go把ip解析到域名",
     "date": "2026-03-04",
