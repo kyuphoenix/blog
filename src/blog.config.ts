@@ -7,7 +7,7 @@ export interface NavItem {
 }
 
 export interface SocialLink {
-  platform: 'github' | 'email' | 'rss' | string
+  platform: 'github' | 'email' | 'rss' | 'bilibili' | 'twitter' | string
   url: string
   label: string
 }

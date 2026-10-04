@@ -1,6 +1,6 @@
 import { FC } from 'hono/jsx'
 import { blogConfig, BlogConfig } from '../blog.config.js'
-import { GithubIcon, MailIcon, RssIcon } from './Icons.js'
+import { GithubIcon, MailIcon, RssIcon, BilibiliIcon, TwitterIcon, ExternalLinkIcon } from './Icons.js'
 
 interface CategoryItem {
   name: string
@@ -20,15 +20,20 @@ interface SidebarProps {
 }
 
 const renderSocialIcon = (platform: string) => {
-  switch (platform) {
+  switch (platform.toLowerCase()) {
     case 'github':
       return <GithubIcon size={20} strokeWidth={1.5} />
     case 'email':
       return <MailIcon size={20} strokeWidth={1.5} />
     case 'rss':
       return <RssIcon size={20} strokeWidth={1.5} />
+    case 'bilibili':
+      return <BilibiliIcon size={20} />
+    case 'twitter':
+    case 'x':
+      return <TwitterIcon size={20} />
     default:
-      return null
+      return <ExternalLinkIcon size={18} strokeWidth={1.5} />
   }
 }
 
