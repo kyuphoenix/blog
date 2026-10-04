@@ -153,6 +153,7 @@ export const PostCard: FC<PostCardProps> = ({ post, index = 0 }) => {
             src={post.cover}
             alt={post.title}
             loading="lazy"
+            decoding="async"
             class="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
           />
         </a>
