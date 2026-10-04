@@ -39,7 +39,8 @@ function parseFrontmatter(raw) {
   function flushBlock() {
     if (currentKey && blockMode) {
       const text = blockLines.join(blockMode === 'literal' ? '\n' : ' ')
-      meta[currentKey] = text.replace(/\r?\n+/g, ' ').replace(/\s+/g, ' ').trim()
+      const cleaned = text.replace(/\r?\n+/g, ' ').replace(/\s+/g, ' ').trim()
+      meta[currentKey] = cleaned.replace(/^['"]|['"]$/g, '')
     }
     blockMode = null
     blockLines = []
@@ -117,6 +118,17 @@ function parseFrontmatter(raw) {
         }
         continue
       }
+      // 检查后续行是否是当前标量值的缩进续行 (Plain / Quoted Multiline Continuation)
+      const nextLine = yamlLines[i + 1]
+      const hasContinuation = nextLine && /^\s+\S/.test(nextLine) && !/^\s*-\s+/.test(nextLine) && !/^\s*([a-zA-Z0-9_-]+)\s*:/.test(nextLine)
+
+      if (hasContinuation) {
+        blockMode = 'folded'
+        blockLines = [value]
+        baseIndent = 0
+        continue
+      }
+
       const unquoted = value.replace(/^['"]|['"]$/g, '').trim()
       if (unquoted === 'true' || unquoted === 'yes') {
         meta[currentKey] = true
