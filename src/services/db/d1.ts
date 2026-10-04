@@ -1,4 +1,4 @@
-import { DatabaseClient, PageViewInput, PostStat } from './types'
+import type { DatabaseClient, PageViewInput, PostStat } from './types.js'
 
 let isTablesInitialized = false
 

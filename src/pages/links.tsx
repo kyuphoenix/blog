@@ -1,9 +1,9 @@
 import { Hono } from 'hono'
 import { raw } from 'hono/html'
-import { AppEnv } from '../types/env'
-import { Layout, Giscus } from '../components'
-import { ExternalLinkIcon } from '../components/Icons'
-import { getSidebarData, getFriends, getBlogConfig } from '../services/github'
+import type { AppEnv } from '../types/env.js'
+import { Layout, Giscus } from '../components/index.js'
+import { ExternalLinkIcon } from '../components/Icons.js'
+import { getSidebarData, getFriends, getBlogConfig } from '../services/github.js'
 
 const links = new Hono<AppEnv>()
 

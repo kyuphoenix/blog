@@ -1,13 +1,13 @@
-import { AppEnv } from '../types/env'
+import type { AppEnv } from '../types/env.js'
 import {
   getDbClient,
   PageViewInput,
   PostStat,
   resolveDatabaseType,
   isStatsEnabled,
-} from './db'
+} from './db/index.js'
 
-export * from './db'
+export * from './db/index.js'
 
 /**
  * 记录一次页面访问（自动路由至 D1 或 Supabase；未配置数据库时不开启统计）

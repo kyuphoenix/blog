@@ -1,10 +1,10 @@
 import { FC } from 'hono/jsx'
 import { raw } from 'hono/html'
-import { css } from '../styles'
-import { blogConfig, BlogConfig } from '../blog.config'
-import { Navbar, BackToTop, ThemeScript } from './Navbar'
-import { Sidebar } from './Sidebar'
-import { Footer } from './Footer'
+import { css } from '../styles.js'
+import { blogConfig, BlogConfig } from '../blog.config.js'
+import { Navbar, BackToTop, ThemeScript } from './Navbar.js'
+import { Sidebar } from './Sidebar.js'
+import { Footer } from './Footer.js'
 
 interface CategoryItem {
   name: string

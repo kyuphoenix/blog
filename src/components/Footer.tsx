@@ -1,5 +1,5 @@
 import { FC } from 'hono/jsx'
-import { blogConfig, BlogConfig } from '../blog.config'
+import { blogConfig, BlogConfig } from '../blog.config.js'
 
 export const Footer: FC<{ siteConfig?: BlogConfig }> = ({ siteConfig }) => {
   const currentYear = new Date().getFullYear()

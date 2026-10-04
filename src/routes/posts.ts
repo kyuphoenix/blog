@@ -1,8 +1,8 @@
 import { Hono } from 'hono'
-import { AppEnv } from '../types/env'
-import { getManifest, getPost, getFriends, getBlogConfig, purgeCache } from '../services/github'
-import { success, paginated, fail } from '../utils/response'
-import { parsePagination } from '../utils/pagination'
+import type { AppEnv } from '../types/env.js'
+import { getManifest, getPost, getFriends, getBlogConfig, purgeCache } from '../services/github.js'
+import { success, paginated, fail } from '../utils/response.js'
+import { parsePagination } from '../utils/pagination.js'
 
 const posts = new Hono<AppEnv>()
 

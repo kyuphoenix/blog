@@ -1,4 +1,4 @@
-import { PostFrontmatter } from '../types/post'
+import type { PostFrontmatter } from '../types/post.js'
 
 /**
  * 解析 Markdown 文件的 frontmatter 和正文

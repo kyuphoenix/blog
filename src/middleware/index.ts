@@ -1,1 +1,1 @@
-export { errorHandler } from './errorHandler'
+export { errorHandler } from './errorHandler.js'

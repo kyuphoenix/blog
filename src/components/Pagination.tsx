@@ -1,5 +1,5 @@
 import { FC } from 'hono/jsx'
-import { ChevronRightIcon } from './Icons'
+import { ChevronRightIcon } from './Icons.js'
 
 interface PaginationProps {
   currentPage: number

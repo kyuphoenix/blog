@@ -1,11 +1,11 @@
-import { AppEnv } from '../../types/env'
-import { D1DatabaseClient } from './d1'
-import { SupabaseDatabaseClient } from './supabase'
-import { DatabaseClient, PageViewInput, PostStat } from './types'
+import type { AppEnv } from '../../types/env.js'
+import { D1DatabaseClient } from './d1.js'
+import { SupabaseDatabaseClient } from './supabase.js'
+import type { DatabaseClient, PageViewInput, PostStat } from './types.js'
 
-export * from './types'
-export { D1DatabaseClient } from './d1'
-export { SupabaseDatabaseClient } from './supabase'
+export * from './types.js'
+export { D1DatabaseClient } from './d1.js'
+export { SupabaseDatabaseClient } from './supabase.js'
 
 // 缓存数据库客户端实例，避免重复初始化
 let cachedD1Client: D1DatabaseClient | null = null

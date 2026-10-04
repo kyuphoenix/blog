@@ -1,6 +1,6 @@
 import { FC } from 'hono/jsx'
 import { raw } from 'hono/html'
-import { AppEnv } from '../types/env'
+import type { AppEnv } from '../types/env.js'
 
 interface GiscusProps {
   env?: AppEnv['Bindings']

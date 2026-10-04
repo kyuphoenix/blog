@@ -1,5 +1,5 @@
 import { FC } from 'hono/jsx'
-import type { PostMeta } from '../types/post'
+import type { PostMeta } from '../types/post.js'
 
 interface ArchivePanelProps {
   posts: PostMeta[]

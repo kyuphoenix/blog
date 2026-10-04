@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
-import { DatabaseClient, PageViewInput, PostStat } from './types'
+import type { DatabaseClient, PageViewInput, PostStat } from './types.js'
 
 /**
  * 匿名化哈希算法：基于当日 Salt 与客户端特征计算，绝不直接存储真实 IP

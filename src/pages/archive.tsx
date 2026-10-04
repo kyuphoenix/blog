@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
-import { AppEnv } from '../types/env'
-import { Layout, ArchivePanel } from '../components'
-import { getManifest, getSidebarData, getBlogConfig } from '../services/github'
+import type { AppEnv } from '../types/env.js'
+import { Layout, ArchivePanel } from '../components/index.js'
+import { getManifest, getSidebarData, getBlogConfig } from '../services/github.js'
 
 const archive = new Hono<AppEnv>()
 

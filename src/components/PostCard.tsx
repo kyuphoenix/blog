@@ -1,5 +1,5 @@
 import { FC } from 'hono/jsx'
-import type { PostMeta } from '../types/post'
+import type { PostMeta } from '../types/post.js'
 import {
   CalendarIcon,
   TagIcon,
@@ -7,7 +7,7 @@ import {
   ChevronRightIcon,
   EyeIcon,
   FireIcon,
-} from './Icons'
+} from './Icons.js'
 
 export interface PostCardItem extends PostMeta {
   isTop?: boolean
