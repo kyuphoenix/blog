@@ -1,5 +1,21 @@
 [
   {
+    "title": "搭建节点记录",
+    "slug": "搭建节点记录",
+    "date": "2026-04-29",
+    "updated": "2026-04-29",
+    "category": "技术",
+    "tags": [
+      "VPS",
+      "3x-ui",
+      "VLESS"
+    ],
+    "excerpt": "针对翻墙严打环境，作者分享了一款年付9.9美元的洛杉矶VPS使用教程。首先通过平台购买并完成KYC，随后SSH连接安装3x-ui面板。为了搭建VLESS+Reality节点，作者利用Caddy搭建Web服务并申请SSL证书。最后在面板中配置节点，将flow修改为xtls-rprx-vision，生成二维码供客户端导入。",
+    "draft": false,
+    "path": "posts/搭建节点记录.md",
+    "readingTime": 6
+  },
+  {
     "title": "easytier自建节点",
     "slug": "easytier自建节点",
     "date": "2026-04-19",
