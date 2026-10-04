@@ -292,12 +292,33 @@ actions:
       message: 重新生成文章清单并通知 Cloudflare Worker 加载最新的文章、友链和站点配置。
       button: 确认同步
   - name: deploy-worker
-    label: 部署 Worker (Deploy)
+    label: 部署 Worker (Cloudflare)
     workflow: deploy.yml
     confirm:
       title: 部署 Worker？
       message: 触发 GitHub Actions 重新构建并部署 Cloudflare Worker。
       button: 确认部署
+  - name: deploy-vercel
+    label: 部署到 Vercel
+    workflow: deploy-vercel.yml
+    confirm:
+      title: 部署到 Vercel？
+      message: 触发 GitHub Actions 重新构建并部署到 Vercel。
+      button: 确认部署
+  - name: deploy-netlify
+    label: 部署到 Netlify
+    workflow: deploy-netlify.yml
+    confirm:
+      title: 部署到 Netlify？
+      message: 触发 GitHub Actions 重新构建并部署到 Netlify。
+      button: 确认部署
+  - name: sync-template
+    label: 同步上游模板 (Honoki)
+    workflow: sync-template.yml
+    confirm:
+      title: 同步上游模板更新？
+      message: 检查并合并上游 honoki 模板的最新功能与代码优化。
+      button: 确认同步
 
 # 4. 全局提交设置
 settings:

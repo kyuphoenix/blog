@@ -14,6 +14,10 @@ on:
           - d1
           - supabase
           - none
+      payload:
+        description: 'Pages CMS 上下文 Payload'
+        required: false
+        type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
