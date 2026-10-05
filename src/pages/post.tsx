@@ -19,6 +19,12 @@ import { marked } from 'marked'
 
 const postPage = new Hono<AppEnv>()
 
+// 访问 /posts 根路径自动 301 重定向至首页
+postPage.get('/', (c) => {
+  const url = new URL(c.req.url)
+  return c.redirect(`/${url.search}`, 301)
+})
+
 interface TocItem {
   id: string
   text: string
