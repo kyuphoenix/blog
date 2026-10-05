@@ -9,9 +9,9 @@ excerpt: 本视频教程介绍了OpenCLaw与飞书的集成，指出最新版插
 draft: false
 ---
 # [视频教程](https://www.bilibili.com/video/BV1LPw7zhEVW/?share_source=copy_web&vd_source=7f1c45996c1a4c719f775d71780d7f47)（某个人太懒不想写文字教程了）
-
-
-
+```html render
+<iframe src="//player.bilibili.com/player.html?isOutside=true&aid=116238961346286&bvid=BV1LPw7zhEVW&cid=36744594305&p=1&autoplay=false" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"></iframe>
+```
 注意最新版飞书插件可以直接扫码一键创建机器人，可以跳过视频中的接入教程了
 [飞书官方教程](https://www.feishu.cn/content/article/7613711414611463386)
 
