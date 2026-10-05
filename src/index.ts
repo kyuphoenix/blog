@@ -320,6 +320,17 @@ Sitemap: ${baseUrl}/sitemap.xml
   })
 })
 
+// 兼容 /post 与 /post/* 路径，自动 301 重定向到 /posts
+app.get('/post', (c) => {
+  const url = new URL(c.req.url)
+  return c.redirect(`/posts${url.search}`, 301)
+})
+app.get('/post/*', (c) => {
+  const url = new URL(c.req.url)
+  const target = url.pathname.replace(/^\/post(\/|$)/, '/posts$1') + url.search
+  return c.redirect(target, 301)
+})
+
 // 页面路由 (SSR)
 app.route('/', homePage)
 app.route('/posts', postPage)

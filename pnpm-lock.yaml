@@ -17,6 +17,9 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.117.2
         version: 2.117.2
+      '@swup/preload-plugin':
+        specifier: ^3.2.12
+        version: 3.2.12(swup@4.10.0)
       '@types/node':
         specifier: ^26.6.4
         version: 26.6.4
@@ -902,6 +905,14 @@ packages:
     peerDependenciesMeta:
       '@opentelemetry/api':
         optional: true
+
+  '@swup/plugin@4.0.0':
+    resolution: {integrity: sha512-3Kq31BJxnzoPg643YxGoWQggoU6VPKZpdE5CqqmP7wwkpCYTzkRmrfcQ29mGhsSS7xfS7D33iZoBiwY+wPoo2A==}
+
+  '@swup/preload-plugin@3.2.12':
+    resolution: {integrity: sha512-syDXSjN9ltEenkAhOtRx0yxJWNBSmZncZUNmiuZbtoImdwMTL6/GJue1LOCzRxemOE1wttui1SkgqJyEcu6UIA==}
+    peerDependencies:
+      swup: ^4.0.0
 
   '@tailwindcss/cli@4.3.3':
     resolution: {integrity: sha512-ZvS/n1ZHOBKcVlhkt8l5NNr1EDXk1NboYO5CYDOs6NUmvT9z6bzkwsosaJftY57T/3gWNzWMJzIXLodZC8ssdw==}
@@ -2121,6 +2132,15 @@ snapshots:
       '@supabase/postgrest-js': 2.117.2
       '@supabase/realtime-js': 2.117.2
       '@supabase/storage-js': 2.117.2
+
+  '@swup/plugin@4.0.0':
+    dependencies:
+      swup: 4.10.0
+
+  '@swup/preload-plugin@3.2.12(swup@4.10.0)':
+    dependencies:
+      '@swup/plugin': 4.0.0
+      swup: 4.10.0
 
   '@tailwindcss/cli@4.3.3':
     dependencies:

@@ -1,4 +1,5 @@
 import Swup from 'swup'
+import SwupPreloadPlugin from '@swup/preload-plugin'
 
 // Fuwari banner and content layout constants
 const BANNER_HEIGHT_HOME = 100
@@ -230,7 +231,7 @@ function initImageLightbox() {
 function initSwup() {
   // 防止重复初始化
   if ((window as any).__fuwari_swup_initialized) return
-  (window as any).__fuwari_swup_initialized = true
+  ;(window as any).__fuwari_swup_initialized = true
 
   // 初始化图片点击放大功能（全局委托）
   initImageLightbox()
@@ -239,7 +240,42 @@ function initSwup() {
     containers: ['#swup-container'],
     animationSelector: '[class*="transition-swup-"]',
     cache: true,
+    plugins: [
+      new SwupPreloadPlugin({
+        throttle: 4,
+        preloadInitialPage: false,
+        preloadHoveredLinks: true,
+        preloadVisibleLinks: {
+          enabled: true,
+          threshold: 0.2,
+          delay: 400,
+          containers: ['#fuwari-navbar', '#mobile-menu-panel', '#swup-container'],
+          ignore: (el) => {
+            const href = el.getAttribute('href') || ''
+            return (
+              href.startsWith('http') ||
+              href.startsWith('#') ||
+              href.startsWith('mailto:') ||
+              href.startsWith('javascript:')
+            )
+          },
+        },
+      }),
+    ],
   })
+
+  // 初始页面自注水：直接将初次加载的完整 HTML 存入 Swup 缓存，避免切回当前页时触发冗余网络请求
+  try {
+    const currentUrl = swup.resolveUrl(window.location.pathname + window.location.search)
+    if (!swup.cache.has(currentUrl)) {
+      swup.cache.set(currentUrl, {
+        url: currentUrl,
+        html: document.documentElement.outerHTML,
+      })
+    }
+  } catch (err) {
+    console.warn('Swup initial cache hydration warning:', err)
+  }
 
   // 1. 链接点击或导航开始时：立即触发背景高度与导航栏高亮动画
   swup.hooks.on('visit:start', (visit) => {
