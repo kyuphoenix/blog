@@ -4,6 +4,7 @@ import { marked } from 'marked'
 import type { AppEnv } from '../types/env.js'
 import { Layout } from '../components/index.js'
 import { getSidebarData, getBlogConfig, getAboutContent } from '../services/github.js'
+import { processEmbeddedMediaHtml } from '../utils/markdown.js'
 
 const about = new Hono<AppEnv>()
 
@@ -24,11 +25,16 @@ about.get('/', async (c) => {
     return `<a href="${href}"${targetAttr}${titleAttr}>${linkText}</a>`
   }
 
-  const htmlContent = await marked.parse(aboutData.content, {
+  renderer.html = function ({ text }: { text: string }) {
+    return processEmbeddedMediaHtml(text)
+  }
+
+  const rawHtmlContent = await marked.parse(aboutData.content, {
     gfm: true,
     breaks: true,
     renderer,
   })
+  const htmlContent = processEmbeddedMediaHtml(rawHtmlContent)
 
   const pageTitle = aboutData.title || '关于本站'
   const pageDescription =

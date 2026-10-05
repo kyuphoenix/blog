@@ -272,6 +272,7 @@ function initSwup() {
     // 重新运行新内容内部的脚本（TOC Spy、统计等）
     const container = document.getElementById('swup-container')
     if (container) {
+      sanitizeEmbeddedMedia(container)
       reexecuteScripts(container)
     }
   })
@@ -279,12 +280,60 @@ function initSwup() {
   ;(window as any).swup = swup
 }
 
+/**
+ * 客户端主动拦截与规范化嵌入式媒体（iframe、video），彻底禁止未经用户手势的自动播放行为
+ */
+function sanitizeEmbeddedMedia(container: Document | HTMLElement = document) {
+  // 1. 规范化所有 iframe
+  const iframes = container.querySelectorAll<HTMLIFrameElement>('iframe')
+  iframes.forEach((iframe) => {
+    let src = iframe.getAttribute('src') || ''
+    // 若为 B站外链播放器，且未显式指定 autoplay=1，则确保其携带 autoplay=0
+    if (/player\.bilibili\.com/i.test(src) && !/autoplay=(?:1|true)/i.test(src)) {
+      if (!/autoplay=/i.test(src)) {
+        const sep = src.includes('?') ? '&' : '?'
+        iframe.setAttribute('src', `${src}${sep}autoplay=0`)
+      }
+    }
+
+    // 检查 Permissions Policy，强制施加 autoplay 'none' 约束
+    const allow = iframe.getAttribute('allow') || ''
+    const outer = iframe.outerHTML
+    const hasAutoplayOff = /autoplay=(?:0|false)/i.test(outer)
+    const hasAutoplayOn = /autoplay=(?:1|true)/i.test(outer)
+
+    if (hasAutoplayOff || !hasAutoplayOn) {
+      if (!allow.includes("autoplay 'none'")) {
+        const cleanedAllow = allow
+          .replace(/\bautoplay(?:\s+'[^']*')?/gi, '')
+          .replace(/(?:^|;)\s*;\s*/g, ';')
+          .replace(/^;\s*|\s*;$/g, '')
+          .trim()
+        const newAllow = `${cleanedAllow ? cleanedAllow + '; ' : ''}autoplay 'none'`
+        iframe.setAttribute('allow', newAllow)
+      }
+    }
+  })
+
+  // 2. 规范化所有原生 video
+  const videos = container.querySelectorAll<HTMLVideoElement>('video')
+  videos.forEach((video) => {
+    const rawAutoplay = video.getAttribute('autoplay')
+    if (rawAutoplay === 'false' || rawAutoplay === '0' || rawAutoplay === 'off' || rawAutoplay === 'no') {
+      video.removeAttribute('autoplay')
+      video.autoplay = false
+    }
+  })
+}
+
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
+    sanitizeEmbeddedMedia()
     initImageLightbox()
     initSwup()
   })
 } else {
+  sanitizeEmbeddedMedia()
   initImageLightbox()
   initSwup()
 }
