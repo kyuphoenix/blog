@@ -277,3 +277,26 @@ export function processEmbeddedMediaHtml(html: string): string {
 
   return processed
 }
+
+/**
+ * 判断代码块语言标记是否声明为原生渲染 HTML 代码块
+ * 完美支持:
+ * - ```html:render
+ * - ```html render
+ * - ```html:raw / ```html raw
+ */
+export function isHtmlRenderCodeBlock(lang?: string): boolean {
+  if (!lang) return false
+  const clean = lang.trim().toLowerCase()
+  return (
+    clean === 'html:render' ||
+    clean === 'html render' ||
+    clean.startsWith('html:render') ||
+    clean.startsWith('html render') ||
+    clean === 'html:raw' ||
+    clean === 'html raw' ||
+    clean.startsWith('html:raw') ||
+    clean.startsWith('html raw')
+  )
+}
+

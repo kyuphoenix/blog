@@ -4,7 +4,7 @@ import { marked } from 'marked'
 import type { AppEnv } from '../types/env.js'
 import { Layout } from '../components/index.js'
 import { getSidebarData, getBlogConfig, getAboutContent } from '../services/github.js'
-import { processEmbeddedMediaHtml } from '../utils/markdown.js'
+import { processEmbeddedMediaHtml, isHtmlRenderCodeBlock } from '../utils/markdown.js'
 
 const about = new Hono<AppEnv>()
 
@@ -27,6 +27,14 @@ about.get('/', async (c) => {
 
   renderer.html = function ({ text }: { text: string }) {
     return processEmbeddedMediaHtml(text)
+  }
+
+  const origCode = renderer.code.bind(renderer)
+  renderer.code = function (token: any) {
+    if (isHtmlRenderCodeBlock(token?.lang)) {
+      return processEmbeddedMediaHtml(token?.text || '')
+    }
+    return origCode(token)
   }
 
   const rawHtmlContent = await marked.parse(aboutData.content, {

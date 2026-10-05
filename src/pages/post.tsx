@@ -14,7 +14,7 @@ import {
 } from '../components/Icons.js'
 import { getPost, getManifest, getSidebarData, getBlogConfig } from '../services/github.js'
 import { getPostStats, isStatsEnabled } from '../services/stats.js'
-import { processEmbeddedMediaHtml } from '../utils/markdown.js'
+import { processEmbeddedMediaHtml, isHtmlRenderCodeBlock } from '../utils/markdown.js'
 import { marked } from 'marked'
 
 const postPage = new Hono<AppEnv>()
@@ -99,6 +99,14 @@ postPage.get('/:title', async (c) => {
 
   renderer.html = function ({ text }: { text: string }) {
     return processEmbeddedMediaHtml(text)
+  }
+
+  const origCode = renderer.code.bind(renderer)
+  renderer.code = function (token: any) {
+    if (isHtmlRenderCodeBlock(token?.lang)) {
+      return processEmbeddedMediaHtml(token?.text || '')
+    }
+    return origCode(token)
   }
 
   const rawHtmlContent = await marked.parse(post.content, {
