@@ -289,6 +289,37 @@ async function main() {
     }
   }
 
+  // 5. 动态注入非敏感运行期环境变量（仅注入有效配置项，未配置项自动忽略，彻底避免部署报错）
+  const runtimeVars = {
+    DATABASE_TYPE: dbType || 'auto',
+    GH_OWNER: (process.env.GH_OWNER || process.env.GITHUB_OWNER)?.trim(),
+    GH_REPO: (process.env.GH_REPO || process.env.GITHUB_REPO)?.trim(),
+    GH_BRANCH: (process.env.GH_BRANCH || process.env.GITHUB_BRANCH)?.trim(),
+    BLOG_URL: blogUrl || undefined,
+    SUPABASE_URL: supabaseUrl || undefined,
+    GISCUS_REPO: process.env.GISCUS_REPO?.trim() || undefined,
+    GISCUS_REPO_ID: process.env.GISCUS_REPO_ID?.trim() || undefined,
+    GISCUS_CATEGORY: process.env.GISCUS_CATEGORY?.trim() || undefined,
+    GISCUS_CATEGORY_ID: process.env.GISCUS_CATEGORY_ID?.trim() || undefined,
+  }
+
+  const activeVars = Object.fromEntries(
+    Object.entries(runtimeVars).filter(([_, v]) => v !== undefined && v !== '')
+  )
+
+  // 先安全清理可能存在的旧 vars 块
+  content = content.replace(/,?\s*(?:\/\/[^\n]*\n\s*)?"vars":\s*\{[\s\S]*?\}/g, '')
+
+  if (Object.keys(activeVars).length > 0) {
+    const formattedVars = JSON.stringify(activeVars, null, 2)
+      .split('\n')
+      .map((line, idx) => (idx === 0 ? line : '  ' + line))
+      .join('\n')
+    const varsBlock = `,\n  // 运行时非敏感环境变量（由 prepare-wrangler 动态注入有效项，未配置项自动忽略）\n  "vars": ${formattedVars}`
+    content = content.replace(/(\n\})[\s]*$/, `${varsBlock}\n}`)
+    console.log(`✓ 已向 wrangler.jsonc 注入环境变量: ${Object.keys(activeVars).join(', ')}`)
+  }
+
   writeFileSync(configPath, content, 'utf-8')
   console.log('✅ wrangler.jsonc 基础设施配置完成')
 }

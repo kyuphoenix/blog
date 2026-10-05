@@ -72,7 +72,7 @@ jobs:
       - name: Generate post manifest
         run: pnpm gen:manifest
 
-      # 仅注入 Cloudflare 基础设施级别的必须项（KV ID、D1 ID、Worker 名称、自定义域名路由）
+      # 注入 Cloudflare 基础设施与有效环境变量（未配置的可选变量如 BLOG_URL 将由脚本自动忽略）
       - name: Prepare wrangler.jsonc infrastructure config
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -84,6 +84,13 @@ jobs:
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY || vars.SUPABASE_KEY || secrets.SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY }}
           WORKER_NAME: ${{ vars.WORKER_NAME || 'honoki' }}
           BLOG_URL: ${{ vars.BLOG_URL || secrets.BLOG_URL }}
+          GH_OWNER: ${{ vars.GH_OWNER || vars.GITHUB_OWNER || github.repository_owner }}
+          GH_REPO: ${{ vars.GH_REPO || vars.GITHUB_REPO || github.event.repository.name }}
+          GH_BRANCH: ${{ vars.GH_BRANCH || vars.GITHUB_BRANCH || github.ref_name }}
+          GISCUS_REPO: ${{ vars.GISCUS_REPO }}
+          GISCUS_REPO_ID: ${{ vars.GISCUS_REPO_ID }}
+          GISCUS_CATEGORY: ${{ vars.GISCUS_CATEGORY }}
+          GISCUS_CATEGORY_ID: ${{ vars.GISCUS_CATEGORY_ID }}
         run: pnpm prepare:wrangler
 
       # 若使用 Supabase，自动检测数据库状态；未初始化且配置了凭证时自动执行建表
@@ -99,34 +106,12 @@ jobs:
           CLOUDFLARE_D1_ID: ${{ secrets.CLOUDFLARE_D1_ID || vars.CLOUDFLARE_D1_ID || vars.D1_DATABASE_ID }}
         run: pnpm init:supabase
 
-      # 将非敏感运行期环境变量直接部署到 Worker 环境变量中
+      # 部署到 Cloudflare Workers（所有非敏感有效变量已由 prepare-wrangler 动态写入 wrangler.jsonc，缺失项自动安全跳过）
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
-          vars: |
-            DATABASE_TYPE
-            SUPABASE_URL
-            BLOG_URL
-            GH_OWNER
-            GH_REPO
-            GH_BRANCH
-            GISCUS_REPO
-            GISCUS_REPO_ID
-            GISCUS_CATEGORY
-            GISCUS_CATEGORY_ID
-        env:
-          DATABASE_TYPE: ${{ github.event.inputs.database_type || vars.DATABASE_TYPE || 'auto' }}
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
-          BLOG_URL: ${{ vars.BLOG_URL || secrets.BLOG_URL }}
-          GH_OWNER: ${{ vars.GH_OWNER || vars.GITHUB_OWNER || github.repository_owner }}
-          GH_REPO: ${{ vars.GH_REPO || vars.GITHUB_REPO || github.event.repository.name }}
-          GH_BRANCH: ${{ vars.GH_BRANCH || vars.GITHUB_BRANCH || github.ref_name }}
-          GISCUS_REPO: ${{ vars.GISCUS_REPO }}
-          GISCUS_REPO_ID: ${{ vars.GISCUS_REPO_ID }}
-          GISCUS_CATEGORY: ${{ vars.GISCUS_CATEGORY }}
-          GISCUS_CATEGORY_ID: ${{ vars.GISCUS_CATEGORY_ID }}
 
       # 将敏感凭据（PURGE_SECRET、SUPABASE_KEY 等）作为加密 Secret 同步到 Cloudflare Worker
       - name: Sync Cloudflare Worker Secrets
