@@ -598,4 +598,14 @@ html.is-animating .transition-swup-fade {
 .prose h6 a:hover {
   color: var(--fuwari-primary);
 }
+
+.prose iframe,
+.prose video {
+  width: 100%;
+  max-width: 100%;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+}
 `;
