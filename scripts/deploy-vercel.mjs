@@ -33,9 +33,7 @@ if (!token) {
 const projectName = (
   process.env.VERCEL_PROJECT_NAME ||
   process.env.PROJECT_NAME ||
-  process.env.GH_REPO ||
-  process.env.GITHUB_REPO ||
-  'blog'
+  'honoki'
 ).trim()
 
 const orgId = process.env.VERCEL_ORG_ID?.trim()

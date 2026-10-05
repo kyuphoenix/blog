@@ -3,7 +3,7 @@
  * 
  * 核心特性：
  * 1. 自动资源嗅探与绑定：若环境变量中配置了具备权限的 CLOUDFLARE_API_TOKEN，
- *    自动检测或创建 KV (blog-cache) 与 D1 (blog-db)，并自动执行 db/schema.sql 初始化表结构，
+ *    自动检测或创建 KV (honoki_kv) 与 D1 (honoki_db)，并自动执行 db/schema.sql 初始化表结构，
  *    彻底免去用户手动获取与填写 CLOUDFLARE_KV_ID / CLOUDFLARE_D1_ID 的繁琐操作！
  * 2. 权限自适应与安全降级：若 Token 权限受限或未提供，安全降级为内存缓存与轻量模式，不阻断部署。
  * 3. 环境变量（BLOG_URL、GISCUS_*、GH_* 等）通过 CI/CD 运行时直接注入，不落盘敏感密钥。
@@ -73,7 +73,7 @@ async function resolveCloudflareAutoResources() {
   let autoKvId = null
   let autoD1Id = null
 
-  // 2. 自动探测或创建 KV 命名空间 (blog-cache)
+  // 2. 自动探测或创建 KV 命名空间 (honoki_kv)
   if (!kvId) {
     try {
       const kvListRes = await fetch(
@@ -83,25 +83,31 @@ async function resolveCloudflareAutoResources() {
       if (kvListRes.ok) {
         const kvData = await kvListRes.json()
         const existing = (kvData.result || []).find(
-          (ns) => ns.title === 'blog-cache' || ns.title === 'blog_cache' || ns.title === 'BLOG_CACHE'
+          (ns) =>
+            ns.title === 'honoki_kv' ||
+            ns.title === 'honoki-kv' ||
+            ns.title === 'HONOKI_KV' ||
+            ns.title === 'blog-cache' ||
+            ns.title === 'blog_cache' ||
+            ns.title === 'BLOG_CACHE'
         )
         if (existing) {
           autoKvId = existing.id
           console.log(`✓ [自动复用] 检测到已有 Cloudflare KV 命名空间: ${existing.title} (ID: ${autoKvId})`)
         } else {
-          console.log('ℹ️ Cloudflare 账户下未找到 blog-cache，正在根据 Token 权限自动创建 KV 命名空间...')
+          console.log('ℹ️ Cloudflare 账户下未找到 honoki_kv，正在根据 Token 权限自动创建 KV 命名空间...')
           const createKvRes = await fetch(
             `https://api.cloudflare.com/client/v4/accounts/${accountId}/storage/kv/namespaces`,
             {
               method: 'POST',
               headers: apiHeaders,
-              body: JSON.stringify({ title: 'blog-cache' }),
+              body: JSON.stringify({ title: 'honoki_kv' }),
             }
           )
           if (createKvRes.ok) {
             const createData = await createKvRes.json()
             autoKvId = createData.result?.id
-            console.log(`✓ [自动创建] 成功创建并绑定 Cloudflare KV: blog-cache (ID: ${autoKvId})`)
+            console.log(`✓ [自动创建] 成功创建并绑定 Cloudflare KV: honoki_kv (ID: ${autoKvId})`)
           } else {
             console.log(`ℹ️ 自动创建 KV 返回状态 [${createKvRes.status}]，Token 未包含 Workers KV 编辑权限（将自动使用内存缓存）`)
           }
@@ -114,7 +120,7 @@ async function resolveCloudflareAutoResources() {
     }
   }
 
-  // 3. 自动探测、创建并初始化 D1 数据库 (blog-db)
+  // 3. 自动探测、创建并初始化 D1 数据库 (honoki_db)
   const shouldTryD1 = dbType !== 'none' && dbType !== 'off' && dbType !== 'disabled' && dbType !== 'supabase'
   if (!d1Id && shouldTryD1) {
     try {
@@ -124,24 +130,26 @@ async function resolveCloudflareAutoResources() {
       )
       if (d1ListRes.ok) {
         const d1Data = await d1ListRes.json()
-        const existing = (d1Data.result || []).find((db) => db.name === 'blog-db')
+        const existing = (d1Data.result || []).find(
+          (db) => db.name === 'honoki_db' || db.name === 'honoki-db' || db.name === 'blog-db'
+        )
         if (existing) {
           autoD1Id = existing.uuid
           console.log(`✓ [自动复用] 检测到已有 Cloudflare D1 数据库: ${existing.name} (UUID: ${autoD1Id})`)
         } else {
-          console.log('ℹ️ Cloudflare 账户下未找到 blog-db，正在根据 Token 权限自动创建 D1 数据库...')
+          console.log('ℹ️ Cloudflare 账户下未找到 honoki_db，正在根据 Token 权限自动创建 D1 数据库...')
           const createD1Res = await fetch(
             `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database`,
             {
               method: 'POST',
               headers: apiHeaders,
-              body: JSON.stringify({ name: 'blog-db' }),
+              body: JSON.stringify({ name: 'honoki_db' }),
             }
           )
           if (createD1Res.ok) {
             const createData = await createD1Res.json()
             autoD1Id = createData.result?.uuid
-            console.log(`✓ [自动创建] 成功创建 Cloudflare D1 数据库: blog-db (UUID: ${autoD1Id})`)
+            console.log(`✓ [自动创建] 成功创建 Cloudflare D1 数据库: honoki_db (UUID: ${autoD1Id})`)
           } else {
             console.log(`ℹ️ 自动创建 D1 返回状态 [${createD1Res.status}]，Token 未包含 D1 编辑权限`)
           }
