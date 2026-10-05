@@ -356,11 +356,7 @@ actions:
         required: true
         default: auto
         options:
-<<<<<<< HEAD
-          - label: 自动检测
-=======
           - label: "自动检测 (Auto: 推荐，按配置凭证自动绑定)"
->>>>>>> template/main
             value: auto
           - label: Cloudflare D1 (无服务器 SQLite)
             value: d1
@@ -382,11 +378,7 @@ actions:
         required: true
         default: auto
         options:
-<<<<<<< HEAD
-          - label: 自动检测
-=======
           - label: "自动检测 (Auto: 推荐，按配置凭证自动绑定)"
->>>>>>> template/main
             value: auto
           - label: Supabase (PostgreSQL 云数据库)
             value: supabase
@@ -406,11 +398,7 @@ actions:
         required: true
         default: auto
         options:
-<<<<<<< HEAD
-          - label: 自动检测
-=======
           - label: "自动检测 (Auto: 推荐，按配置凭证自动绑定)"
->>>>>>> template/main
             value: auto
           - label: Supabase (PostgreSQL 云数据库)
             value: supabase
@@ -435,15 +423,9 @@ actions:
         required: true
         default: direct
         options:
-<<<<<<< HEAD
-          - label: 直接合并推送
-            value: direct
-          - label: 创建 Pull Request
-=======
           - label: "直接合并推送 (Direct: 自动合并至当前分支)"
             value: direct
           - label: "创建 Pull Request (PR: 提交 PR 供审查)"
->>>>>>> template/main
             value: pr
       - name: template_repo
         label: 上游模板仓库
