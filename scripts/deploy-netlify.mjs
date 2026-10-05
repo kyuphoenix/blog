@@ -180,6 +180,9 @@ async function main() {
           siteId = resolvedSite.id
           console.log(`✓ 成功创建 Netlify 站点: ${resolvedSite.name} (ID: ${siteId}, URL: https://${resolvedSite.name}.netlify.app)`)
         } else {
+          const createErrText = await createRes.text()
+          console.warn(`⚠️ 无法以名称 "${siteName}" 创建站点 [${createRes.status}]: ${createErrText}`)
+
           // 若万一该名称已被 Netlify 全局其他用户占用，尝试使用带分支名或简短唯一后缀的备用名称
           const fallbackName = sanitizeSiteName(
             ghBranch && ghBranch !== 'main' && ghBranch !== 'master'
@@ -197,8 +200,22 @@ async function main() {
             siteId = resolvedSite.id
             console.log(`✓ 成功创建 Netlify 站点: ${resolvedSite.name} (ID: ${siteId}, URL: https://${resolvedSite.name}.netlify.app)`)
           } else {
-            const errText = await fallbackRes.text()
-            throw new Error(`创建 Netlify 站点失败 [${fallbackRes.status}]: ${errText}`)
+            const fallbackErrText = await fallbackRes.text()
+            console.warn(`⚠️ 备用名称 "${fallbackName}" 创建失败 [${fallbackRes.status}]: ${fallbackErrText}，尝试由 Netlify 自动生成唯一随机名称创建...`)
+            // 最后兜底：不传 name，由 Netlify 自动生成全局唯一的随机二级域名，确保部署 100% 成功
+            const autoRes = await fetch('https://api.netlify.com/api/v1/sites', {
+              method: 'POST',
+              headers: apiHeaders,
+              body: JSON.stringify({}),
+            })
+            if (autoRes.ok) {
+              resolvedSite = await autoRes.json()
+              siteId = resolvedSite.id
+              console.log(`✓ 成功由 Netlify 自动分配唯一站点: ${resolvedSite.name} (ID: ${siteId}, URL: https://${resolvedSite.name}.netlify.app)`)
+            } else {
+              const autoErrText = await autoRes.text()
+              throw new Error(`创建 Netlify 站点彻底失败 [${autoRes.status}]: ${autoErrText}`)
+            }
           }
         }
       } catch (err) {
@@ -235,9 +252,6 @@ async function main() {
   console.log(`✓ 已生成 .netlify/state.json 绑定配置 (siteId: ${siteId})`)
 
   // 3. 收集博客所需的全部环境变量
-  const ghOwner = process.env.GH_OWNER || process.env.GITHUB_OWNER
-  const ghRepo = process.env.GH_REPO || process.env.GITHUB_REPO
-  const ghBranch = process.env.GH_BRANCH || process.env.GITHUB_BRANCH || 'main'
   // ⚠️ 仅当显式配置了 GH_TOKEN（例如私有文章仓库读取授权）时才同步给生产环境，严禁将 CI/CD 级别的 PAT_TOKEN 写入生产
   const ghToken = process.env.GH_TOKEN?.trim()
 
@@ -260,8 +274,6 @@ async function main() {
     { key: 'GISCUS_REPO_ID', value: process.env.GISCUS_REPO_ID },
     { key: 'GISCUS_CATEGORY', value: process.env.GISCUS_CATEGORY },
     { key: 'GISCUS_CATEGORY_ID', value: process.env.GISCUS_CATEGORY_ID },
-    { key: 'GISCUS_THEME_LIGHT', value: process.env.GISCUS_THEME_LIGHT },
-    { key: 'GISCUS_THEME_DARK', value: process.env.GISCUS_THEME_DARK },
   ].filter((item) => item.value && item.value.trim() !== '')
 
   const SENSITIVE_KEYS = new Set([

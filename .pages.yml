@@ -329,9 +329,24 @@ actions:
     label: 部署 Worker (Cloudflare)
     workflow: deploy.yml
     confirm:
-      title: 部署 Worker？
+      title: 部署 Worker 到 Cloudflare？
       message: 触发 GitHub Actions 重新构建并部署 Cloudflare Worker。
       button: 确认部署
+    fields:
+      - name: database_type
+        label: 数据库类型
+        type: select
+        required: true
+        default: auto
+        options:
+          - label: 自动检测 (Auto: 推荐，按配置凭证自动绑定)
+            value: auto
+          - label: Cloudflare D1 (无服务器 SQLite)
+            value: d1
+          - label: Supabase (PostgreSQL 云数据库)
+            value: supabase
+          - label: 不使用数据库 (纯静态模式 / 关闭统计)
+            value: none
   - name: deploy-vercel
     label: 部署到 Vercel
     workflow: deploy-vercel.yml
@@ -339,6 +354,19 @@ actions:
       title: 部署到 Vercel？
       message: 触发 GitHub Actions 重新构建并部署到 Vercel。
       button: 确认部署
+    fields:
+      - name: database_type
+        label: 数据库类型
+        type: select
+        required: true
+        default: auto
+        options:
+          - label: 自动检测 (Auto: 推荐，按配置凭证自动绑定)
+            value: auto
+          - label: Supabase (PostgreSQL 云数据库)
+            value: supabase
+          - label: 不使用数据库 (纯静态模式 / 关闭统计)
+            value: none
   - name: deploy-netlify
     label: 部署到 Netlify
     workflow: deploy-netlify.yml
@@ -346,6 +374,24 @@ actions:
       title: 部署到 Netlify？
       message: 触发 GitHub Actions 重新构建并部署到 Netlify。
       button: 确认部署
+    fields:
+      - name: database_type
+        label: 数据库类型
+        type: select
+        required: true
+        default: auto
+        options:
+          - label: 自动检测 (Auto: 推荐，按配置凭证自动绑定)
+            value: auto
+          - label: Supabase (PostgreSQL 云数据库)
+            value: supabase
+          - label: 不使用数据库 (纯静态模式 / 关闭统计)
+            value: none
+      - name: site_id
+        label: Netlify 站点 ID (可选，留空则自动按规范创建或复用)
+        type: text
+        required: false
+        default: ""
   - name: sync-template
     label: 同步上游模板 (Honoki)
     workflow: sync-template.yml
@@ -353,6 +399,32 @@ actions:
       title: 同步上游模板更新？
       message: 检查并合并上游 honoki 模板的最新功能与代码优化。
       button: 确认同步
+    fields:
+      - name: sync_mode
+        label: 同步模式
+        type: select
+        required: true
+        default: direct
+        options:
+          - label: 直接合并推送 (Direct: 自动合并至当前分支)
+            value: direct
+          - label: 创建 Pull Request (PR: 提交 PR 供审查)
+            value: pr
+      - name: template_repo
+        label: 上游模板仓库
+        type: text
+        required: true
+        default: kyuphoenix/honoki
+      - name: template_branch
+        label: 上游分支
+        type: text
+        required: true
+        default: main
+      - name: protected_dirs
+        label: 排除保护目录 (空格分隔)
+        type: text
+        required: false
+        default: posts public
 
 # 4. 全局提交设置
 settings:

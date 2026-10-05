@@ -51,14 +51,46 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GH_TOKEN || secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
 
+      # 解析 Pages CMS 传入的上下文 Payload 与字段输入
+      - name: Parse Pages CMS payload inputs
+        run: |
+          node -e '
+            const fs = require("fs");
+            let syncMode = process.env.INPUT_SYNC_MODE;
+            let repo = process.env.INPUT_TEMPLATE_REPO;
+            let branch = process.env.INPUT_TEMPLATE_BRANCH;
+            let protectedDirs = process.env.INPUT_PROTECTED_DIRS;
+            if (process.env.INPUT_PAYLOAD) {
+              try {
+                const payload = JSON.parse(process.env.INPUT_PAYLOAD);
+                if (payload?.inputs?.sync_mode) syncMode = payload.inputs.sync_mode;
+                if (payload?.inputs?.template_repo) repo = payload.inputs.template_repo;
+                if (payload?.inputs?.template_branch) branch = payload.inputs.template_branch;
+                if (payload?.inputs?.protected_dirs) protectedDirs = payload.inputs.protected_dirs;
+              } catch (e) {
+                console.warn("Could not parse Pages CMS payload:", e.message);
+              }
+            }
+            if (syncMode) fs.appendFileSync(process.env.GITHUB_ENV, `SYNC_MODE=${syncMode}\n`);
+            if (repo) fs.appendFileSync(process.env.GITHUB_ENV, `UPSTREAM_REPO=${repo}\n`);
+            if (branch) fs.appendFileSync(process.env.GITHUB_ENV, `UPSTREAM_BRANCH=${branch}\n`);
+            if (protectedDirs) fs.appendFileSync(process.env.GITHUB_ENV, `PROTECTED_DIRS=${protectedDirs}\n`);
+          '
+        env:
+          INPUT_SYNC_MODE: ${{ github.event.inputs.sync_mode }}
+          INPUT_TEMPLATE_REPO: ${{ github.event.inputs.template_repo }}
+          INPUT_TEMPLATE_BRANCH: ${{ github.event.inputs.template_branch }}
+          INPUT_PROTECTED_DIRS: ${{ github.event.inputs.protected_dirs }}
+          INPUT_PAYLOAD: ${{ github.event.inputs.payload }}
+
       - name: Sync from upstream template
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN || secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN || secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
-          UPSTREAM_REPO: ${{ github.event.inputs.template_repo || vars.TEMPLATE_REPO || 'kyuphoenix/honoki' }}
-          UPSTREAM_BRANCH: ${{ github.event.inputs.template_branch || vars.TEMPLATE_BRANCH || 'main' }}
-          PROTECTED_DIRS: ${{ github.event.inputs.protected_dirs || vars.PROTECTED_DIRS || 'posts public' }}
-          SYNC_MODE: ${{ github.event.inputs.sync_mode || 'direct' }}
+          UPSTREAM_REPO: ${{ env.UPSTREAM_REPO || github.event.inputs.template_repo || vars.TEMPLATE_REPO || 'kyuphoenix/honoki' }}
+          UPSTREAM_BRANCH: ${{ env.UPSTREAM_BRANCH || github.event.inputs.template_branch || vars.TEMPLATE_BRANCH || 'main' }}
+          PROTECTED_DIRS: ${{ env.PROTECTED_DIRS || github.event.inputs.protected_dirs || vars.PROTECTED_DIRS || 'posts public' }}
+          SYNC_MODE: ${{ env.SYNC_MODE || github.event.inputs.sync_mode || 'direct' }}
         run: |
           set -e
 

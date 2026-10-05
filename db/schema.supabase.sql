@@ -122,3 +122,11 @@ BEGIN
   RETURN json_build_object('views', v_views, 'uv', v_uv);
 END;
 $$;
+
+-- 5. 权限配置 (确保 anon / Publishable key / authenticated / service_role 具备读写与 RPC 执行权限)
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON TABLE public.page_views TO anon, authenticated, service_role;
+GRANT ALL ON TABLE public.post_stats TO anon, authenticated, service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.increment_page_view TO anon, authenticated, service_role;
+
