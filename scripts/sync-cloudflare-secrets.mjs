@@ -33,7 +33,7 @@ if (!workerName) {
   } catch {}
 }
 if (!workerName) {
-  workerName = 'blog'
+  workerName = 'honoki'
 }
 
 const apiHeaders = {

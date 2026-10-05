@@ -88,7 +88,7 @@
 
 - ⚡ [Cloudflare 部署指南](docs/部署流程.md#cloudflare部署)（主推推荐，支持 GitHub Actions 自动化 CI/CD 与无感建表）👉 [查看所需环境变量配置表](docs/部署流程.md#52-平台独立环境变量)
 - ▲ [Vercel 部署指南](docs/部署流程.md#vercel部署)（基于 Vercel Edge Runtime，支持 GitHub Actions 自动化与环境变量一键同步）👉 [查看所需环境变量配置表](docs/部署流程.md#52-平台独立环境变量)
-- 🌐 [Netlify 部署指南](docs/部署流程.md#netlify部署)（基于 Netlify Edge Functions，支持 GitHub Actions 自动化与环境变量一键同步）👉 [查看所需环境变量配置表](docs/部署流程.md#52-平台独立环境变量)
+- 🌐 [Netlify 部署指南](docs/部署流程.md#netlify部署)（不推荐！现在免费额度太少了）👉 [查看所需环境变量配置表](docs/部署流程.md#52-平台独立环境变量)
 
 > 📖 完整多平台部署文档请查阅：[`docs/部署流程.md`](docs/部署流程.md)
 
