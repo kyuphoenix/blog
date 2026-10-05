@@ -139,67 +139,36 @@ async function main() {
     }
 
     if (allSites.length > 0) {
-      // 策略 A: 优先根据 BLOG_URL 匹配（例如 https://cheery-dieffenbachia-c5852e.netlify.app）
-      if (blogUrl) {
+      // 策略 A: 优先根据命名规则计算出的唯一站点名称 (如 kyuphoenix-blog) 精确匹配已有站点
+      if (siteName) {
+        resolvedSite = allSites.find((s) => (s.name || '').toLowerCase() === siteName)
+        if (resolvedSite) {
+          siteId = resolvedSite.id
+          console.log(`✓ [精确匹配] 成功在当前账户下匹配到专属站点: ${resolvedSite.name} (ID: ${siteId}, URL: ${resolvedSite.ssl_url || resolvedSite.url})`)
+        }
+      }
+
+      // 策略 B: 其次若用户明确配置了 BLOG_URL，检查是否与某个站点的域名/子域名精确对应
+      if (!resolvedSite && blogUrl) {
         try {
           const blogHost = new URL(blogUrl).hostname.toLowerCase()
           const blogSubdomain = blogHost.replace(/\.netlify\.app$/, '')
           resolvedSite = allSites.find((s) => {
             const sName = (s.name || '').toLowerCase()
             const sCustom = (s.custom_domain || '').toLowerCase()
-            const sUrl = (s.url || '').toLowerCase()
-            const sSsl = (s.ssl_url || '').toLowerCase()
-            return (
-              sName === blogSubdomain ||
-              sCustom === blogHost ||
-              sUrl.includes(blogHost) ||
-              sSsl.includes(blogHost)
-            )
+            return sName === blogSubdomain || sCustom === blogHost
           })
           if (resolvedSite) {
             siteId = resolvedSite.id
-            console.log(`✓ [匹配策略 A] 成功根据 BLOG_URL (${blogUrl}) 锁定已有站点: ${resolvedSite.name} (ID: ${siteId})`)
+            console.log(`✓ [域名匹配] 成功根据 BLOG_URL (${blogUrl}) 锁定已有站点: ${resolvedSite.name} (ID: ${siteId})`)
           }
         } catch {}
       }
-
-      // 策略 B: 根据计算出的唯一站点名称 (如 kyuphoenix-blog) 精确匹配已有站点
-      if (!resolvedSite && siteName) {
-        resolvedSite = allSites.find((s) => (s.name || '').toLowerCase() === siteName)
-        if (resolvedSite) {
-          siteId = resolvedSite.id
-          console.log(`✓ [匹配策略 B] 成功根据站点名称 (${siteName}) 锁定已有站点: ${resolvedSite.name} (ID: ${siteId})`)
-        }
-      }
-
-      // 策略 C: 账户下仅有 1 个 Netlify 站点，毫不犹豫直接复用该站点
-      if (!resolvedSite && allSites.length === 1) {
-        resolvedSite = allSites[0]
-        siteId = resolvedSite.id
-        console.log(`✓ [匹配策略 C] 账户下仅存在 1 个站点，自动复用: ${resolvedSite.name} (ID: ${siteId})`)
-      }
-
-      // 策略 D: 查找包含博客仓库关键字的站点，或复用最近更新活跃的站点
-      if (!resolvedSite) {
-        const repoKeyword = sanitizeSiteName(ghRepo)
-        if (repoKeyword) {
-          resolvedSite = allSites.find((s) => (s.name || '').toLowerCase().includes(repoKeyword))
-        }
-        if (!resolvedSite) {
-          // 按 updated_at 降序排序，锁定最近活跃的站点
-          allSites.sort((a, b) => new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime())
-          resolvedSite = allSites[0]
-        }
-        if (resolvedSite) {
-          siteId = resolvedSite.id
-          console.log(`✓ [匹配策略 D] 自动锁定并复用已有站点: ${resolvedSite.name} (ID: ${siteId}, URL: ${resolvedSite.ssl_url || resolvedSite.url})`)
-        }
-      }
     }
 
-    // 1.3 仅当账户下未找到目标站点时，使用唯一名称创建初始站点
+    // 1.3 仅当账户下未找到匹配的专属站点时，严格按照命名规则创建新站点（严禁盲目覆盖账户下的其他项目）
     if (!siteId) {
-      console.log(`ℹ️ 正在使用全局唯一名称 "${siteName}" 创建 Netlify 站点...`)
+      console.log(`ℹ️ 账户下未找到名称为 "${siteName}" 的专属站点，正在严格按照命名规则创建新站点...`)
       try {
         const createRes = await fetch('https://api.netlify.com/api/v1/sites', {
           method: 'POST',
@@ -211,9 +180,13 @@ async function main() {
           siteId = resolvedSite.id
           console.log(`✓ 成功创建 Netlify 站点: ${resolvedSite.name} (ID: ${siteId}, URL: https://${resolvedSite.name}.netlify.app)`)
         } else {
-          // 若万一该名称已被其他账号占用，尝试带唯一前缀的名称
-          const fallbackName = sanitizeSiteName(`${siteName}-${Date.now().toString(36).slice(-4)}`)
-          console.warn(`⚠️ 站点名称 "${siteName}" 已被占用，尝试使用备用唯一名称 "${fallbackName}" 创建...`)
+          // 若万一该名称已被 Netlify 全局其他用户占用，尝试使用带分支名或简短唯一后缀的备用名称
+          const fallbackName = sanitizeSiteName(
+            ghBranch && ghBranch !== 'main' && ghBranch !== 'master'
+              ? `${siteName}-${ghBranch}`
+              : `${siteName}-${Date.now().toString(36).slice(-4)}`
+          )
+          console.warn(`⚠️ 站点名称 "${siteName}" 已被全局占用，尝试使用备用名称 "${fallbackName}" 创建...`)
           const fallbackRes = await fetch('https://api.netlify.com/api/v1/sites', {
             method: 'POST',
             headers: apiHeaders,
@@ -222,22 +195,10 @@ async function main() {
           if (fallbackRes.ok) {
             resolvedSite = await fallbackRes.json()
             siteId = resolvedSite.id
-            console.log(`✓ 成功创建 Netlify 站点: ${resolvedSite.name} (ID: ${siteId})`)
+            console.log(`✓ 成功创建 Netlify 站点: ${resolvedSite.name} (ID: ${siteId}, URL: https://${resolvedSite.name}.netlify.app)`)
           } else {
-            // 最后兜底：随机子域名
-            const randomRes = await fetch('https://api.netlify.com/api/v1/sites', {
-              method: 'POST',
-              headers: apiHeaders,
-              body: JSON.stringify({}),
-            })
-            if (randomRes.ok) {
-              resolvedSite = await randomRes.json()
-              siteId = resolvedSite.id
-              console.log(`✓ 成功创建 Netlify 站点: ${resolvedSite.name} (ID: ${siteId})`)
-            } else {
-              const errText = await randomRes.text()
-              throw new Error(`创建 Netlify 站点失败: ${errText}`)
-            }
+            const errText = await fallbackRes.text()
+            throw new Error(`创建 Netlify 站点失败 [${fallbackRes.status}]: ${errText}`)
           }
         }
       } catch (err) {
