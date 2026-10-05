@@ -80,8 +80,6 @@ jobs:
           GISCUS_REPO_ID: ${{ vars.GISCUS_REPO_ID }}
           GISCUS_CATEGORY: ${{ vars.GISCUS_CATEGORY }}
           GISCUS_CATEGORY_ID: ${{ vars.GISCUS_CATEGORY_ID }}
-          GISCUS_THEME_LIGHT: ${{ vars.GISCUS_THEME_LIGHT }}
-          GISCUS_THEME_DARK: ${{ vars.GISCUS_THEME_DARK }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL || secrets.SUPABASE_DB_URL || vars.DATABASE_URL || vars.SUPABASE_DB_URL }}
           PURGE_SECRET: ${{ secrets.PURGE_SECRET }}

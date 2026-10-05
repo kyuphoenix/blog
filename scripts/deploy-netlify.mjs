@@ -274,8 +274,6 @@ async function main() {
     { key: 'GISCUS_REPO_ID', value: process.env.GISCUS_REPO_ID },
     { key: 'GISCUS_CATEGORY', value: process.env.GISCUS_CATEGORY },
     { key: 'GISCUS_CATEGORY_ID', value: process.env.GISCUS_CATEGORY_ID },
-    { key: 'GISCUS_THEME_LIGHT', value: process.env.GISCUS_THEME_LIGHT },
-    { key: 'GISCUS_THEME_DARK', value: process.env.GISCUS_THEME_DARK },
   ].filter((item) => item.value && item.value.trim() !== '')
 
   const SENSITIVE_KEYS = new Set([

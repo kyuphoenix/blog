@@ -51,6 +51,8 @@ jobs:
       # 仅注入 Cloudflare 基础设施级别的必须项（KV ID、D1 ID、Worker 名称、自定义域名路由）
       - name: Prepare wrangler.jsonc infrastructure config
         env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
           DATABASE_TYPE: ${{ github.event.inputs.database_type || vars.DATABASE_TYPE || 'auto' }}
           CLOUDFLARE_KV_ID: ${{ secrets.CLOUDFLARE_KV_ID || vars.CLOUDFLARE_KV_ID || vars.KV_NAMESPACE_ID }}
           CLOUDFLARE_D1_ID: ${{ secrets.CLOUDFLARE_D1_ID || vars.CLOUDFLARE_D1_ID || vars.D1_DATABASE_ID }}
@@ -90,8 +92,6 @@ jobs:
             GISCUS_REPO_ID
             GISCUS_CATEGORY
             GISCUS_CATEGORY_ID
-            GISCUS_THEME_LIGHT
-            GISCUS_THEME_DARK
         env:
           DATABASE_TYPE: ${{ github.event.inputs.database_type || vars.DATABASE_TYPE || 'auto' }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
@@ -103,8 +103,6 @@ jobs:
           GISCUS_REPO_ID: ${{ vars.GISCUS_REPO_ID }}
           GISCUS_CATEGORY: ${{ vars.GISCUS_CATEGORY }}
           GISCUS_CATEGORY_ID: ${{ vars.GISCUS_CATEGORY_ID }}
-          GISCUS_THEME_LIGHT: ${{ vars.GISCUS_THEME_LIGHT }}
-          GISCUS_THEME_DARK: ${{ vars.GISCUS_THEME_DARK }}
 
       # 将敏感凭据（PURGE_SECRET、SUPABASE_KEY 等）作为加密 Secret 同步到 Cloudflare Worker
       - name: Sync Cloudflare Worker Secrets
