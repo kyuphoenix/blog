@@ -51,7 +51,7 @@ let siteId = (
 const ghOwner = (process.env.GH_OWNER || process.env.GITHUB_OWNER || '').trim()
 const ghRepo = (process.env.GH_REPO || process.env.GITHUB_REPO || 'blog').trim()
 const ghBranch = (process.env.GH_BRANCH || process.env.GITHUB_BRANCH || 'main').trim()
-const ghToken = (process.env.GH_TOKEN || process.env.PAT_TOKEN || process.env.GITHUB_TOKEN || '').trim()
+const ghCiToken = (process.env.GITHUB_TOKEN || process.env.GH_TOKEN || process.env.PAT_TOKEN || '').trim()
 
 // 根据 GH_OWNER, GH_REPO, GH_BRANCH 智能拼接唯一项目名称
 // 例如：kyuphoenix + blog (+ main) -> kyuphoenix-blog
@@ -246,14 +246,14 @@ async function main() {
     }
   }
 
-  // 1.4 尝试将当前 siteId 自动持久化写入 GitHub 仓库变量 (需 GH_TOKEN 授权)
-  if (process.env.GITHUB_ACTIONS && siteId && (process.env.GH_TOKEN || process.env.PAT_TOKEN || process.env.GITHUB_TOKEN)) {
+  // 1.4 尝试将当前 siteId 自动持久化写入 GitHub 仓库变量 (需 GitHub API 授权)
+  if (process.env.GITHUB_ACTIONS && siteId && ghCiToken) {
     try {
       execSync(`gh variable set NETLIFY_SITE_ID --body "${siteId}"`, {
         stdio: 'ignore',
         env: {
           ...process.env,
-          GH_TOKEN: process.env.GH_TOKEN || process.env.PAT_TOKEN || process.env.GITHUB_TOKEN,
+          GH_TOKEN: ghCiToken,
         },
       })
       console.log(`✓ 已成功将 NETLIFY_SITE_ID (${siteId}) 自动写入 GitHub 仓库变量！`)
@@ -277,9 +277,10 @@ async function main() {
   const ghOwner = process.env.GH_OWNER || process.env.GITHUB_OWNER
   const ghRepo = process.env.GH_REPO || process.env.GITHUB_REPO
   const ghBranch = process.env.GH_BRANCH || process.env.GITHUB_BRANCH || 'main'
-  const ghToken = process.env.GH_TOKEN || process.env.PAT_TOKEN || process.env.GITHUB_TOKEN
+  // ⚠️ 仅当显式配置了 GH_TOKEN（例如私有文章仓库读取授权）时才同步给生产环境，严禁将 CI/CD 级别的 PAT_TOKEN 写入生产
+  const ghToken = process.env.GH_TOKEN?.trim()
 
-  const envVars = [
+  const allEnvVars = [
     { key: 'BLOG_URL', value: blogUrl || resolvedSite?.ssl_url || resolvedSite?.url },
     { key: 'GH_OWNER', value: ghOwner },
     { key: 'GH_REPO', value: ghRepo },
@@ -291,6 +292,8 @@ async function main() {
     { key: 'DATABASE_TYPE', value: process.env.DATABASE_TYPE || 'auto' },
     { key: 'SUPABASE_URL', value: process.env.SUPABASE_URL },
     { key: 'SUPABASE_KEY', value: process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY },
+    { key: 'SUPABASE_SERVICE_ROLE_KEY', value: process.env.SUPABASE_SERVICE_ROLE_KEY },
+    { key: 'DATABASE_URL', value: process.env.DATABASE_URL },
     { key: 'PURGE_SECRET', value: process.env.PURGE_SECRET },
     { key: 'GISCUS_REPO', value: process.env.GISCUS_REPO },
     { key: 'GISCUS_REPO_ID', value: process.env.GISCUS_REPO_ID },
@@ -300,27 +303,92 @@ async function main() {
     { key: 'GISCUS_THEME_DARK', value: process.env.GISCUS_THEME_DARK },
   ].filter((item) => item.value && item.value.trim() !== '')
 
-  // 4. 自动同步环境变量至 Netlify 站点
-  console.log(`🔄 正在自动同步 ${envVars.length} 个环境变量至 Netlify 站点 (${siteId})...`)
-  const tempEnvPath = resolve(process.cwd(), '.env.netlify.tmp')
-  try {
-    const envLines = envVars.map(({ key, value }) => `${key}=${value.trim()}`).join('\n')
-    writeFileSync(tempEnvPath, envLines, 'utf-8')
+  const SENSITIVE_KEYS = new Set([
+    'PURGE_SECRET',
+    'SUPABASE_KEY',
+    'SUPABASE_ANON_KEY',
+    'SUPABASE_SERVICE_ROLE_KEY',
+    'DATABASE_URL',
+    'JWT_SECRET',
+    'GH_TOKEN',
+  ])
 
-    execSync(`npx --yes netlify-cli env:import "${tempEnvPath}"`, {
-      stdio: 'inherit',
-      env: {
-        ...process.env,
-        NETLIFY_AUTH_TOKEN: token,
-        NETLIFY_SITE_ID: siteId,
-      },
-    })
-    console.log('✓ 环境变量同步完成！')
-  } catch (err) {
-    console.warn(`⚠️ 环境变量同步警告: ${err.message}`)
-  } finally {
-    if (existsSync(tempEnvPath)) {
-      unlinkSync(tempEnvPath)
+  const plainEnvVars = allEnvVars.filter((item) => !SENSITIVE_KEYS.has(item.key))
+  const secretEnvVars = allEnvVars.filter((item) => SENSITIVE_KEYS.has(item.key))
+
+  // 4. 自动同步环境变量至 Netlify 站点
+  console.log(`🔄 正在自动同步环境变量至 Netlify 站点 (${siteId})...`)
+
+  // 4.1 若未配置私有仓库 GH_TOKEN，主动清除 Netlify 生产环境中可能遗留的旧 GH_TOKEN / PAT_TOKEN
+  if (!ghToken) {
+    for (const legacyKey of ['GH_TOKEN', 'PAT_TOKEN']) {
+      try {
+        execSync(`npx --yes netlify-cli env:unset ${legacyKey}`, {
+          stdio: 'ignore',
+          env: {
+            ...process.env,
+            NETLIFY_AUTH_TOKEN: token,
+            NETLIFY_SITE_ID: siteId,
+          },
+        })
+        console.log(`   🧹 已从 Netlify 生产环境清理遗留变量: ${legacyKey}`)
+      } catch {
+        // 不存在则忽略
+      }
+    }
+  }
+
+  // 4.2 普通变量通过 env:import 批量导入
+  if (plainEnvVars.length > 0) {
+    const tempEnvPath = resolve(process.cwd(), '.env.netlify.tmp')
+    try {
+      const envLines = plainEnvVars.map(({ key, value }) => `${key}=${value.trim()}`).join('\n')
+      writeFileSync(tempEnvPath, envLines, 'utf-8')
+
+      execSync(`npx --yes netlify-cli env:import "${tempEnvPath}"`, {
+        stdio: 'inherit',
+        env: {
+          ...process.env,
+          NETLIFY_AUTH_TOKEN: token,
+          NETLIFY_SITE_ID: siteId,
+        },
+      })
+      console.log(`✓ 已同步 ${plainEnvVars.length} 项常规配置变量`)
+    } catch (err) {
+      console.warn(`⚠️ 常规环境变量同步警告: ${err.message}`)
+    } finally {
+      if (existsSync(tempEnvPath)) {
+        unlinkSync(tempEnvPath)
+      }
+    }
+  }
+
+  // 4.3 敏感密钥通过 env:set --secret 作为密文注入
+  for (const { key, value } of secretEnvVars) {
+    try {
+      execSync(`npx --yes netlify-cli env:set ${key} "${value.trim()}" --secret`, {
+        stdio: 'inherit',
+        env: {
+          ...process.env,
+          NETLIFY_AUTH_TOKEN: token,
+          NETLIFY_SITE_ID: siteId,
+        },
+      })
+      console.log(`   ✓ 同步密文: ${key} (Netlify Secret)`)
+    } catch {
+      try {
+        execSync(`npx --yes netlify-cli env:set ${key} "${value.trim()}"`, {
+          stdio: 'inherit',
+          env: {
+            ...process.env,
+            NETLIFY_AUTH_TOKEN: token,
+            NETLIFY_SITE_ID: siteId,
+          },
+        })
+        console.log(`   ✓ 同步变量: ${key}`)
+      } catch (e) {
+        console.warn(`   ⚠️ 同步密文 ${key} 失败: ${e.message}`)
+      }
     }
   }
 

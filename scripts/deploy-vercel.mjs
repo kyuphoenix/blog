@@ -114,7 +114,8 @@ async function main() {
   const ghOwner = process.env.GH_OWNER || process.env.GITHUB_OWNER
   const ghRepo = process.env.GH_REPO || process.env.GITHUB_REPO
   const ghBranch = process.env.GH_BRANCH || process.env.GITHUB_BRANCH || 'main'
-  const ghToken = process.env.GH_TOKEN || process.env.PAT_TOKEN || process.env.GITHUB_TOKEN
+  // ⚠️ 仅当显式配置了 GH_TOKEN（例如私有文章仓库读取授权）时才同步给生产环境，严禁将 CI/CD 级别的 PAT_TOKEN 写入生产
+  const ghToken = process.env.GH_TOKEN?.trim()
 
   const envVars = [
     { key: 'BLOG_URL', value: process.env.BLOG_URL },
@@ -170,6 +171,26 @@ async function main() {
     }
   } catch (err) {
     console.warn(`⚠️ 查询现有环境变量异常: ${err.message}`)
+  }
+
+  // 3.1 若未配置私有文章仓库 GH_TOKEN，主动清除 Vercel 中可能遗留的旧 GH_TOKEN / PAT_TOKEN
+  if (!ghToken && existingEnvs.length > 0) {
+    const legacyTokens = existingEnvs.filter((e) => e.key === 'GH_TOKEN' || e.key === 'PAT_TOKEN')
+    for (const legacy of legacyTokens) {
+      try {
+        console.log(`   🧹 检测到未配置 GH_TOKEN，正在自动清除生产环境遗留的敏感变量: ${legacy.key} (${legacy.id})...`)
+        await fetch(
+          `https://api.vercel.com/v9/projects/${encodeURIComponent(projectName)}/env/${legacy.id}`,
+          {
+            method: 'DELETE',
+            headers: apiHeaders,
+          }
+        )
+        console.log(`   ✓ 成功从 Vercel 生产环境移除遗留变量: ${legacy.key}`)
+      } catch (err) {
+        console.warn(`   ⚠️ 移除遗留变量 ${legacy.key} 异常: ${err.message}`)
+      }
+    }
   }
 
   console.log(`🔄 正在自动同步 ${envVars.length} 个环境变量至 Vercel 项目...`)
