@@ -332,15 +332,15 @@ actions:
     fields:
       - name: purge_cf
         label: 强制刷新 Cloudflare 全球 CDN 边缘缓存
-        type: boolean
+        type: checkbox
         default: true
       - name: purge_netlify
         label: 强制刷新 Netlify 全球 CDN 边缘缓存
-        type: boolean
+        type: checkbox
         default: true
       - name: trigger_vercel
         label: 强制刷新 Vercel 全球 CDN 边缘缓存
-        type: boolean
+        type: checkbox
         default: true
   - name: deploy-worker
     label: 部署 Worker (Cloudflare)
