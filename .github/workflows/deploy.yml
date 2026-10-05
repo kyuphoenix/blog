@@ -73,7 +73,7 @@ jobs:
           CLOUDFLARE_D1_ID: ${{ secrets.CLOUDFLARE_D1_ID || vars.CLOUDFLARE_D1_ID || vars.D1_DATABASE_ID }}
         run: pnpm init:supabase
 
-      # 将代码所需的运行期环境变量（BLOG_URL、GISCUS_*、GH_*、数据库配置、密钥等）直接部署到 Worker 环境变量中
+      # 将非敏感运行期环境变量直接部署到 Worker 环境变量中
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
         with:
@@ -82,7 +82,6 @@ jobs:
           vars: |
             DATABASE_TYPE
             SUPABASE_URL
-            SUPABASE_KEY
             BLOG_URL
             GH_OWNER
             GH_REPO
@@ -93,12 +92,9 @@ jobs:
             GISCUS_CATEGORY_ID
             GISCUS_THEME_LIGHT
             GISCUS_THEME_DARK
-            PURGE_SECRET
-            GH_TOKEN
         env:
           DATABASE_TYPE: ${{ github.event.inputs.database_type || vars.DATABASE_TYPE || 'auto' }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY || vars.SUPABASE_KEY || secrets.SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY }}
           BLOG_URL: ${{ vars.BLOG_URL || secrets.BLOG_URL }}
           GH_OWNER: ${{ vars.GH_OWNER || vars.GITHUB_OWNER || github.repository_owner }}
           GH_REPO: ${{ vars.GH_REPO || vars.GITHUB_REPO || github.event.repository.name }}
@@ -109,5 +105,16 @@ jobs:
           GISCUS_CATEGORY_ID: ${{ vars.GISCUS_CATEGORY_ID }}
           GISCUS_THEME_LIGHT: ${{ vars.GISCUS_THEME_LIGHT }}
           GISCUS_THEME_DARK: ${{ vars.GISCUS_THEME_DARK }}
+
+      # 将敏感凭据（PURGE_SECRET、SUPABASE_KEY 等）作为加密 Secret 同步到 Cloudflare Worker
+      - name: Sync Cloudflare Worker Secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
+          WORKER_NAME: ${{ vars.WORKER_NAME || 'blog' }}
           PURGE_SECRET: ${{ secrets.PURGE_SECRET }}
-          GH_TOKEN: ${{ secrets.GH_TOKEN || secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY || vars.SUPABASE_KEY || secrets.SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL || secrets.SUPABASE_DB_URL || vars.DATABASE_URL || vars.SUPABASE_DB_URL }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: pnpm sync:cf-secrets

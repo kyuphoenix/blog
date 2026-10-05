@@ -114,7 +114,8 @@ async function main() {
   const ghOwner = process.env.GH_OWNER || process.env.GITHUB_OWNER
   const ghRepo = process.env.GH_REPO || process.env.GITHUB_REPO
   const ghBranch = process.env.GH_BRANCH || process.env.GITHUB_BRANCH || 'main'
-  const ghToken = process.env.GH_TOKEN || process.env.PAT_TOKEN || process.env.GITHUB_TOKEN
+  // ⚠️ 仅当显式配置了 GH_TOKEN（例如私有文章仓库读取授权）时才同步给生产环境，严禁将 CI/CD 级别的 PAT_TOKEN 写入生产
+  const ghToken = process.env.GH_TOKEN?.trim()
 
   const envVars = [
     { key: 'BLOG_URL', value: process.env.BLOG_URL },
@@ -128,6 +129,8 @@ async function main() {
     { key: 'DATABASE_TYPE', value: process.env.DATABASE_TYPE || 'auto' },
     { key: 'SUPABASE_URL', value: process.env.SUPABASE_URL },
     { key: 'SUPABASE_KEY', value: process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY },
+    { key: 'SUPABASE_SERVICE_ROLE_KEY', value: process.env.SUPABASE_SERVICE_ROLE_KEY },
+    { key: 'DATABASE_URL', value: process.env.DATABASE_URL },
     { key: 'PURGE_SECRET', value: process.env.PURGE_SECRET },
     { key: 'GISCUS_REPO', value: process.env.GISCUS_REPO },
     { key: 'GISCUS_REPO_ID', value: process.env.GISCUS_REPO_ID },
@@ -137,27 +140,166 @@ async function main() {
     { key: 'GISCUS_THEME_DARK', value: process.env.GISCUS_THEME_DARK },
   ].filter((item) => item.value && item.value.trim() !== '')
 
-  // 3. 自动同步环境变量至 Vercel 项目（免去手动在控制台添加）
+  // 3. 自动同步环境变量至 Vercel 项目（敏感密钥使用 sensitive 密文保护）
+  const SENSITIVE_KEYS = new Set([
+    'GH_TOKEN',
+    'PAT_TOKEN',
+    'GITHUB_TOKEN',
+    'PURGE_SECRET',
+    'SUPABASE_KEY',
+    'SUPABASE_ANON_KEY',
+    'SUPABASE_SERVICE_ROLE_KEY',
+    'SUPABASE_ACCESS_TOKEN',
+    'DATABASE_URL',
+    'JWT_SECRET',
+  ])
+
+  console.log(`🔄 正在查询 Vercel 项目现有环境变量配置...`)
+  let existingEnvs = []
+  try {
+    const listRes = await fetch(
+      `https://api.vercel.com/v10/projects/${encodeURIComponent(projectName)}/env`,
+      { headers: apiHeaders }
+    )
+    if (listRes.ok) {
+      const data = await listRes.json()
+      existingEnvs = data.envs || []
+      console.log(`✓ 获取到现有环境变量 ${existingEnvs.length} 项`)
+    } else {
+      const errText = await listRes.text()
+      console.warn(`⚠️ 查询现有环境变量返回 [${listRes.status}]: ${errText}`)
+    }
+  } catch (err) {
+    console.warn(`⚠️ 查询现有环境变量异常: ${err.message}`)
+  }
+
+  // 3.1 若未配置私有文章仓库 GH_TOKEN，主动清除 Vercel 中可能遗留的旧 GH_TOKEN / PAT_TOKEN
+  if (!ghToken && existingEnvs.length > 0) {
+    const legacyTokens = existingEnvs.filter((e) => e.key === 'GH_TOKEN' || e.key === 'PAT_TOKEN')
+    for (const legacy of legacyTokens) {
+      try {
+        console.log(`   🧹 检测到未配置 GH_TOKEN，正在自动清除生产环境遗留的敏感变量: ${legacy.key} (${legacy.id})...`)
+        await fetch(
+          `https://api.vercel.com/v9/projects/${encodeURIComponent(projectName)}/env/${legacy.id}`,
+          {
+            method: 'DELETE',
+            headers: apiHeaders,
+          }
+        )
+        console.log(`   ✓ 成功从 Vercel 生产环境移除遗留变量: ${legacy.key}`)
+      } catch (err) {
+        console.warn(`   ⚠️ 移除遗留变量 ${legacy.key} 异常: ${err.message}`)
+      }
+    }
+  }
+
   console.log(`🔄 正在自动同步 ${envVars.length} 个环境变量至 Vercel 项目...`)
   for (const { key, value } of envVars) {
+    const isSensitive = SENSITIVE_KEYS.has(key)
+    const targetType = isSensitive ? 'sensitive' : 'plain'
+
+    // 检查是否存在类型不一致的历史变量（如历史 plain 变量需升级为 sensitive 密文保护）
+    // Vercel upsert 不允许直接更改变量类型，必须先删除旧类型变量后再以新类型创建
+    const mismatchedEnvs = existingEnvs.filter(
+      (e) => e.key === key && e.type !== targetType
+    )
+
+    for (const mismatched of mismatchedEnvs) {
+      try {
+        console.log(`   🔄 发现变量 ${key} 当前为 [${mismatched.type}] 类型，正在删除旧变量以升级为 [${targetType}]...`)
+        const delRes = await fetch(
+          `https://api.vercel.com/v9/projects/${encodeURIComponent(projectName)}/env/${mismatched.id}`,
+          {
+            method: 'DELETE',
+            headers: apiHeaders,
+          }
+        )
+        if (delRes.ok) {
+          console.log(`   ✓ 成功清理旧类型变量: ${key} (${mismatched.id})`)
+        } else {
+          console.warn(`   ⚠️ 清理旧变量 ${key} 状态 [${delRes.status}]`)
+        }
+      } catch (delErr) {
+        console.warn(`   ⚠️ 清理旧变量 ${key} 异常: ${delErr.message}`)
+      }
+    }
+
     try {
-      const envRes = await fetch(
+      const bodyPayload = {
+        key,
+        value: value.trim(),
+        type: targetType,
+        target: ['production', 'preview', 'development'],
+      }
+      if (isSensitive) {
+        bodyPayload.visibility = 'secret'
+      }
+
+      let envRes = await fetch(
         `https://api.vercel.com/v10/projects/${encodeURIComponent(projectName)}/env?upsert=true`,
         {
           method: 'POST',
           headers: apiHeaders,
-          body: JSON.stringify({
-            key,
-            value: value.trim(),
-            type: 'plain',
-            target: ['production', 'preview', 'development'],
-          }),
+          body: JSON.stringify(bodyPayload),
         }
       )
+
+      // 容错 1：若带 visibility: 'secret' 请求失败，尝试去掉 visibility 仅保留 type: 'sensitive'
+      if (!envRes.ok && isSensitive && bodyPayload.visibility) {
+        delete bodyPayload.visibility
+        const retryRes = await fetch(
+          `https://api.vercel.com/v10/projects/${encodeURIComponent(projectName)}/env?upsert=true`,
+          {
+            method: 'POST',
+            headers: apiHeaders,
+            body: JSON.stringify(bodyPayload),
+          }
+        )
+        if (retryRes.ok) {
+          envRes = retryRes
+        }
+      }
+
+      // 容错 2：若仍失败且属于类型冲突（可能由于 list 漏测），尝试主动删除同名变量后再次 POST
+      if (!envRes.ok && envRes.status === 400) {
+        try {
+          const freshListRes = await fetch(
+            `https://api.vercel.com/v10/projects/${encodeURIComponent(projectName)}/env`,
+            { headers: apiHeaders }
+          )
+          if (freshListRes.ok) {
+            const freshData = await freshListRes.json()
+            const toDelete = (freshData.envs || []).filter((e) => e.key === key)
+            for (const item of toDelete) {
+              await fetch(
+                `https://api.vercel.com/v9/projects/${encodeURIComponent(projectName)}/env/${item.id}`,
+                {
+                  method: 'DELETE',
+                  headers: apiHeaders,
+                }
+              )
+            }
+            if (toDelete.length > 0) {
+              envRes = await fetch(
+                `https://api.vercel.com/v10/projects/${encodeURIComponent(projectName)}/env?upsert=true`,
+                {
+                  method: 'POST',
+                  headers: apiHeaders,
+                  body: JSON.stringify(bodyPayload),
+                }
+              )
+            }
+          }
+        } catch {
+          // 忽略二次容错异常
+        }
+      }
+
       if (envRes.ok) {
-        console.log(`   ✓ 同步变量: ${key}`)
+        console.log(`   ✓ 同步变量: ${key} [${targetType}${isSensitive ? ' (密文 Secret)' : ''}]`)
       } else {
-        console.warn(`   ⚠️ 同步变量 ${key} 返回: ${envRes.status}`)
+        const errText = await envRes.text()
+        console.warn(`   ⚠️ 同步变量 ${key} 返回: ${envRes.status} - ${errText}`)
       }
     } catch (e) {
       console.warn(`   ⚠️ 同步变量 ${key} 失败: ${e.message}`)
