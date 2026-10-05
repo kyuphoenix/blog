@@ -25,6 +25,13 @@ postPage.get('/', (c) => {
   return c.redirect(`/${url.search}`, 301)
 })
 
+// 兼容文章末尾携带斜杠的情况，自动 301 重定向到标准文章路径
+postPage.get('/:title/', (c) => {
+  const title = c.req.param('title')
+  const url = new URL(c.req.url)
+  return c.redirect(`/posts/${encodeURIComponent(decodeURIComponent(title))}${url.search}`, 301)
+})
+
 interface TocItem {
   id: string
   text: string

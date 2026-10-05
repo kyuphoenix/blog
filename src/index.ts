@@ -27,6 +27,21 @@ app.use('*', async (c, next) => {
   await next()
 })
 
+// 全局末尾斜杠容错中间件：若任何页面请求因末尾带有 / 导致 404，自动 301 重定向去除末尾斜杠
+app.use('*', async (c, next) => {
+  await next()
+  if (
+    c.res.status === 404 &&
+    (c.req.method === 'GET' || c.req.method === 'HEAD') &&
+    c.req.path !== '/' &&
+    c.req.path.endsWith('/')
+  ) {
+    const url = new URL(c.req.url)
+    const cleanPath = url.pathname.replace(/\/+$/, '')
+    return (c.res = c.redirect(`${cleanPath}${url.search}`, 301))
+  }
+})
+
 // Giscus 自定义主题样式路由（附带 CORS 响应头，确保 giscus.app iframe 可以跨域加载）
 app.get('/css/giscus-fuwari-light.css', (c) => {
   return c.text(giscusLightCss, 200, {
@@ -327,8 +342,8 @@ app.get('/post', (c) => {
 })
 app.get('/post/*', (c) => {
   const url = new URL(c.req.url)
-  const target = url.pathname.replace(/^\/post(\/|$)/, '/posts$1') + url.search
-  return c.redirect(target, 301)
+  const cleanPath = url.pathname.replace(/^\/post\/?/, '/posts/').replace(/\/+$/, '')
+  return c.redirect(`${cleanPath || '/posts'}${url.search}`, 301)
 })
 
 // 页面路由 (SSR)
