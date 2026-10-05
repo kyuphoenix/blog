@@ -40,3 +40,9 @@ export interface FriendLink {
   avatar: string
 }
 
+export interface AboutContent {
+  title: string
+  description?: string
+  content: string
+}
+

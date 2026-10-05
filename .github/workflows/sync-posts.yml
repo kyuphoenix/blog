@@ -9,6 +9,7 @@ on:
       - 'posts/**'
       - 'friends.json'
       - 'blog.config.json'
+      - 'about.md'
   workflow_dispatch:
     inputs:
       payload:
