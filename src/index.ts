@@ -13,6 +13,7 @@ import { getManifest, getBlogConfig } from './services/github.js'
 import { giscusLightCss, giscusDarkCss } from './styles/giscusTheme.js'
 import { swupClientJs } from './scripts/swupBundle.js'
 import { sitemapXsl } from './styles/sitemapXsl.js'
+import { setTieredCache } from './utils/cache.js'
 
 const app = new Hono<AppEnv>()
 
@@ -231,9 +232,10 @@ app.get('/rss.xml', async (c) => {
   </channel>
 </rss>`
 
+  setTieredCache(c, { browserMaxAge: 0, edgeMaxAge: 3600, swrMaxAge: 86400, tags: ['rss'] })
+
   return c.text(rss, 200, {
     'Content-Type': 'application/xml; charset=utf-8',
-    'Cache-Control': 'public, max-age=3600, s-maxage=3600',
   })
 })
 
@@ -314,9 +316,10 @@ ${staticPages
 ${articlePages.join('\n')}
 </urlset>`
 
+  setTieredCache(c, { browserMaxAge: 0, edgeMaxAge: 3600, swrMaxAge: 86400, tags: ['sitemap'] })
+
   return c.text(sitemapXml, 200, {
     'Content-Type': 'application/xml; charset=utf-8',
-    'Cache-Control': 'public, max-age=3600, s-maxage=3600',
   })
 })
 
@@ -329,9 +332,10 @@ Disallow: /api/
 
 Sitemap: ${baseUrl}/sitemap.xml
 `
+  setTieredCache(c, { browserMaxAge: 86400, edgeMaxAge: 604800, swrMaxAge: 604800, tags: ['robots'] })
+
   return c.text(robotsTxt, 200, {
     'Content-Type': 'text/plain; charset=utf-8',
-    'Cache-Control': 'public, max-age=86400, s-maxage=86400',
   })
 })
 

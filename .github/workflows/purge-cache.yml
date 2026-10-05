@@ -1,37 +1,34 @@
-name: Sync Posts & Refresh Cache
+name: Force Purge All Caches
 
-# 当文章目录有变动或推送时触发，或通过 Pages CMS 手动触发
+# 专用于手动一键强制刷新全量缓存 (支持页面端与 GitHub Actions 页面触发)
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'posts/**'
-      - 'friends.json'
-      - 'blog.config.json'
-      - 'about.md'
   workflow_dispatch:
     inputs:
+      purge_cf:
+        description: '是否强制刷新 Cloudflare 全球 CDN 边缘缓存'
+        type: boolean
+        default: true
+      purge_netlify:
+        description: '是否强制刷新 Netlify 全球 CDN 边缘缓存'
+        type: boolean
+        default: true
+      trigger_vercel:
+        description: '是否触发 Vercel Deploy Hook 刷新全量 CDN'
+        type: boolean
+        default: true
       payload:
         description: 'Pages CMS 上下文 Payload'
         required: false
         type: string
-      force_purge:
-        description: '是否强制刷新全部 CDN 边缘缓存 (Cloudflare / Netlify / Vercel)'
-        required: false
-        default: true
-        type: boolean
 
 concurrency:
-  group: sync-posts-${{ github.ref }}
+  group: purge-cache-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  sync-posts:
+  purge-all:
     runs-on: ubuntu-latest
-    name: Sync Posts & Re-cache
-    permissions:
-      contents: write
+    name: Force Invalidate All Caches
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -43,21 +40,8 @@ jobs:
         with:
           node-version: 22
 
-      - name: Update post manifest
+      - name: Regenerate manifest if needed
         run: node scripts/gen-manifest.mjs
-
-      - name: Commit & push manifest if updated
-        run: |
-          if ! git diff --quiet posts/manifest.json; then
-            echo "检测到 manifest.json 发生变动，自动提交最新文章清单..."
-            git config --local user.email "github-actions[bot]@users.noreply.github.com"
-            git config --local user.name "github-actions[bot]"
-            git add posts/manifest.json
-            git commit -m "chore: auto-update posts/manifest.json [skip ci]"
-            git push
-          else
-            echo "manifest.json 已是最新，无需提交。"
-          fi
 
       # 1. 通知博客服务端清除底层 KV / 内存缓存并重新预热
       - name: Notify Blog Backend to purge KV and re-cache
@@ -67,7 +51,6 @@ jobs:
 
           if [ -z "$BLOG_URL" ]; then
             echo "⚠️ 未配置 BLOG_URL，跳过博客后端缓存刷新通知。"
-            echo "提示：请在 GitHub 仓库 Settings -> Secrets and variables -> Actions 中设置变量 BLOG_URL (如: https://blog.example.com)"
             exit 0
           fi
 
@@ -86,8 +69,9 @@ jobs:
             echo "⚠️ 缓存刷新请求返回非 2xx 状态码: $HTTP_CODE (请核对 PURGE_SECRET 与服务端状态)"
           fi
 
-      # 2. 强制清除 Cloudflare 全球 CDN 边缘节点缓存 (如果配置了凭证)
+      # 2. 强制清除 Cloudflare 全球 CDN 边缘节点缓存
       - name: Force Purge Cloudflare CDN Cache
+        if: ${{ github.event.inputs.purge_cf != 'false' }}
         run: |
           CF_ZONE_ID="${{ secrets.CLOUDFLARE_ZONE_ID || vars.CLOUDFLARE_ZONE_ID }}"
           CF_TOKEN="${{ secrets.CLOUDFLARE_API_TOKEN }}"
@@ -115,8 +99,9 @@ jobs:
             echo "⚠️ Cloudflare CDN 清除未返回 2xx (请检查 Token 权限是否包含 Cache Purge)"
           fi
 
-      # 3. 强制清除 Netlify 全球 CDN 边缘节点缓存 (如果配置了凭证)
+      # 3. 强制清除 Netlify 全球 CDN 边缘节点缓存
       - name: Force Purge Netlify CDN Cache
+        if: ${{ github.event.inputs.purge_netlify != 'false' }}
         run: |
           NETLIFY_SITE_ID="${{ secrets.NETLIFY_SITE_ID || vars.NETLIFY_SITE_ID || secrets.NETLIFY_PROJECT_ID || vars.NETLIFY_PROJECT_ID }}"
           NETLIFY_TOKEN="${{ secrets.NETLIFY_API_KEY || secrets.NETLIFY_AUTH_TOKEN || secrets.NETLIFY_TOKEN }}"
@@ -146,6 +131,7 @@ jobs:
 
       # 4. 强制清除 Vercel 全球 CDN 边缘缓存 (优先使用官方 Edge Cache REST API，无需绑定 GitHub 仓库与 Deploy Hook)
       - name: Force Purge Vercel CDN Cache
+        if: ${{ github.event.inputs.trigger_vercel != 'false' }}
         run: |
           VERCEL_TOKEN="${{ secrets.VERCEL_TOKEN || secrets.VERCEL_API_KEY || secrets.VERCEL_AUTH_TOKEN }}"
           VERCEL_PROJECT_ID="${{ secrets.VERCEL_PROJECT_ID || vars.VERCEL_PROJECT_ID || vars.VERCEL_PROJECT_NAME || vars.GH_REPO || github.event.repository.name }}"

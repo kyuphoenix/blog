@@ -3,6 +3,7 @@ import type { AppEnv } from '../types/env.js'
 import { getManifest, getPost, getFriends, getBlogConfig, getAboutContent, purgeCache } from '../services/github.js'
 import { success, paginated, fail } from '../utils/response.js'
 import { parsePagination } from '../utils/pagination.js'
+import { setTieredCache, setNoCache, purgePlatformCaches } from '../utils/cache.js'
 
 const posts = new Hono<AppEnv>()
 
@@ -47,6 +48,7 @@ posts.get('/', async (c) => {
   const total = manifest.length
   const paged = manifest.slice(offset, offset + pageSize)
 
+  setTieredCache(c, { tags: ['api', 'posts'] })
   return paginated(c, paged, total, page, pageSize)
 })
 
@@ -66,6 +68,7 @@ posts.get('/categories', async (c) => {
   const categories = Array.from(categoryMap, ([name, count]) => ({ name, count }))
     .sort((a, b) => b.count - a.count)
 
+  setTieredCache(c, { tags: ['api', 'categories'] })
   return success(c, categories)
 })
 
@@ -87,6 +90,7 @@ posts.get('/tags', async (c) => {
   const tags = Array.from(tagMap, ([name, count]) => ({ name, count }))
     .sort((a, b) => b.count - a.count)
 
+  setTieredCache(c, { tags: ['api', 'tags'] })
   return success(c, tags)
 })
 
@@ -100,13 +104,16 @@ posts.get('/:title', async (c) => {
 
   const post = await getPost(title, c.env)
   if (!post) {
+    setNoCache(c)
     return fail(c, 'Post not found', 404)
   }
 
   if (post.draft === true || (post.draft as any) === 'true') {
+    setNoCache(c)
     return fail(c, 'Post not found', 404)
   }
 
+  setTieredCache(c, { tags: ['api', 'post', `post-${encodeURIComponent(post.title)}`] })
   return success(c, post)
 })
 
@@ -115,6 +122,8 @@ posts.get('/:title', async (c) => {
  * POST /api/posts/purge
  */
 posts.post('/purge', async (c) => {
+  setNoCache(c)
+
   // 密钥验证（支持 PURGE_SECRET 或 GH_TOKEN / PAT_TOKEN）
   const secret = c.req.header('X-Purge-Secret')
   const expectedSecret = c.env.PURGE_SECRET || c.env.GH_TOKEN || c.env.PAT_TOKEN || c.env.GITHUB_TOKEN
@@ -124,6 +133,7 @@ posts.post('/purge', async (c) => {
 
   // 1. 清空旧文章及清单/友链/配置/关于页缓存
   await purgeCache(c.env)
+
   // 2. 立即拉取并重新缓存最新文章列表、友链、配置与关于页
   const [manifest, friends, siteConfig, aboutData] = await Promise.all([
     getManifest(c.env),
@@ -132,6 +142,9 @@ posts.post('/purge', async (c) => {
     getAboutContent(c.env),
   ])
 
+  // 3. 同时主动呼叫云厂商官方 CDN Control Plane 清除边缘缓存 (Cloudflare / Netlify / Vercel)
+  const platformPurges = await purgePlatformCaches(c.env)
+
   return success(
     c,
     {
@@ -139,6 +152,7 @@ posts.post('/purge', async (c) => {
       reCachedFriendsCount: friends.length,
       siteTitle: siteConfig.title,
       aboutTitle: aboutData.title,
+      platformPurges,
     },
     'Cache purged and manifest, friends, config & about re-cached successfully'
   )

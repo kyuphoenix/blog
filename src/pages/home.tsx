@@ -5,6 +5,7 @@ import { PostCardItem } from '../components/PostCard.js'
 import { getManifest, getSidebarData, getBlogConfig } from '../services/github.js'
 import { getTopPosts, getAllPostStats, isStatsEnabled } from '../services/stats.js'
 import { parsePagination } from '../utils/pagination.js'
+import { setTieredCache } from '../utils/cache.js'
 
 const home = new Hono<AppEnv>()
 
@@ -103,6 +104,8 @@ home.get('/', async (c) => {
     pageTitle = `标签: ${tag}`
     pageDescription = `${siteConfig.title} - 包含“#${tag}”标签的所有相关文章与教程（共 ${total} 篇）。`
   }
+
+  setTieredCache(c, { tags: ['page', 'home'] })
 
   return c.html(
     <Layout

@@ -86,9 +86,9 @@
 
 本项目原生支持部署到全球主流边缘计算平台。关于详细的操作步骤、所需权限、必要与可选环境变量清单，请直接参阅完整部署指南：
 
-- ⚡ [cloudflare部署](docs/部署流程.md#cloudflare部署)（主推推荐，支持 GitHub Actions 自动化 CI/CD 与无感建表）
-- ▲ [vercel部署](docs/部署流程.md#vercel部署)（基于 Vercel Edge Runtime，支持 GitHub Actions 自动化与环境变量一键同步）
-- 🌐 [netlify部署](docs/部署流程.md#netlify部署)（基于 Netlify Edge Functions，支持 GitHub Actions 自动化与环境变量一键同步）
+- ⚡ [Cloudflare 部署指南](docs/部署流程.md#cloudflare部署)（主推推荐，支持 GitHub Actions 自动化 CI/CD 与无感建表）👉 [查看所需环境变量配置表](docs/部署流程.md#52-平台独立环境变量)
+- ▲ [Vercel 部署指南](docs/部署流程.md#vercel部署)（基于 Vercel Edge Runtime，支持 GitHub Actions 自动化与环境变量一键同步）👉 [查看所需环境变量配置表](docs/部署流程.md#52-平台独立环境变量)
+- 🌐 [Netlify 部署指南](docs/部署流程.md#netlify部署)（基于 Netlify Edge Functions，支持 GitHub Actions 自动化与环境变量一键同步）👉 [查看所需环境变量配置表](docs/部署流程.md#52-平台独立环境变量)
 
 > 📖 完整多平台部署文档请查阅：[`docs/部署流程.md`](docs/部署流程.md)
 
@@ -162,6 +162,16 @@
 ├── wrangler.jsonc            # Cloudflare Worker 配置文件模板
 └── package.json
 ```
+
+---
+
+## ⚡ 全球 CDN 分层缓存与 SWR (Tiered Cache & SWR)
+
+本项目内置生产级的**四层渐进式分层缓存架构**（客户端浏览器、全球边缘 CDN、分布式持久化存储、源数据源），结合 **SWR (Stale-While-Revalidate)** 异步预热机制与全球 CDN 强刷工作流：
+- **极致首屏加速**：99% 的读者访问直接由 Cloudflare / Vercel / Netlify 全球 300+ 边缘机房毫秒级响应，彻底杜绝 GitHub API 限流。
+- **实时内容生效**：通过 GitHub Actions 与 Webhook 机制，更新文章或修改配置时支持毫秒级广播清除全球 CDN 缓存。
+
+> 📖 **关于四层渐进式架构原理、三大平台边缘控制头适配与强制缓存失效环境变量配置，请查阅完整文档**：[**`docs/缓存.md`**](docs/缓存.md)。
 
 ---
 

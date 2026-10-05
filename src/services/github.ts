@@ -4,7 +4,19 @@ import { parseFrontmatter, estimateReadingTime, extractExcerpt } from '../utils/
 import { getBlogStorage } from './storage.js'
 import { blogConfig as defaultBlogConfig, BlogConfig } from '../blog.config.js'
 
-const CACHE_TTL = 60 * 5 // 缓存 5 分钟
+/**
+ * 获取底层持久化/内存缓存时长（秒）
+ * 默认缓存 24 小时 (86400 秒)：结合分层缓存架构与 SWR，数据常驻边缘 KV/内存，彻底杜绝无谓的 GitHub API 请求；
+ * 配合主动 Purge 接口实现秒级发布更新。支持通过环境变量 CACHE_TTL 自定义覆盖。
+ */
+function getCacheTtl(env?: AppEnv['Bindings']): number {
+  if (env?.CACHE_TTL) {
+    const val = Number(env.CACHE_TTL)
+    if (!isNaN(val) && val > 0) return val
+  }
+  return 60 * 60 * 24
+}
+
 const MANIFEST_CACHE_KEY = 'manifest'
 const FRIENDS_CACHE_KEY = 'friends'
 const CONFIG_CACHE_KEY = 'site_config'
@@ -99,7 +111,7 @@ export async function getManifest(env: AppEnv['Bindings']): Promise<Manifest> {
   // 写入缓存
   try {
     await storage.setItem(MANIFEST_CACHE_KEY, manifest, {
-      ttl: CACHE_TTL,
+      ttl: getCacheTtl(env),
     })
   } catch {
     // 写入异常时忽略
@@ -187,7 +199,7 @@ export async function getPost(
   // 写入缓存
   try {
     await storage.setItem(cacheKey, post, {
-      ttl: CACHE_TTL,
+      ttl: getCacheTtl(env),
     })
   } catch {
     // 写入异常时忽略
@@ -238,7 +250,7 @@ export async function getFriends(env: AppEnv['Bindings']): Promise<FriendLink[]>
     // 写入缓存
     try {
       await storage.setItem(FRIENDS_CACHE_KEY, list, {
-        ttl: CACHE_TTL,
+        ttl: getCacheTtl(env),
       })
     } catch {
       // 写入异常时忽略
@@ -305,7 +317,7 @@ export async function getBlogConfig(env?: AppEnv['Bindings']): Promise<BlogConfi
       // 写入缓存
       try {
         await storage.setItem(CONFIG_CACHE_KEY, merged, {
-          ttl: CACHE_TTL,
+          ttl: getCacheTtl(env),
         })
       } catch {
         // 忽略写入缓存失败
@@ -370,7 +382,7 @@ export async function getAboutContent(env?: AppEnv['Bindings']): Promise<AboutCo
       // 写入缓存
       try {
         await storage.setItem(ABOUT_CACHE_KEY, aboutData, {
-          ttl: CACHE_TTL,
+          ttl: getCacheTtl(env),
         })
       } catch {
         // 忽略写入缓存失败

@@ -4,6 +4,7 @@ import type { AppEnv } from '../types/env.js'
 import { Layout, Giscus } from '../components/index.js'
 import { ExternalLinkIcon } from '../components/Icons.js'
 import { getSidebarData, getFriends, getBlogConfig } from '../services/github.js'
+import { setTieredCache } from '../utils/cache.js'
 
 const links = new Hono<AppEnv>()
 
@@ -38,6 +39,8 @@ links.get('/', async (c) => {
   const mailtoUrl = adminEmail
     ? `mailto:${adminEmail}?subject=${mailtoSubject}&body=${mailtoBody}`
     : ''
+
+  setTieredCache(c, { tags: ['page', 'links'] })
 
   return c.html(
     <Layout

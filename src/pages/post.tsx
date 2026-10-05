@@ -15,6 +15,7 @@ import {
 import { getPost, getManifest, getSidebarData, getBlogConfig } from '../services/github.js'
 import { getPostStats, isStatsEnabled } from '../services/stats.js'
 import { processEmbeddedMediaHtml, isHtmlRenderCodeBlock } from '../utils/markdown.js'
+import { setTieredCache, setNoCache } from '../utils/cache.js'
 import { marked } from 'marked'
 
 const postPage = new Hono<AppEnv>()
@@ -49,6 +50,7 @@ postPage.get('/:title', async (c) => {
 
   const isDraft = post?.draft === true || (post?.draft as any) === 'true'
   if (!post || isDraft) {
+    setNoCache(c)
     return c.html(
       <Layout
         title="404 - 文章不存在"
@@ -166,6 +168,8 @@ postPage.get('/:title', async (c) => {
     /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
     '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-(--fuwari-primary) underline hover:opacity-80 transition">$1</a>'
   )
+
+  setTieredCache(c, { tags: ['page', 'post', `post-${encodeURIComponent(post.title)}`] })
 
   return c.html(
     <Layout

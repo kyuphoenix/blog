@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import type { AppEnv } from '../types/env.js'
 import { Layout, ArchivePanel } from '../components/index.js'
 import { getManifest, getSidebarData, getBlogConfig } from '../services/github.js'
+import { setTieredCache } from '../utils/cache.js'
 
 const archive = new Hono<AppEnv>()
 
@@ -15,6 +16,8 @@ archive.get('/', async (c) => {
   const manifest = manifestRaw
     .filter((p) => p.draft !== true && (p.draft as any) !== 'true')
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+  setTieredCache(c, { tags: ['page', 'archive'] })
 
   return c.html(
     <Layout

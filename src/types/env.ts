@@ -53,6 +53,25 @@ export type Bindings = {
   SUPABASE_ANON_KEY?: string
   ENABLE_STATS?: string | boolean
   DISABLE_STATS?: string | boolean
+  // 边缘 CDN 强制缓存失效与 SWR 配置 (Cloudflare / Netlify / Vercel)
+  CLOUDFLARE_ZONE_ID?: string
+  CLOUDFLARE_API_TOKEN?: string
+  CF_ZONE_ID?: string
+  CF_API_TOKEN?: string
+  NETLIFY_SITE_ID?: string
+  NETLIFY_SITE_SLUG?: string
+  NETLIFY_AUTH_TOKEN?: string
+  NETLIFY_TOKEN?: string
+  NETLIFY_PAT?: string
+  NETLIFY_API_KEY?: string
+  VERCEL_TOKEN?: string
+  VERCEL_API_KEY?: string
+  VERCEL_AUTH_TOKEN?: string
+  VERCEL_PROJECT_ID?: string
+  VERCEL_ORG_ID?: string
+  VERCEL_DEPLOY_HOOK_URL?: string
+  VERCEL_HOOK_URL?: string
+  CACHE_TTL?: string | number
 }
 
 export type Variables = {
