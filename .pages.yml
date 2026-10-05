@@ -322,6 +322,26 @@ actions:
       title: 刷新文章与站点配置缓存？
       message: 重新生成文章清单并通知 Cloudflare Worker 加载最新的文章、友链和站点配置。
       button: 确认同步
+  - name: purge-cache
+    label: 强制清除全球 CDN 缓存 (Force Purge All)
+    workflow: purge-cache.yml
+    confirm:
+      title: 强制清空全球 CDN 缓存？
+      message: 将通知博客后端重新预热，并调用 Cloudflare / Netlify / Vercel 控制平面强制清空全球边缘 CDN 节点缓存。未配置的平台将自动安全跳过。
+      button: 确认强刷
+    fields:
+      - name: purge_cf
+        label: 强制刷新 Cloudflare 全球 CDN 边缘缓存
+        type: boolean
+        default: true
+      - name: purge_netlify
+        label: 强制刷新 Netlify 全球 CDN 边缘缓存
+        type: boolean
+        default: true
+      - name: trigger_vercel
+        label: 强制刷新 Vercel 全球 CDN 边缘缓存
+        type: boolean
+        default: true
   - name: deploy-worker
     label: 部署 Worker (Cloudflare)
     workflow: deploy.yml

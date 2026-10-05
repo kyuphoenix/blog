@@ -107,6 +107,10 @@
   - 进入 GitHub 仓库的 **Actions** 标签页，在左侧选择 **Sync Template Updates**。
   - 点击 **Run workflow** -> 选择 `direct`（直接合并）即可一键同步！工作流会自动精准关联上游历史，安全保留你自定义的文章（`posts/`）、站点配置（`blog.config.json`）与友链（`friends.json`）。
   - 💡 **自动部署提示**：若希望代码同步合并后**立即自动触发后续部署工作流**，可在仓库 Secrets 中配置个人访问令牌 `PAT_TOKEN`（或 `GH_TOKEN`），以绕过 GitHub 默认 Token 的防递归触发机制。
+- **手动一键强刷全网 CDN 缓存 (Force Purge All Caches)**：
+  支持随时在 GitHub Actions 页面（选择 `Force Purge All Caches`）或 **Pages CMS** 后台一键手动触发全网 CDN 强刷。
+  - **功能**：重新生成文章清单，通知博客服务端预热，并调用 Cloudflare / Netlify / Vercel 官方控制平面毫秒级强制清空全球边缘节点缓存。
+  - 💡 **安全解耦特性（自动跳过未配置平台）**：工作流内置严格的凭证判空守卫。若你仅部署了其中某一平台（如 Cloudflare），工作流会自动检测并安全跳过未配置的其他平台，整个流程保持 100% 成功状态（绿色对勾 ✅），绝不报错阻断。
 - **切换数据库后端**：
   直接在 GitHub Actions 中重新运行 **Deploy to Cloudflare Workers**，在下拉框中选择 `d1` 或 `supabase` 重新构建部署即可无缝切换！
 - **查看数据库运行状态**：
@@ -123,6 +127,7 @@
 │   ├── deploy-vercel.yml     # Vercel Edge 自动化部署与环境变量同步工作流
 │   ├── deploy-netlify.yml    # Netlify Edge 自动化部署与环境变量同步工作流
 │   ├── sync-posts.yml        # 文章自动同步与缓存热刷新工作流
+│   ├── purge-cache.yml       # 手动一键强刷全球 CDN 缓存工作流 (支持多平台解耦跳过)
 │   └── sync-template.yml     # 一键从上游模板仓库同步最新功能与修复工作流
 ├── .pages.yml                # Pages CMS 可视化内容管理后台配置文件
 ├── blog.config.json          # 博客全局基础设置 (标题、作者、头像、背景图、主题色等)
@@ -170,6 +175,7 @@
 本项目内置生产级的**四层渐进式分层缓存架构**（客户端浏览器、全球边缘 CDN、分布式持久化存储、源数据源），结合 **SWR (Stale-While-Revalidate)** 异步预热机制与全球 CDN 强刷工作流：
 - **极致首屏加速**：99% 的读者访问直接由 Cloudflare / Vercel / Netlify 全球 300+ 边缘机房毫秒级响应，彻底杜绝 GitHub API 限流。
 - **实时内容生效**：通过 GitHub Actions 与 Webhook 机制，更新文章或修改配置时支持毫秒级广播清除全球 CDN 缓存。
+- **智能解耦与自动跳过**：内置的强制清除缓存工作流（`Force Purge All Caches`）具备安全兜底机制，自动识别各平台凭证配置情况，未配置的平台将自动优雅跳过且流程保持成功，单平台部署与多平台容灾均无缝适配。
 
 > 📖 **关于四层渐进式架构原理、三大平台边缘控制头适配与强制缓存失效环境变量配置，请查阅完整文档**：[**`docs/缓存.md`**](docs/缓存.md)。
 
