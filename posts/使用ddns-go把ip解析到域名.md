@@ -13,15 +13,16 @@ excerpt: 本文指导如何将公网 IPv6 地址解析到 Cloudflare 域名。�
 draft: false
 ---
 # 引言
+
 之前教大家把[域名托管到了cloudflare](/posts/托管域名到cloudflare/)，这次教大家使用自己的域名。使用域名的方法很多，这篇文章讲如何把ip地址解析到域名（即ddns)
 
 鉴于大部分人都没有公网ipv4，这篇文章主要讲如何解析ipv6地址到域名。
 
 视频教程
-<iframe src="//player.bilibili.com/player.html?isOutside=true&aid=116171449960067&bvid=BV145PqzVEWE&cid=36454600547&p=1&autoplay=0" 
-		scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true" 
-        loading="lazy"
-        style="width: 100%; height: 500px;"></iframe>
+
+```html render
+<iframe src="//player.bilibili.com/player.html?isOutside=true&aid=116171449960067&bvid=BV145PqzVEWE&cid=36454600547&p=1&autoplay=0" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true" loading="lazy" style="width: 100%; height: 500px;"></iframe>
+```
 
 # 确认自己是否有ipv6
 
@@ -41,7 +42,9 @@ draft: false
 然后以管理员身份运行cmd或者powershell，进入ddns-go.exe所在的路径，输入
 `.\ddns-go.exe -s install`
 此时ddns-go服务就安装成功了
+
 # 配置服务
+
 浏览器访问[localhost:9876](http://localhost:9876/)或者[127.0.0.1:9876](http://127.0.0.1:9876/)，来到管理后台![](https://img-bucket.303302.xyz/2026/03/20260304215729116.png)
 输入自己想要使用的用户名和密码（之后登录后台都要使用第一次填写的账号和密码，不要忘记了），点击登录并配置为管理员账号。
 
@@ -66,11 +69,13 @@ draft: false
 
 保存之后配置就完成了
 
-
 # 测试
+
 可以来到itdog的[在线ping ipv6版](https://www.itdog.cn/ping_ipv6/)，输入自己解析使用的域名，例如我是bot.aabbccdd.dpdns.org，点击单次测试。
 
 测试结束之后往下划一点，如果能看到解析出了自己解析到域名的ipv6地址，就代表配置成功了![](https://img-bucket.303302.xyz/2026/03/20260304223909861.png)
 上面的延迟结果大部分人因为防火墙原因都会是全红，只要dns解析没问题就没关系
+
 # 关于ipv4
+
 ipv4同样可以通过这个方法把地址解析到域名（前提是有公网ipv4，不然解析了也没用），但是如果安装在电脑上就要通过接口获取ipv4地址，安装在路由器上可以通过网卡获取（如果是路由器拨号）。同时如果要通过公网ipv4访问除拨号设备以外的内网设备上的服务，要在拨号设备上设置端口转发。
