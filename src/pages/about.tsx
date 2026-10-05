@@ -1,20 +1,43 @@
 import { Hono } from 'hono'
+import { raw } from 'hono/html'
+import { marked } from 'marked'
 import type { AppEnv } from '../types/env.js'
 import { Layout } from '../components/index.js'
-import { getSidebarData, getBlogConfig } from '../services/github.js'
+import { getSidebarData, getBlogConfig, getAboutContent } from '../services/github.js'
 
 const about = new Hono<AppEnv>()
 
 about.get('/', async (c) => {
-  const [{ categories, tags }, siteConfig] = await Promise.all([
+  const [{ categories, tags }, siteConfig, aboutData] = await Promise.all([
     getSidebarData(c.env),
     getBlogConfig(c.env),
+    getAboutContent(c.env),
   ])
+
+  // 配置 marked 渲染器，使外链在新标签页打开
+  const renderer = new marked.Renderer()
+  renderer.link = function ({ href, title, tokens }: any) {
+    const linkText = (this as any).parser.parseInline(tokens)
+    const isExternal = typeof href === 'string' && (href.startsWith('http://') || href.startsWith('https://'))
+    const targetAttr = isExternal ? ' target="_blank" rel="noopener noreferrer"' : ''
+    const titleAttr = title ? ` title="${title}"` : ''
+    return `<a href="${href}"${targetAttr}${titleAttr}>${linkText}</a>`
+  }
+
+  const htmlContent = await marked.parse(aboutData.content, {
+    gfm: true,
+    breaks: true,
+    renderer,
+  })
+
+  const pageTitle = aboutData.title || '关于本站'
+  const pageDescription =
+    aboutData.description || `关于本站 - 了解 ${siteConfig.title} 的技术架构、个人介绍与建站初衷`
 
   return c.html(
     <Layout
-      title="关于"
-      description={`关于本站 - 了解 ${siteConfig.title} 的技术架构、个人介绍与建站初衷`}
+      title={pageTitle}
+      description={pageDescription}
       currentPath="/about"
       isHomePage={false}
       categories={categories}
@@ -28,20 +51,12 @@ about.get('/', async (c) => {
       >
         <div class="relative mb-6">
           <h1 class="transition w-full block font-bold text-3xl fuwari-text-90 md:before:w-1 before:h-5 before:rounded-md before:bg-(--fuwari-primary) before:absolute before:top-2.5 before:-left-4.5">
-            关于本站
+            {pageTitle}
           </h1>
         </div>
 
         <div class="prose dark:prose-invert prose-base max-w-none! fuwari-custom-md">
-          <p>
-            欢迎来到我的个人博客！本站基于 <a href="https://hono.dev" target="_blank" rel="noreferrer">Hono</a> 框架构建
-          </p>
-
-          <h2>核心特性</h2>
-          <ul>
-            <li>📝 <strong>Git 驱动的内容管理</strong>：所有文章以 Markdown 格式存放在 GitHub 仓库的 <code>posts/</code> 目录，构建产物零文章体积。</li>
-            <li>🚀 <strong>零重部署动态更新</strong>：Worker 运行时从 GitHub Raw API 拉取文章并写入 Cloudflare KV 缓存，推送 Markdown 即可更新文章。</li>
-          </ul>
+          {raw(htmlContent)}
         </div>
       </div>
     </Layout>

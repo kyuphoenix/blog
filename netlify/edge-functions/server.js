@@ -3369,6 +3369,7 @@ var CACHE_TTL = 60 * 5;
 var MANIFEST_CACHE_KEY = "manifest";
 var FRIENDS_CACHE_KEY = "friends";
 var CONFIG_CACHE_KEY = "site_config";
+var ABOUT_CACHE_KEY = "page:about";
 function rawUrl(owner, repo, branch, path) {
   const safeBranch = branch && branch.trim() ? branch.trim() : "main";
   return `https://raw.githubusercontent.com/${owner}/${repo}/${safeBranch}/${encodeURI(path)}`;
@@ -3567,13 +3568,59 @@ async function getBlogConfig(env) {
   }
   return blogConfig;
 }
+async function getAboutContent(env) {
+  const storage = getBlogStorage(env);
+  try {
+    const cached = await storage.getItem(ABOUT_CACHE_KEY);
+    if (cached && typeof cached === "object" && cached.content) {
+      return cached;
+    }
+  } catch {
+  }
+  if (!env || !isGitHubConfigured(env)) {
+    return getBuiltinAbout();
+  }
+  try {
+    const { owner, repo, branch, token } = getGhConfig(env);
+    const url = rawUrl(owner, repo, branch, "about.md");
+    const raw2 = await fetchFromGitHub(url, token);
+    if (raw2) {
+      let frontmatter = {};
+      let content = raw2;
+      try {
+        const parsed = parseFrontmatter(raw2);
+        frontmatter = parsed.frontmatter;
+        content = parsed.content;
+      } catch {
+        frontmatter = {};
+        content = raw2;
+      }
+      const aboutData = {
+        title: frontmatter.title || "\u5173\u4E8E\u672C\u7AD9",
+        description: frontmatter.description || void 0,
+        content: content || raw2
+      };
+      try {
+        await storage.setItem(ABOUT_CACHE_KEY, aboutData, {
+          ttl: CACHE_TTL
+        });
+      } catch {
+      }
+      return aboutData;
+    }
+  } catch (err) {
+    console.warn("\u52A8\u6001\u62C9\u53D6 about.md \u5F02\u5E38\uFF0C\u56DE\u9000\u81F3\u5185\u7F6E\u5185\u5BB9:", err);
+  }
+  return getBuiltinAbout();
+}
 async function purgeCache(env) {
   const storage = getBlogStorage(env);
   try {
     await Promise.all([
       storage.removeItem(MANIFEST_CACHE_KEY),
       storage.removeItem(FRIENDS_CACHE_KEY),
-      storage.removeItem(CONFIG_CACHE_KEY)
+      storage.removeItem(CONFIG_CACHE_KEY),
+      storage.removeItem(ABOUT_CACHE_KEY)
     ]);
     const postKeys = await storage.getKeys("post:");
     if (postKeys.length > 0) {
@@ -3730,6 +3777,29 @@ function getBuiltinFriends() {
     }
   ];
 }
+function getBuiltinAbout() {
+  return {
+    title: "\u5173\u4E8E\u672C\u7AD9",
+    description: "\u4E86\u89E3\u672C\u7AD9\u7684\u6280\u672F\u67B6\u6784\u3001\u4E2A\u4EBA\u4ECB\u7ECD\u4E0E\u5EFA\u7AD9\u521D\u8877",
+    content: `\u6B22\u8FCE\u6765\u5230\u6211\u7684\u4E2A\u4EBA\u535A\u5BA2\uFF01\u672C\u7AD9\u57FA\u4E8E [Hono](https://hono.dev) \u6846\u67B6\u6784\u5EFA\uFF0C\u81F4\u529B\u4E8E\u6253\u9020\u4E00\u4E2A\u6781\u901F\u3001\u8F7B\u91CF\u3001\u9AD8\u53EF\u5B9A\u5236\u7684\u73B0\u4EE3\u5316\u72EC\u7ACB\u535A\u5BA2\u7A7A\u95F4\u3002
+
+## \u6838\u5FC3\u7279\u6027
+
+- \u{1F4DD} **Git \u9A71\u52A8\u7684\u5185\u5BB9\u7BA1\u7406**\uFF1A\u6240\u6709\u6587\u7AE0\u4E0E\u9875\u9762\u5747\u4EE5 Markdown \u683C\u5F0F\u5B58\u653E\u5728 GitHub \u4ED3\u5E93\u4E2D\uFF0C\u901A\u8FC7 [Pages CMS](https://pagescms.org) \u6216 Git \u5373\u53EF\u5728\u7EBF\u53EF\u89C6\u5316\u7F16\u8F91\u4E0E\u7BA1\u7406\u3002
+- \u{1F680} **\u96F6\u91CD\u90E8\u7F72\u52A8\u6001\u66F4\u65B0**\uFF1A\u670D\u52A1\u8FD0\u884C\u65F6\u76F4\u63A5\u4ECE GitHub Raw API \u52A8\u6001\u62C9\u53D6\u6700\u65B0\u5185\u5BB9\u5E76\u5199\u5165\u8FB9\u7F18\u7F13\u5B58\uFF08Cloudflare KV / Unstorage\uFF09\uFF0C\u63A8\u9001 Markdown \u5373\u53EF\u79D2\u7EA7\u751F\u6548\uFF0C\u65E0\u9700\u7B49\u5F85\u6F2B\u957F\u7684\u9759\u6001\u6784\u5EFA\u3002
+- \u{1F3A8} **Fuwari \u89C6\u89C9\u7F8E\u5B66**\uFF1A\u7CBE\u5DE7\u7684\u5361\u7247\u5316\u5E03\u5C40\u3001\u5E73\u6ED1\u7684\u6D41\u5F0F\u52A8\u6548\u3001\u5168\u7AEF\u81EA\u9002\u5E94\u54CD\u5E94\u4EE5\u53CA\u4F18\u96C5\u7684\u6697\u8272\u6A21\u5F0F\u4F53\u9A8C\u3002
+- \u26A1 **\u8DE8\u4E91\u591A\u5E73\u53F0\u90E8\u7F72**\uFF1A\u5B8C\u7F8E\u652F\u6301\u4E00\u952E\u90E8\u7F72\u5230 Cloudflare Workers\u3001Vercel \u53CA Netlify\uFF0C\u591A\u8FB9\u7F18\u8282\u70B9\u6781\u901F\u54CD\u5E94\u5168\u7403\u8BBF\u95EE\u3002
+
+## \u5173\u4E8E\u6211
+
+\u8FD9\u91CC\u662F\u6211\u7684\u6570\u5B57\u82B1\u56ED\uFF0C\u6211\u4F1A\u5728\u8FD9\u4E2A\u5C0F\u7AD9\u91CC\u5206\u4EAB\uFF1A
+- \u524D\u7AEF\u4E0E\u5168\u6808\u6280\u672F\u63A2\u7D22\uFF08TypeScript\u3001Hono\u3001Cloudflare Workers \u7B49\uFF09
+- \u6548\u7387\u5DE5\u5177\u3001\u81EA\u52A8\u5316\u5DE5\u4F5C\u6D41\u4E0E\u5F00\u6E90\u9879\u76EE\u5B9E\u8DF5
+- \u65E5\u5E38\u751F\u6D3B\u4E0E\u601D\u8003\u968F\u7B14
+
+\u5982\u679C\u4F60\u60F3\u4E0E\u6211\u4EA4\u6D41\uFF0C\u6B22\u8FCE\u901A\u8FC7\u5BFC\u822A\u680F\u4E2D\u7684\u793E\u4EA4\u5A92\u4F53\u94FE\u63A5\u8054\u7CFB\u6211\uFF0C\u6216\u8005\u524D\u5F80 [\u53CB\u94FE](/links) \u9875\u9762\u4E92\u76F8\u8BA4\u8BC6\uFF01`
+  };
+}
 
 // src/utils/response.ts
 var success = (c, data, message = "Success") => {
@@ -3836,19 +3906,21 @@ posts.post("/purge", async (c) => {
     return fail(c, "Unauthorized", 401);
   }
   await purgeCache(c.env);
-  const [manifest, friends, siteConfig] = await Promise.all([
+  const [manifest, friends, siteConfig, aboutData] = await Promise.all([
     getManifest(c.env),
     getFriends(c.env),
-    getBlogConfig(c.env)
+    getBlogConfig(c.env),
+    getAboutContent(c.env)
   ]);
   return success(
     c,
     {
       reCachedCount: manifest.length,
       reCachedFriendsCount: friends.length,
-      siteTitle: siteConfig.title
+      siteTitle: siteConfig.title,
+      aboutTitle: aboutData.title
     },
-    "Cache purged and manifest, friends & config re-cached successfully"
+    "Cache purged and manifest, friends, config & about re-cached successfully"
   );
 });
 var posts_default = posts;
@@ -30050,16 +30122,32 @@ var archive_default = archive;
 // src/pages/about.tsx
 var about = new Hono2();
 about.get("/", async (c) => {
-  const [{ categories, tags }, siteConfig] = await Promise.all([
+  const [{ categories, tags }, siteConfig, aboutData] = await Promise.all([
     getSidebarData(c.env),
-    getBlogConfig(c.env)
+    getBlogConfig(c.env),
+    getAboutContent(c.env)
   ]);
+  const renderer = new k.Renderer();
+  renderer.link = function({ href, title: title2, tokens }) {
+    const linkText = this.parser.parseInline(tokens);
+    const isExternal = typeof href === "string" && (href.startsWith("http://") || href.startsWith("https://"));
+    const targetAttr = isExternal ? ' target="_blank" rel="noopener noreferrer"' : "";
+    const titleAttr = title2 ? ` title="${title2}"` : "";
+    return `<a href="${href}"${targetAttr}${titleAttr}>${linkText}</a>`;
+  };
+  const htmlContent = await k.parse(aboutData.content, {
+    gfm: true,
+    breaks: true,
+    renderer
+  });
+  const pageTitle = aboutData.title || "\u5173\u4E8E\u672C\u7AD9";
+  const pageDescription = aboutData.description || `\u5173\u4E8E\u672C\u7AD9 - \u4E86\u89E3 ${siteConfig.title} \u7684\u6280\u672F\u67B6\u6784\u3001\u4E2A\u4EBA\u4ECB\u7ECD\u4E0E\u5EFA\u7AD9\u521D\u8877`;
   return c.html(
     /* @__PURE__ */ jsxDEV(
       Layout,
       {
-        title: "\u5173\u4E8E",
-        description: `\u5173\u4E8E\u672C\u7AD9 - \u4E86\u89E3 ${siteConfig.title} \u7684\u6280\u672F\u67B6\u6784\u3001\u4E2A\u4EBA\u4ECB\u7ECD\u4E0E\u5EFA\u7AD9\u521D\u8877`,
+        title: pageTitle,
+        description: pageDescription,
         currentPath: "/about",
         isHomePage: false,
         categories,
@@ -30072,29 +30160,8 @@ about.get("/", async (c) => {
             class: "fuwari-card-base z-10 px-6 md:px-9 pt-6 pb-8 relative w-full fuwari-onload-animation",
             style: "animation-delay: 150ms",
             children: [
-              /* @__PURE__ */ jsxDEV("div", { class: "relative mb-6", children: /* @__PURE__ */ jsxDEV("h1", { class: "transition w-full block font-bold text-3xl fuwari-text-90 md:before:w-1 before:h-5 before:rounded-md before:bg-(--fuwari-primary) before:absolute before:top-2.5 before:-left-4.5", children: "\u5173\u4E8E\u672C\u7AD9" }) }),
-              /* @__PURE__ */ jsxDEV("div", { class: "prose dark:prose-invert prose-base max-w-none! fuwari-custom-md", children: [
-                /* @__PURE__ */ jsxDEV("p", { children: [
-                  "\u6B22\u8FCE\u6765\u5230\u6211\u7684\u4E2A\u4EBA\u535A\u5BA2\uFF01\u672C\u7AD9\u57FA\u4E8E ",
-                  /* @__PURE__ */ jsxDEV("a", { href: "https://hono.dev", target: "_blank", rel: "noreferrer", children: "Hono" }),
-                  " \u6846\u67B6\u6784\u5EFA"
-                ] }),
-                /* @__PURE__ */ jsxDEV("h2", { children: "\u6838\u5FC3\u7279\u6027" }),
-                /* @__PURE__ */ jsxDEV("ul", { children: [
-                  /* @__PURE__ */ jsxDEV("li", { children: [
-                    "\u{1F4DD} ",
-                    /* @__PURE__ */ jsxDEV("strong", { children: "Git \u9A71\u52A8\u7684\u5185\u5BB9\u7BA1\u7406" }),
-                    "\uFF1A\u6240\u6709\u6587\u7AE0\u4EE5 Markdown \u683C\u5F0F\u5B58\u653E\u5728 GitHub \u4ED3\u5E93\u7684 ",
-                    /* @__PURE__ */ jsxDEV("code", { children: "posts/" }),
-                    " \u76EE\u5F55\uFF0C\u6784\u5EFA\u4EA7\u7269\u96F6\u6587\u7AE0\u4F53\u79EF\u3002"
-                  ] }),
-                  /* @__PURE__ */ jsxDEV("li", { children: [
-                    "\u{1F680} ",
-                    /* @__PURE__ */ jsxDEV("strong", { children: "\u96F6\u91CD\u90E8\u7F72\u52A8\u6001\u66F4\u65B0" }),
-                    "\uFF1AWorker \u8FD0\u884C\u65F6\u4ECE GitHub Raw API \u62C9\u53D6\u6587\u7AE0\u5E76\u5199\u5165 Cloudflare KV \u7F13\u5B58\uFF0C\u63A8\u9001 Markdown \u5373\u53EF\u66F4\u65B0\u6587\u7AE0\u3002"
-                  ] })
-                ] })
-              ] })
+              /* @__PURE__ */ jsxDEV("div", { class: "relative mb-6", children: /* @__PURE__ */ jsxDEV("h1", { class: "transition w-full block font-bold text-3xl fuwari-text-90 md:before:w-1 before:h-5 before:rounded-md before:bg-(--fuwari-primary) before:absolute before:top-2.5 before:-left-4.5", children: pageTitle }) }),
+              /* @__PURE__ */ jsxDEV("div", { class: "prose dark:prose-invert prose-base max-w-none! fuwari-custom-md", children: raw(htmlContent) })
             ]
           }
         )
