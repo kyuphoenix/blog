@@ -21,7 +21,7 @@ draft: false
 视频教程
 
 ```html render
-<iframe src="//player.bilibili.com/player.html?isOutside=true&aid=116171449960067&bvid=BV145PqzVEWE&cid=36454600547&p=1&autoplay=false" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"  style="width: 100%; height: 500px;"></iframe>
+<iframe src="//player.bilibili.com/player.html?isOutside=true&bvid=BV145PqzVEWE&p=1&autoplay=0" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true" style="width: 100%; height: 500px;"></iframe>
 ```
 
 # 确认自己是否有ipv6
