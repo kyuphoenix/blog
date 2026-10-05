@@ -4,6 +4,10 @@ name: Deploy to Netlify
 on:
   workflow_dispatch:
     inputs:
+      site_id:
+        description: '指定部署的 Netlify 站点 ID (可选，留空则自动复用现有站点)'
+        required: false
+        type: string
       database_type:
         description: '选择部署连接的数据库类型 (auto: 自动检测, supabase: Supabase, none: 关闭统计)'
         required: false
@@ -27,7 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Deploy to Netlify
     permissions:
-      contents: read
+      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -63,7 +67,7 @@ jobs:
       - name: Deploy to Netlify
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN || secrets.NETLIFY_TOKEN || secrets.NETLIFY_API_KEY }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID || vars.NETLIFY_SITE_ID }}
+          NETLIFY_SITE_ID: ${{ github.event.inputs.site_id || secrets.NETLIFY_SITE_ID || vars.NETLIFY_SITE_ID }}
           NETLIFY_SITE_NAME: ${{ vars.NETLIFY_SITE_NAME || vars.SITE_NAME || vars.GH_REPO || vars.GITHUB_REPO || github.event.repository.name }}
           DATABASE_TYPE: ${{ github.event.inputs.database_type || vars.DATABASE_TYPE || 'auto' }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
