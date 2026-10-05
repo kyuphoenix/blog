@@ -13,6 +13,7 @@ import { getManifest, getBlogConfig } from './services/github.js'
 import { giscusLightCss, giscusDarkCss } from './styles/giscusTheme.js'
 import { swupClientJs } from './scripts/swupBundle.js'
 import { sitemapXsl } from './styles/sitemapXsl.js'
+import { setTieredCache } from './utils/cache.js'
 
 const app = new Hono<AppEnv>()
 
@@ -25,6 +26,21 @@ app.use('*', async (c, next) => {
     c.env = { ...process.env, ...(c.env || {}) } as any
   }
   await next()
+})
+
+// 全局末尾斜杠容错中间件：若任何页面请求因末尾带有 / 导致 404，自动 301 重定向去除末尾斜杠
+app.use('*', async (c, next) => {
+  await next()
+  if (
+    c.res.status === 404 &&
+    (c.req.method === 'GET' || c.req.method === 'HEAD') &&
+    c.req.path !== '/' &&
+    c.req.path.endsWith('/')
+  ) {
+    const url = new URL(c.req.url)
+    const cleanPath = url.pathname.replace(/\/+$/, '')
+    return (c.res = c.redirect(`${cleanPath}${url.search}`, 301))
+  }
 })
 
 // Giscus 自定义主题样式路由（附带 CORS 响应头，确保 giscus.app iframe 可以跨域加载）
@@ -216,9 +232,10 @@ app.get('/rss.xml', async (c) => {
   </channel>
 </rss>`
 
+  setTieredCache(c, { browserMaxAge: 0, edgeMaxAge: 3600, swrMaxAge: 86400, tags: ['rss'] })
+
   return c.text(rss, 200, {
     'Content-Type': 'application/xml; charset=utf-8',
-    'Cache-Control': 'public, max-age=3600, s-maxage=3600',
   })
 })
 
@@ -299,9 +316,10 @@ ${staticPages
 ${articlePages.join('\n')}
 </urlset>`
 
+  setTieredCache(c, { browserMaxAge: 0, edgeMaxAge: 3600, swrMaxAge: 86400, tags: ['sitemap'] })
+
   return c.text(sitemapXml, 200, {
     'Content-Type': 'application/xml; charset=utf-8',
-    'Cache-Control': 'public, max-age=3600, s-maxage=3600',
   })
 })
 
@@ -314,9 +332,10 @@ Disallow: /api/
 
 Sitemap: ${baseUrl}/sitemap.xml
 `
+  setTieredCache(c, { browserMaxAge: 86400, edgeMaxAge: 604800, swrMaxAge: 604800, tags: ['robots'] })
+
   return c.text(robotsTxt, 200, {
     'Content-Type': 'text/plain; charset=utf-8',
-    'Cache-Control': 'public, max-age=86400, s-maxage=86400',
   })
 })
 
@@ -327,8 +346,8 @@ app.get('/post', (c) => {
 })
 app.get('/post/*', (c) => {
   const url = new URL(c.req.url)
-  const target = url.pathname.replace(/^\/post(\/|$)/, '/posts$1') + url.search
-  return c.redirect(target, 301)
+  const cleanPath = url.pathname.replace(/^\/post\/?/, '/posts/').replace(/\/+$/, '')
+  return c.redirect(`${cleanPath || '/posts'}${url.search}`, 301)
 })
 
 // 页面路由 (SSR)

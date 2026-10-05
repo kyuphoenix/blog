@@ -15,6 +15,7 @@ import {
 import { getPost, getManifest, getSidebarData, getBlogConfig } from '../services/github.js'
 import { getPostStats, isStatsEnabled } from '../services/stats.js'
 import { processEmbeddedMediaHtml, isHtmlRenderCodeBlock } from '../utils/markdown.js'
+import { setTieredCache, setNoCache } from '../utils/cache.js'
 import { marked } from 'marked'
 
 const postPage = new Hono<AppEnv>()
@@ -23,6 +24,13 @@ const postPage = new Hono<AppEnv>()
 postPage.get('/', (c) => {
   const url = new URL(c.req.url)
   return c.redirect(`/${url.search}`, 301)
+})
+
+// 兼容文章末尾携带斜杠的情况，自动 301 重定向到标准文章路径
+postPage.get('/:title/', (c) => {
+  const title = c.req.param('title')
+  const url = new URL(c.req.url)
+  return c.redirect(`/posts/${encodeURIComponent(decodeURIComponent(title))}${url.search}`, 301)
 })
 
 interface TocItem {
@@ -42,6 +50,7 @@ postPage.get('/:title', async (c) => {
 
   const isDraft = post?.draft === true || (post?.draft as any) === 'true'
   if (!post || isDraft) {
+    setNoCache(c)
     return c.html(
       <Layout
         title="404 - 文章不存在"
@@ -159,6 +168,8 @@ postPage.get('/:title', async (c) => {
     /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
     '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-(--fuwari-primary) underline hover:opacity-80 transition">$1</a>'
   )
+
+  setTieredCache(c, { tags: ['page', 'post', `post-${encodeURIComponent(post.title)}`] })
 
   return c.html(
     <Layout

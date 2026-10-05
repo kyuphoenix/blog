@@ -2499,6 +2499,51 @@ function extractExcerpt(content, maxLen = 160) {
   const plain = content.replace(/```[\s\S]*?```/g, "").replace(/`([^`]+)`/g, "$1").replace(/!\[([^\]]*)\]\([^)]*\)/g, "").replace(/\[([^\]]+)\]\([^)]*\)/g, "$1").replace(/<[^>]+>/g, "").replace(/^#+\s+/gm, "").replace(/^>\s+/gm, "").replace(/[*_~]+/g, "").replace(/\s+/g, " ").trim();
   return plain.length <= maxLen ? plain : plain.slice(0, maxLen) + "...";
 }
+function processEmbeddedMediaHtml(html2) {
+  if (!html2) return html2;
+  let processed = html2.replace(/<iframe\b([^>]*?)(\/?>)/gi, (_fullMatch, attrs, closeTag) => {
+    let newAttrs = attrs;
+    if (/player\.bilibili\.com/i.test(newAttrs)) {
+      newAttrs = newAttrs.replace(/\bsrc=(["'])(.*?)\1/i, (srcMatch, quote2, srcUrl) => {
+        if (!/autoplay=(?:1|true)/i.test(srcUrl)) {
+          if (!/autoplay=/i.test(srcUrl)) {
+            const separator = srcUrl.includes("?") ? "&" : "?";
+            return `src=${quote2}${srcUrl}${separator}autoplay=0${quote2}`;
+          } else {
+            const normalizedUrl = srcUrl.replace(/autoplay=false/gi, "autoplay=0");
+            return `src=${quote2}${normalizedUrl}${quote2}`;
+          }
+        }
+        return srcMatch;
+      });
+    }
+    const hasAutoplayOff = /autoplay=(?:0|false)/i.test(newAttrs);
+    const hasAutoplayOn = /autoplay=(?:1|true)/i.test(newAttrs);
+    const allowMatch = newAttrs.match(/\ballow=(["'])(.*?)\1/i);
+    if (hasAutoplayOff || !hasAutoplayOn) {
+      if (allowMatch) {
+        const quote2 = allowMatch[1];
+        const currentAllow = allowMatch[2];
+        const cleanedAllow = currentAllow.replace(/\bautoplay(?:\s+'[^']*')?/gi, "").replace(/(?:^|;)\s*;\s*/g, ";").replace(/^;\s*|\s*;$/g, "").trim();
+        const updatedAllow = `${cleanedAllow ? cleanedAllow + "; " : ""}autoplay 'none'`;
+        newAttrs = newAttrs.replace(allowMatch[0], `allow=${quote2}${updatedAllow}${quote2}`);
+      } else {
+        newAttrs += ` allow="autoplay 'none'; fullscreen"`;
+      }
+    }
+    return `<iframe${newAttrs}${closeTag}`;
+  });
+  processed = processed.replace(/<video\b([^>]*?)(\/?>)/gi, (_match, attrs, closeTag) => {
+    let newAttrs = attrs.replace(/\bautoplay\s*=\s*["'](?:false|0|off|no)["']/gi, "");
+    return `<video${newAttrs}${closeTag}`;
+  });
+  return processed;
+}
+function isHtmlRenderCodeBlock(lang) {
+  if (!lang) return false;
+  const clean = lang.trim().toLowerCase();
+  return clean === "html:render" || clean === "html render" || clean.startsWith("html:render") || clean.startsWith("html render") || clean === "html:raw" || clean === "html raw" || clean.startsWith("html:raw") || clean.startsWith("html raw");
+}
 
 // node_modules/.pnpm/destr@2.0.5/node_modules/destr/dist/index.mjs
 var suspectProtoRx = /"(?:_|\\u0{2}5[Ff]){2}(?:p|\\u0{2}70)(?:r|\\u0{2}72)(?:o|\\u0{2}6[Ff])(?:t|\\u0{2}74)(?:o|\\u0{2}6[Ff])(?:_|\\u0{2}5[Ff]){2}"\s*:/;
@@ -3365,7 +3410,13 @@ var blogConfig = {
 };
 
 // src/services/github.ts
-var CACHE_TTL = 60 * 5;
+function getCacheTtl(env) {
+  if (env?.CACHE_TTL) {
+    const val = Number(env.CACHE_TTL);
+    if (!isNaN(val) && val > 0) return val;
+  }
+  return 60 * 60 * 24;
+}
 var MANIFEST_CACHE_KEY = "manifest";
 var FRIENDS_CACHE_KEY = "friends";
 var CONFIG_CACHE_KEY = "site_config";
@@ -3420,7 +3471,7 @@ async function getManifest(env) {
   const manifest = JSON.parse(content);
   try {
     await storage.setItem(MANIFEST_CACHE_KEY, manifest, {
-      ttl: CACHE_TTL
+      ttl: getCacheTtl(env)
     });
   } catch {
   }
@@ -3475,7 +3526,7 @@ async function getPost(identifier, env) {
   };
   try {
     await storage.setItem(cacheKey, post2, {
-      ttl: CACHE_TTL
+      ttl: getCacheTtl(env)
     });
   } catch {
   }
@@ -3505,7 +3556,7 @@ async function getFriends(env) {
     const list = Array.isArray(data) ? data : data && Array.isArray(data.friends) ? data.friends : [];
     try {
       await storage.setItem(FRIENDS_CACHE_KEY, list, {
-        ttl: CACHE_TTL
+        ttl: getCacheTtl(env)
       });
     } catch {
     }
@@ -3557,7 +3608,7 @@ async function getBlogConfig(env) {
       };
       try {
         await storage.setItem(CONFIG_CACHE_KEY, merged, {
-          ttl: CACHE_TTL
+          ttl: getCacheTtl(env)
         });
       } catch {
       }
@@ -3602,7 +3653,7 @@ async function getAboutContent(env) {
       };
       try {
         await storage.setItem(ABOUT_CACHE_KEY, aboutData, {
-          ttl: CACHE_TTL
+          ttl: getCacheTtl(env)
         });
       } catch {
       }
@@ -3839,6 +3890,197 @@ var parsePagination = (query) => {
   return { page, pageSize, offset };
 };
 
+// src/utils/cache.ts
+function setTieredCache(c, options = {}) {
+  const browserMaxAge = options.browserMaxAge ?? 0;
+  const edgeMaxAge = options.edgeMaxAge ?? 86400;
+  const swrMaxAge = options.swrMaxAge ?? 604800;
+  const tags = options.tags || ["page"];
+  c.header(
+    "Cache-Control",
+    `public, max-age=${browserMaxAge}, s-maxage=${edgeMaxAge}, stale-while-revalidate=${swrMaxAge}, must-revalidate`
+  );
+  c.header(
+    "Cloudflare-CDN-Cache-Control",
+    `public, max-age=${edgeMaxAge}, stale-while-revalidate=${swrMaxAge}`
+  );
+  c.header(
+    "CDN-Cache-Control",
+    `public, max-age=${edgeMaxAge}, stale-while-revalidate=${swrMaxAge}`
+  );
+  c.header(
+    "Netlify-CDN-Cache-Control",
+    `public, max-age=${edgeMaxAge}, stale-while-revalidate=${swrMaxAge}`
+  );
+  if (tags.length > 0) {
+    const tagHeaderValue = tags.join(",");
+    c.header("Netlify-Cache-Tag", tagHeaderValue);
+    c.header("Vercel-Cache-Tag", tagHeaderValue);
+  }
+}
+function setNoCache(c) {
+  c.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
+  c.header("Pragma", "no-cache");
+  c.header("Expires", "0");
+}
+async function purgePlatformCaches(env, options) {
+  const results = [];
+  const cfZoneId = env?.CLOUDFLARE_ZONE_ID || env?.CF_ZONE_ID;
+  const cfToken = env?.CLOUDFLARE_API_TOKEN || env?.CF_API_TOKEN;
+  if (cfZoneId && cfToken) {
+    try {
+      const payload = {};
+      if (options?.urls && options.urls.length > 0) {
+        payload.files = options.urls;
+      } else {
+        payload.purge_everything = true;
+      }
+      const res = await fetch(
+        `https://api.cloudflare.com/client/v4/zones/${cfZoneId}/purge_cache`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${cfToken}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
+        results.push({
+          platform: "cloudflare",
+          success: true,
+          message: payload.purge_everything ? "Cloudflare \u5168\u91CF\u7F13\u5B58\u5DF2\u6210\u529F\u6E05\u9664" : `Cloudflare ${options?.urls?.length} \u4E2A\u6587\u4EF6\u7F13\u5B58\u5DF2\u6210\u529F\u6E05\u9664`
+        });
+      } else {
+        const errorMsg = data?.errors?.[0]?.message || `HTTP ${res.status}`;
+        results.push({
+          platform: "cloudflare",
+          success: false,
+          message: `Cloudflare \u6E05\u9664\u5931\u8D25: ${errorMsg}`
+        });
+      }
+    } catch (e) {
+      results.push({
+        platform: "cloudflare",
+        success: false,
+        message: `Cloudflare \u5F02\u5E38: ${e?.message || e}`
+      });
+    }
+  }
+  const netlifySiteId = env?.NETLIFY_SITE_ID || env?.NETLIFY_SITE_SLUG;
+  const netlifyToken = env?.NETLIFY_AUTH_TOKEN || env?.NETLIFY_TOKEN || env?.NETLIFY_PAT || env?.NETLIFY_API_KEY;
+  if (netlifySiteId && netlifyToken) {
+    try {
+      const payload = {
+        site_id: netlifySiteId
+      };
+      if (options?.tags && options.tags.length > 0) {
+        payload.cache_tags = options.tags;
+      }
+      const res = await fetch("https://api.netlify.com/api/v1/purge", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${netlifyToken}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        results.push({
+          platform: "netlify",
+          success: true,
+          message: options?.tags ? `Netlify \u6807\u7B7E [${options.tags.join(", ")}] \u7F13\u5B58\u5DF2\u6210\u529F\u6E05\u9664` : "Netlify \u5168\u7AD9\u7F13\u5B58\u5DF2\u6210\u529F\u6E05\u9664"
+        });
+      } else {
+        const text = await res.text().catch(() => "");
+        results.push({
+          platform: "netlify",
+          success: false,
+          message: `Netlify \u6E05\u9664\u5931\u8D25: HTTP ${res.status} ${text}`
+        });
+      }
+    } catch (e) {
+      results.push({
+        platform: "netlify",
+        success: false,
+        message: `Netlify \u5F02\u5E38: ${e?.message || e}`
+      });
+    }
+  }
+  const vercelToken = env?.VERCEL_TOKEN || env?.VERCEL_API_KEY || env?.VERCEL_AUTH_TOKEN;
+  const vercelProjectId = env?.VERCEL_PROJECT_ID || env?.VERCEL_PROJECT_NAME;
+  const vercelOrgId = env?.VERCEL_ORG_ID;
+  const vercelHook = env?.VERCEL_DEPLOY_HOOK_URL || env?.VERCEL_HOOK_URL;
+  if (vercelToken && vercelProjectId) {
+    try {
+      const teamQuery = vercelOrgId ? `&teamId=${encodeURIComponent(vercelOrgId)}` : "";
+      const targetTags = options?.tags && options.tags.length > 0 ? options.tags : ["page", "post", "posts", "home", "archive", "about", "links", "all-posts"];
+      const res = await fetch(
+        `https://api.vercel.com/v1/edge-cache/dangerously-delete-by-tags?projectIdOrName=${encodeURIComponent(vercelProjectId)}${teamQuery}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${vercelToken}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            tags: targetTags,
+            target: "production"
+          })
+        }
+      );
+      if (res.ok) {
+        results.push({
+          platform: "vercel",
+          success: true,
+          message: `Vercel \u5B98\u65B9 Edge Cache API \u6210\u529F\u6E05\u9664 CDN \u7F13\u5B58 (\u6807\u7B7E: ${targetTags.join(", ")})`
+        });
+      } else {
+        const text = await res.text().catch(() => "");
+        results.push({
+          platform: "vercel",
+          success: false,
+          message: `Vercel Edge Cache API \u6E05\u9664\u5931\u8D25: HTTP ${res.status} ${text}`
+        });
+      }
+    } catch (e) {
+      results.push({
+        platform: "vercel",
+        success: false,
+        message: `Vercel Edge Cache API \u5F02\u5E38: ${e?.message || e}`
+      });
+    }
+  } else if (vercelHook) {
+    try {
+      const res = await fetch(vercelHook, {
+        method: "POST"
+      });
+      if (res.ok) {
+        results.push({
+          platform: "vercel",
+          success: true,
+          message: "Vercel Deploy Hook \u89E6\u53D1\u6210\u529F\uFF0C\u6B63\u5728\u91CD\u65B0\u6784\u5EFA\u5E76\u5237\u65B0\u5168\u7403 CDN"
+        });
+      } else {
+        results.push({
+          platform: "vercel",
+          success: false,
+          message: `Vercel Deploy Hook \u89E6\u53D1\u5931\u8D25: HTTP ${res.status}`
+        });
+      }
+    } catch (e) {
+      results.push({
+        platform: "vercel",
+        success: false,
+        message: `Vercel Deploy Hook \u5F02\u5E38: ${e?.message || e}`
+      });
+    }
+  }
+  return results;
+}
+
 // src/routes/posts.ts
 var posts = new Hono2();
 posts.get("/", async (c) => {
@@ -3863,6 +4105,7 @@ posts.get("/", async (c) => {
   manifest.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   const total = manifest.length;
   const paged = manifest.slice(offset, offset + pageSize);
+  setTieredCache(c, { tags: ["api", "posts"] });
   return paginated(c, paged, total, page, pageSize);
 });
 posts.get("/categories", async (c) => {
@@ -3873,6 +4116,7 @@ posts.get("/categories", async (c) => {
     categoryMap.set(post2.category, (categoryMap.get(post2.category) || 0) + 1);
   }
   const categories = Array.from(categoryMap, ([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
+  setTieredCache(c, { tags: ["api", "categories"] });
   return success(c, categories);
 });
 posts.get("/tags", async (c) => {
@@ -3885,6 +4129,7 @@ posts.get("/tags", async (c) => {
     }
   }
   const tags = Array.from(tagMap, ([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count);
+  setTieredCache(c, { tags: ["api", "tags"] });
   return success(c, tags);
 });
 posts.get("/:title", async (c) => {
@@ -3892,14 +4137,18 @@ posts.get("/:title", async (c) => {
   const title2 = decodeURIComponent(rawTitle);
   const post2 = await getPost(title2, c.env);
   if (!post2) {
+    setNoCache(c);
     return fail(c, "Post not found", 404);
   }
   if (post2.draft === true || post2.draft === "true") {
+    setNoCache(c);
     return fail(c, "Post not found", 404);
   }
+  setTieredCache(c, { tags: ["api", "post", `post-${encodeURIComponent(post2.title)}`] });
   return success(c, post2);
 });
 posts.post("/purge", async (c) => {
+  setNoCache(c);
   const secret = c.req.header("X-Purge-Secret");
   const expectedSecret = c.env.PURGE_SECRET || c.env.GH_TOKEN || c.env.PAT_TOKEN || c.env.GITHUB_TOKEN;
   if (expectedSecret && secret !== expectedSecret) {
@@ -3912,13 +4161,15 @@ posts.post("/purge", async (c) => {
     getBlogConfig(c.env),
     getAboutContent(c.env)
   ]);
+  const platformPurges = await purgePlatformCaches(c.env);
   return success(
     c,
     {
       reCachedCount: manifest.length,
       reCachedFriendsCount: friends.length,
       siteTitle: siteConfig.title,
-      aboutTitle: aboutData.title
+      aboutTitle: aboutData.title,
+      platformPurges
     },
     "Cache purged and manifest, friends, config & about re-cached successfully"
   );
@@ -25766,6 +26017,16 @@ html.is-animating .transition-swup-fade {
 .prose h6 a:hover {
   color: var(--fuwari-primary);
 }
+
+.prose iframe,
+.prose video {
+  width: 100%;
+  max-width: 100%;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+}
 `;
 
 // node_modules/.pnpm/hono@4.13.9/node_modules/hono/dist/jsx/constants.js
@@ -28285,6 +28546,7 @@ home.get("/", async (c) => {
     pageTitle = `\u6807\u7B7E: ${tag}`;
     pageDescription = `${siteConfig.title} - \u5305\u542B\u201C#${tag}\u201D\u6807\u7B7E\u7684\u6240\u6709\u76F8\u5173\u6587\u7AE0\u4E0E\u6559\u7A0B\uFF08\u5171 ${total} \u7BC7\uFF09\u3002`;
   }
+  setTieredCache(c, { tags: ["page", "home"] });
   return c.html(
     /* @__PURE__ */ jsxDEV(
       Layout,
@@ -29665,6 +29927,15 @@ var Tn = R.lex;
 
 // src/pages/post.tsx
 var postPage = new Hono2();
+postPage.get("/", (c) => {
+  const url = new URL(c.req.url);
+  return c.redirect(`/${url.search}`, 301);
+});
+postPage.get("/:title/", (c) => {
+  const title2 = c.req.param("title");
+  const url = new URL(c.req.url);
+  return c.redirect(`/posts/${encodeURIComponent(decodeURIComponent(title2))}${url.search}`, 301);
+});
 postPage.get("/:title", async (c) => {
   const rawTitle = c.req.param("title");
   const title2 = decodeURIComponent(rawTitle);
@@ -29675,6 +29946,7 @@ postPage.get("/:title", async (c) => {
   ]);
   const isDraft = post2?.draft === true || post2?.draft === "true";
   if (!post2 || isDraft) {
+    setNoCache(c);
     return c.html(
       /* @__PURE__ */ jsxDEV(
         Layout,
@@ -29735,11 +30007,22 @@ postPage.get("/:title", async (c) => {
       ${caption ? `<span class="post-image-caption block mt-2 text-center text-xs fuwari-text-50">${caption}</span>` : ""}
     </span>`;
   };
-  const htmlContent = await k.parse(post2.content, {
+  renderer.html = function({ text }) {
+    return processEmbeddedMediaHtml(text);
+  };
+  const origCode = renderer.code.bind(renderer);
+  renderer.code = function(token) {
+    if (isHtmlRenderCodeBlock(token?.lang)) {
+      return processEmbeddedMediaHtml(token?.text || "");
+    }
+    return origCode(token);
+  };
+  const rawHtmlContent = await k.parse(post2.content, {
     gfm: true,
     breaks: true,
     renderer
   });
+  const htmlContent = processEmbeddedMediaHtml(rawHtmlContent);
   const chineseChars = (post2.content.match(/[\u4e00-\u9fff]/g) || []).length;
   const englishWords = post2.content.replace(/[\u4e00-\u9fff]/g, "").split(/\s+/).filter(Boolean).length;
   const wordCount = Math.max(100, chineseChars + englishWords);
@@ -29760,6 +30043,7 @@ postPage.get("/:title", async (c) => {
     /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
     '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-(--fuwari-primary) underline hover:opacity-80 transition">$1</a>'
   );
+  setTieredCache(c, { tags: ["page", "post", `post-${encodeURIComponent(post2.title)}`] });
   return c.html(
     /* @__PURE__ */ jsxDEV(
       Layout,
@@ -30100,6 +30384,7 @@ archive.get("/", async (c) => {
     getBlogConfig(c.env)
   ]);
   const manifest = manifestRaw.filter((p) => p.draft !== true && p.draft !== "true").sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  setTieredCache(c, { tags: ["page", "archive"] });
   return c.html(
     /* @__PURE__ */ jsxDEV(
       Layout,
@@ -30135,13 +30420,25 @@ about.get("/", async (c) => {
     const titleAttr = title2 ? ` title="${title2}"` : "";
     return `<a href="${href}"${targetAttr}${titleAttr}>${linkText}</a>`;
   };
-  const htmlContent = await k.parse(aboutData.content, {
+  renderer.html = function({ text }) {
+    return processEmbeddedMediaHtml(text);
+  };
+  const origCode = renderer.code.bind(renderer);
+  renderer.code = function(token) {
+    if (isHtmlRenderCodeBlock(token?.lang)) {
+      return processEmbeddedMediaHtml(token?.text || "");
+    }
+    return origCode(token);
+  };
+  const rawHtmlContent = await k.parse(aboutData.content, {
     gfm: true,
     breaks: true,
     renderer
   });
+  const htmlContent = processEmbeddedMediaHtml(rawHtmlContent);
   const pageTitle = aboutData.title || "\u5173\u4E8E\u672C\u7AD9";
   const pageDescription = aboutData.description || `\u5173\u4E8E\u672C\u7AD9 - \u4E86\u89E3 ${siteConfig.title} \u7684\u6280\u672F\u67B6\u6784\u3001\u4E2A\u4EBA\u4ECB\u7ECD\u4E0E\u5EFA\u7AD9\u521D\u8877`;
+  setTieredCache(c, { tags: ["page", "about"] });
   return c.html(
     /* @__PURE__ */ jsxDEV(
       Layout,
@@ -30200,6 +30497,7 @@ ${applyTemplateText}
 \u5DF2\u5728\u8D35\u7AD9\u5148\u884C\u6DFB\u52A0\u53CB\u94FE\uFF0C\u671F\u5F85\u56DE\u590D\uFF01`
   );
   const mailtoUrl = adminEmail ? `mailto:${adminEmail}?subject=${mailtoSubject}&body=${mailtoBody}` : "";
+  setTieredCache(c, { tags: ["page", "links"] });
   return c.html(
     /* @__PURE__ */ jsxDEV(
       Layout,
@@ -31561,7 +31859,7 @@ main {
 `;
 
 // src/scripts/swupBundle.ts
-var swupClientJs = '"use strict";(()=>{var I=new WeakMap;function M(e,t,i,n){if(!e&&!I.has(t))return!1;let o=I.get(t)??new WeakMap;I.set(t,o);let s=o.get(i)??new Set;o.set(i,s);let a=s.has(n);return e?s.add(n):s.delete(n),a&&e}function X(e,t){let i=e.target;if(i instanceof Text&&(i=i.parentElement),i instanceof Element&&e.currentTarget instanceof Node){let n=i.closest(t);if(n&&e.currentTarget.contains(n))return n}}function B(e,t,i,n={}){if(Array.isArray(t)){for(let f of t)B(e,f,i,n);return}let o=t,{signal:s,base:a=document}=n;if(s?.aborted)return;let{once:r,...c}=n,l=a instanceof Document?a.documentElement:a,h=!!(typeof n=="object"?n.capture:n),u=f=>{let g=X(f,String(e));if(g){let w=Object.assign(f,{delegateTarget:g});i.call(l,w),r&&(l.removeEventListener(o,u,c),M(!1,l,i,d))}},d=JSON.stringify({selector:e,type:o,capture:h});M(!0,l,i,d)||l.addEventListener(o,u,c),s?.addEventListener("abort",()=>{M(!1,l,i,d)})}var A=B;function m(){return m=Object.assign?Object.assign.bind():function(e){for(var t=1;t<arguments.length;t++){var i=arguments[t];for(var n in i)({}).hasOwnProperty.call(i,n)&&(e[n]=i[n])}return e},m.apply(null,arguments)}var F=(e,t)=>String(e).toLowerCase().replace(/[\\s/_.]+/g,"-").replace(/[^\\w-]+/g,"").replace(/--+/g,"-").replace(/^-+|-+$/g,"")||t||"",S=({hash:e}={})=>window.location.pathname+window.location.search+(e?window.location.hash:""),Z=(e,t={})=>{let i=m({url:e=e||S({hash:!0}),random:Math.random(),source:"swup"},t);window.history.pushState(i,"",e)},x=(e=null,t={})=>{e=e||S({hash:!0});let i=m({},window.history.state||{},{url:e,random:Math.random(),source:"swup"},t);window.history.replaceState(i,"",e)},Q=(e,t,i,n)=>{let o=new AbortController;return n=m({},n,{signal:o.signal}),A(e,t,i,n),{destroy:()=>o.abort()}},v=class e extends URL{constructor(t,i=document.baseURI){super(t.toString(),i),Object.setPrototypeOf(this,e.prototype)}get url(){return this.pathname+this.search}static fromElement(t){let i=t.getAttribute("href")||t.getAttribute("xlink:href")||"";return new e(i)}static fromUrl(t){return new e(t)}};var L=class extends Error{constructor(t,i){super(t),this.url=void 0,this.status=void 0,this.aborted=void 0,this.timedOut=void 0,this.name="FetchError",this.url=i.url,this.status=i.status,this.aborted=i.aborted||!1,this.timedOut=i.timedOut||!1}};async function Y(e,t={}){var i;e=v.fromUrl(e).url;let{visit:n=this.visit}=t,o=m({},this.options.requestHeaders,t.headers),s=(i=t.timeout)!=null?i:this.options.timeout,a=new AbortController,{signal:r}=a;t=m({},t,{headers:o,signal:r});let c,l=!1,h=null;s&&s>0&&(h=setTimeout(()=>{l=!0,a.abort("timeout")},s));try{c=await this.hooks.call("fetch:request",n,{url:e,options:t},(w,{url:k,options:E})=>fetch(k,E)),h&&clearTimeout(h)}catch(w){throw l?(this.hooks.call("fetch:timeout",n,{url:e}),new L(`Request timed out: ${e}`,{url:e,timedOut:l})):w?.name==="AbortError"||r.aborted?new L(`Request aborted: ${e}`,{url:e,aborted:!0}):w}let{status:u,url:d}=c,y=await c.text();if(u===500)throw this.hooks.call("fetch:error",n,{status:u,response:c,url:d}),new L(`Server error: ${d}`,{status:u,url:d});if(!y)throw new L(`Empty response: ${d}`,{status:u,url:d});let{url:f}=v.fromUrl(d),g={url:f,html:y};return!n.cache.write||t.method&&t.method!=="GET"||e!==f||this.cache.set(g.url,g),g}var $=class{constructor(t){this.swup=void 0,this.pages=new Map,this.swup=t}get size(){return this.pages.size}get all(){let t=new Map;return this.pages.forEach((i,n)=>{t.set(n,m({},i))}),t}has(t){return this.pages.has(this.resolve(t))}get(t){let i=this.pages.get(this.resolve(t));return i&&m({},i)}set(t,i){i=m({},i,{url:t=this.resolve(t)}),this.pages.set(t,i),this.swup.hooks.callSync("cache:set",void 0,{page:i})}update(t,i){t=this.resolve(t);let n=m({},this.get(t),i,{url:t});this.pages.set(t,n)}delete(t){this.pages.delete(this.resolve(t))}clear(){this.pages.clear(),this.swup.hooks.callSync("cache:clear",void 0,void 0)}prune(t){this.pages.forEach((i,n)=>{t(n,i)&&this.delete(n)})}resolve(t){let{url:i}=v.fromUrl(t);return this.swup.resolveUrl(i)}},N=(e,t=document)=>t.querySelector(e),O=(e,t=document)=>Array.from(t.querySelectorAll(e)),G=()=>new Promise(e=>{requestAnimationFrame(()=>{requestAnimationFrame(()=>{e()})})});function K(e){return!!e&&(typeof e=="object"||typeof e=="function")&&typeof e.then=="function"}function tt(e,t=[]){return new Promise((i,n)=>{let o=e(...t);K(o)?o.then(i,n):i(o)})}function W(e,t){let i=e?.closest(`[${t}]`);return i!=null&&i.hasAttribute(t)?i?.getAttribute(t)||!0:void 0}var R=class{constructor(t){this.swup=void 0,this.swupClasses=["to-","is-changing","is-rendering","is-popstate","is-animating","is-leaving"],this.swup=t}get selectors(){let{scope:t}=this.swup.visit.animation;return t==="containers"?this.swup.visit.containers:t==="html"?["html"]:Array.isArray(t)?t:[]}get selector(){return this.selectors.join(",")}get targets(){return this.selector.trim()?O(this.selector):[]}add(...t){this.targets.forEach(i=>i.classList.add(...t))}remove(...t){this.targets.forEach(i=>i.classList.remove(...t))}clear(){this.targets.forEach(t=>{let i=t.className.split(" ").filter(n=>this.isSwupClass(n));t.classList.remove(...i)})}isSwupClass(t){return this.swupClasses.some(i=>t.startsWith(i))}},C=class{constructor(t,i){this.id=void 0,this.state=void 0,this.from=void 0,this.to=void 0,this.containers=void 0,this.animation=void 0,this.trigger=void 0,this.cache=void 0,this.history=void 0,this.scroll=void 0,this.meta=void 0;let{to:n,from:o,hash:s,el:a,event:r}=i;this.id=Math.random(),this.state=1,this.from={url:o??t.location.url,hash:t.location.hash},this.to={url:n,hash:s},this.containers=t.options.containers,this.animation={animate:!0,wait:!1,name:void 0,native:t.options.native,scope:t.options.animationScope,selector:t.options.animationSelector},this.trigger={el:a,event:r},this.cache={read:t.options.cache,write:t.options.cache},this.history={action:"push",popstate:!1,direction:void 0},this.scroll={reset:!0,target:void 0},this.meta={}}advance(t){this.state<t&&(this.state=t)}abort(){this.state=8}ignore(){this.state=10}get done(){return this.state>=7}get ignored(){return this.state===10}};function et(e){return new C(this,e)}var q=class{constructor(t){this.swup=void 0,this.registry=new Map,this.hooks=["animation:out:start","animation:out:await","animation:out:end","animation:in:start","animation:in:await","animation:in:end","animation:skip","cache:clear","cache:set","content:replace","content:scroll","enable","disable","fetch:request","fetch:error","fetch:timeout","history:popstate","link:click","link:self","link:anchor","link:newtab","page:load","page:view","scroll:top","scroll:anchor","visit:start","visit:transition","visit:abort","visit:end","visit:fail"],this.nextHookId=0,this.swup=t,this.init()}init(){this.hooks.forEach(t=>this.create(t))}create(t){this.registry.has(t)||this.registry.set(t,new Map)}exists(t){return this.registry.has(t)}get(t){let i=this.registry.get(t);if(i)return i;console.error(`Unknown hook \'${t}\'`)}clear(){this.registry.forEach(t=>t.clear())}on(t,i,n={}){let o=this.get(t);if(!o)return console.warn(`Hook \'${t}\' not found.`),()=>{};let s=m({},n,{id:++this.nextHookId,hook:t,handler:i});return o.set(i,s),()=>this.off(t,i)}before(t,i,n={}){return this.on(t,i,m({},n,{before:!0}))}replace(t,i,n={}){return this.on(t,i,m({},n,{replace:!0}))}once(t,i,n={}){return this.on(t,i,m({},n,{once:!0}))}off(t,i){let n=this.get(t);n&&i?n.delete(i)||console.warn(`Handler for hook \'${t}\' not found.`):n&&n.clear()}async call(t,i,n,o){let[s,a,r]=this.parseCallArgs(t,i,n,o),{before:c,handler:l,after:h}=this.getHandlers(t,r);await this.run(c,s,a);let[u]=await this.run(l,s,a,!0);return await this.run(h,s,a),this.dispatchDomEvent(t,s,a),u}callSync(t,i,n,o){let[s,a,r]=this.parseCallArgs(t,i,n,o),{before:c,handler:l,after:h}=this.getHandlers(t,r);this.runSync(c,s,a);let[u]=this.runSync(l,s,a,!0);return this.runSync(h,s,a),this.dispatchDomEvent(t,s,a),u}parseCallArgs(t,i,n,o){return i instanceof C||typeof i!="object"&&typeof n!="function"?[i,n,o]:[void 0,i,n]}async run(t,i=this.swup.visit,n,o=!1){let s=[];for(let{hook:a,handler:r,defaultHandler:c,once:l}of t)if(i==null||!i.done){l&&this.off(a,r);try{let h=await tt(r,[i,n,c]);s.push(h)}catch(h){if(o)throw h;console.error(`Error in hook \'${a}\':`,h)}}return s}runSync(t,i=this.swup.visit,n,o=!1){let s=[];for(let{hook:a,handler:r,defaultHandler:c,once:l}of t)if(i==null||!i.done){l&&this.off(a,r);try{let h=r(i,n,c);s.push(h),K(h)&&console.warn(`Swup will not await Promises in handler for synchronous hook \'${a}\'.`)}catch(h){if(o)throw h;console.error(`Error in hook \'${a}\':`,h)}}return s}getHandlers(t,i){let n=this.get(t);if(!n)return{found:!1,before:[],handler:[],after:[],replaced:!1};let o=Array.from(n.values()),s=this.sortRegistrations,a=o.filter(({before:u,replace:d})=>u&&!d).sort(s),r=o.filter(({replace:u})=>u).filter(u=>!0).sort(s),c=o.filter(({before:u,replace:d})=>!u&&!d).sort(s),l=r.length>0,h=[];if(i&&(h=[{id:0,hook:t,handler:i}],l)){let u=r.length-1,{handler:d,once:y}=r[u],f=g=>{let w=r[g-1];return w?(k,E)=>w.handler(k,E,f(g-1)):i};h=[{id:0,hook:t,once:y,handler:d,defaultHandler:f(u)}]}return{found:!0,before:a,handler:h,after:c,replaced:l}}sortRegistrations(t,i){var n,o;return((n=t.priority)!=null?n:0)-((o=i.priority)!=null?o:0)||t.id-i.id||0}dispatchDomEvent(t,i,n){if(i!=null&&i.done)return;let o={hook:t,args:n,visit:i||this.swup.visit};document.dispatchEvent(new CustomEvent("swup:any",{detail:o,bubbles:!0})),document.dispatchEvent(new CustomEvent(`swup:${t}`,{detail:o,bubbles:!0}))}parseName(t){let[i,...n]=t.split(".");return[i,n.reduce((o,s)=>m({},o,{[s]:!0}),{})]}},it=e=>{if(e&&e.charAt(0)==="#"&&(e=e.substring(1)),!e)return null;let t=decodeURIComponent(e),i=document.getElementById(e)||document.getElementById(t)||N(`a[name=\'${CSS.escape(e)}\']`)||N(`a[name=\'${CSS.escape(t)}\']`);return i||e!=="top"||(i=document.body),i},H="transition",P="animation";async function nt({selector:e,elements:t}){if(e===!1&&!t)return;let i=[];if(t)i=Array.from(t);else if(e&&(i=O(e,document.body),!i.length))return void console.warn(`[swup] No elements found matching animationSelector \\`${e}\\``);let n=i.map(o=>(function(s){let{type:a,timeout:r,propCount:c}=(function(l){let h=window.getComputedStyle(l),u=_(h,`${H}Delay`),d=_(h,`${H}Duration`),y=D(u,d),f=_(h,`${P}Delay`),g=_(h,`${P}Duration`),w=D(f,g),k=Math.max(y,w),E=k>0?y>w?H:P:null;return{type:E,timeout:k,propCount:E?E===H?d.length:g.length:0}})(s);return!(!a||!r)&&new Promise(l=>{let h=`${a}end`,u=performance.now(),d=0,y=()=>{s.removeEventListener(h,f),l()},f=g=>{g.target===s&&((performance.now()-u)/1e3<g.elapsedTime||++d>=c&&y())};setTimeout(()=>{d<c&&y()},r+1),s.addEventListener(h,f)})})(o)).filter(o=>o!==!1);n.length?await Promise.all(n):e&&console.warn(`[swup] No CSS animation duration defined on elements matching \\`${e}\\``)}function _(e,t){return(e[t]||"").split(", ")}function D(e,t){for(;e.length<t.length;)e=e.concat(e);return Math.max(...t.map((i,n)=>j(i)+j(e[n])))}function j(e){return 1e3*parseFloat(e)}function st(e,t={},i={}){if(typeof e!="string")throw new Error("swup.navigate() requires a URL parameter");if(this.shouldIgnoreVisit(e,{el:i.el,event:i.event}))return void window.location.assign(e);let{url:n,hash:o}=v.fromUrl(e),s=this.createVisit(m({},i,{to:n,hash:o}));this.performNavigation(s,t)}async function ot(e,t={}){if(this.navigating){if(this.visit.state>=6)return e.state=2,void(this.onVisitEnd=()=>this.performNavigation(e,t));await this.hooks.call("visit:abort",this.visit,void 0),delete this.visit.to.document,this.visit.state=8}this.navigating=!0,this.visit=e;let{el:i}=e.trigger;t.referrer=t.referrer||this.location.url,t.animate===!1&&(e.animation.animate=!1),e.animation.animate||this.classes.clear();let n=t.history||W(i,"data-swup-history");typeof n=="string"&&["push","replace"].includes(n)&&(e.history.action=n);let o=t.animation||W(i,"data-swup-animation");var s,a;typeof o=="string"&&(e.animation.name=o),e.meta=t.meta||{},typeof t.cache=="object"?(e.cache.read=(s=t.cache.read)!=null?s:e.cache.read,e.cache.write=(a=t.cache.write)!=null?a:e.cache.write):t.cache!==void 0&&(e.cache={read:!!t.cache,write:!!t.cache}),delete t.cache;try{await this.hooks.call("visit:start",e,void 0),e.state=3;let r=this.hooks.call("page:load",e,{options:t},async(l,h)=>{let u;return l.cache.read&&(u=this.cache.get(l.to.url)),h.page=u||await this.fetchPage(l.to.url,h.options),h.cache=!!u,h.page});r.then(({html:l})=>{e.advance(5),e.to.html=l,e.to.document=new DOMParser().parseFromString(l,"text/html")});let c=e.to.url+e.to.hash;if(e.history.popstate||(e.history.action==="replace"||e.to.url===this.location.url?x(c):(this.currentHistoryIndex++,Z(c,{index:this.currentHistoryIndex}))),this.location=v.fromUrl(c),e.history.popstate&&this.classes.add("is-popstate"),e.animation.name&&this.classes.add(`to-${F(e.animation.name)}`),e.animation.wait&&await r,e.ignored)throw new Error(`Visit to ${e.to.url} manually ignored`);if(e.done||(await this.hooks.call("visit:transition",e,void 0,async()=>{if(!e.animation.animate)return await this.hooks.call("animation:skip",void 0),void await this.renderPage(e,await r);e.advance(4),await this.animatePageOut(e),e.animation.native&&document.startViewTransition?await document.startViewTransition(async()=>await this.renderPage(e,await r)).finished:await this.renderPage(e,await r),await this.animatePageIn(e)}),e.done))return;await this.hooks.call("visit:end",e,void 0,()=>this.classes.clear()),e.state=7,this.navigating=!1,this.onVisitEnd&&(this.onVisitEnd(),this.onVisitEnd=void 0)}catch(r){if(!r||r!=null&&r.aborted)return void e.advance(8);if(e.ignored)return void z.call(this,e);await this.hooks.call("visit:fail",e,{error:r},(c,{error:l})=>{console.error(l),z.call(this,c)}),e.advance(9)}finally{delete e.to.document,this.visit===e&&(this.navigating=!1)}}function z(e){let t=e.to.url+e.to.hash;S()===e.to.url?(window.removeEventListener("popstate",this.handlePopState),window.addEventListener("popstate",()=>window.location.assign(t),{once:!0}),window.history.back()):window.location.assign(t)}var at=async function(e){await this.hooks.call("animation:out:start",e,void 0,()=>{this.classes.add("is-changing","is-animating","is-leaving")}),await this.hooks.call("animation:out:await",e,{skip:!1},(t,{skip:i})=>{if(!i)return this.awaitAnimations({selector:t.animation.selector})}),await this.hooks.call("animation:out:end",e,void 0)},rt=function(e){var t;let i=e.to.document;if(!i)return!1;let n=((t=i.querySelector("title"))==null?void 0:t.innerText)||"";document.title=n;let o=O(\'[data-swup-persist]:not([data-swup-persist=""])\'),s=e.containers.map(a=>{let r=document.querySelector(a),c=i.querySelector(a);return r&&c?(r.replaceWith(c.cloneNode(!0)),!0):(r||console.warn(`[swup] Container missing in current document: ${a}`),c||console.warn(`[swup] Container missing in incoming document: ${a}`),!1)}).filter(Boolean);return o.forEach(a=>{let r=a.getAttribute("data-swup-persist"),c=N(`[data-swup-persist="${r}"]`);c&&c!==a&&c.replaceWith(a)}),s.length===e.containers.length},lt=function(e){let t={behavior:"auto"},{target:i,reset:n}=e.scroll,o=i??e.to.hash,s=!1;return o&&(s=this.hooks.callSync("scroll:anchor",e,{hash:o,options:t},(a,{hash:r,options:c})=>{let l=this.getAnchorElement(r);return l&&l.scrollIntoView(c),!!l})),n&&!s&&(s=this.hooks.callSync("scroll:top",e,{options:t},(a,{options:r})=>(window.scrollTo(m({top:0,left:0},r)),!0))),s},ct=async function(e){if(e.done)return;let t=this.hooks.call("animation:in:await",e,{skip:!1},(i,{skip:n})=>{if(!n)return this.awaitAnimations({selector:i.animation.selector})});await G(),await this.hooks.call("animation:in:start",e,void 0,()=>{this.classes.remove("is-animating")}),await t,await this.hooks.call("animation:in:end",e,void 0)},ht=async function(e,t){if(e.done)return;e.advance(6);let{url:i}=t;this.isSameResolvedUrl(S(),i)||(x(i),this.location=v.fromUrl(i),e.to.url=this.location.url,e.to.hash=this.location.hash),await this.hooks.call("content:replace",e,{page:t},(n,{})=>{if(this.classes.remove("is-leaving"),n.animation.animate&&this.classes.add("is-rendering"),!this.replaceContent(n))throw new Error("[swup] Container mismatch, aborting");n.animation.animate&&(this.classes.add("is-changing","is-animating","is-rendering"),n.animation.name&&this.classes.add(`to-${F(n.animation.name)}`))}),await this.hooks.call("content:scroll",e,void 0,()=>this.scrollToContent(e)),await this.hooks.call("page:view",e,{url:this.location.url,title:document.title})},ut=function(e){var t;if(t=e,!!t?.isSwupPlugin){if(e.swup=this,!e._checkRequirements||e._checkRequirements())return e._beforeMount&&e._beforeMount(),e.mount(),this.plugins.push(e),this.plugins}else console.error("Not a swup plugin instance",e)};function dt(e){let t=this.findPlugin(e);if(t)return t.unmount(),t._afterUnmount&&t._afterUnmount(),this.plugins=this.plugins.filter(i=>i!==t),this.plugins;console.error("No such plugin",t)}function pt(e){return this.plugins.find(t=>typeof e=="string"?[`Swup${e}`,e].includes(t.name):t===e)}function mt(e){if(typeof this.options.resolveUrl!="function")return console.warn("[swup] options.resolveUrl expects a callback function."),e;let t=this.options.resolveUrl(e);return t&&typeof t=="string"?t.startsWith("//")||t.startsWith("http")?(console.warn("[swup] options.resolveUrl needs to return a relative url"),e):t:(console.warn("[swup] options.resolveUrl needs to return a url"),e)}function ft(e,t){return this.resolveUrl(e)===this.resolveUrl(t)}var gt={animateHistoryBrowsing:!1,animationSelector:\'[class*="transition-"]\',animationScope:"html",cache:!0,containers:["#swup"],hooks:{},ignoreVisit:(e,{el:t}={})=>!(t==null||!t.closest("[data-no-swup]")),linkSelector:"a[href]",linkToSelf:"scroll",native:!1,plugins:[],resolveUrl:e=>e,requestHeaders:{"X-Requested-With":"swup",Accept:"text/html, application/xhtml+xml"},skipPopStateHandling:e=>{var t;return((t=e.state)==null?void 0:t.source)!=="swup"},timeout:0},T=class{get currentPageUrl(){return this.location.url}constructor(t={}){var i,n;this.version="4.10.0",this.options=void 0,this.defaults=gt,this.plugins=[],this.visit=void 0,this.cache=void 0,this.hooks=void 0,this.classes=void 0,this.location=v.fromUrl(window.location.href),this.currentHistoryIndex=void 0,this.clickDelegate=void 0,this.navigating=!1,this.onVisitEnd=void 0,this.use=ut,this.unuse=dt,this.findPlugin=pt,this.log=()=>{},this.navigate=st,this.performNavigation=ot,this.createVisit=et,this.delegateEvent=Q,this.fetchPage=Y,this.awaitAnimations=nt,this.renderPage=ht,this.replaceContent=rt,this.animatePageIn=ct,this.animatePageOut=at,this.scrollToContent=lt,this.getAnchorElement=it,this.getCurrentUrl=S,this.resolveUrl=mt,this.isSameResolvedUrl=ft,this.options=m({},this.defaults,t),this.handleLinkClick=this.handleLinkClick.bind(this),this.handlePopState=this.handlePopState.bind(this),this.cache=new $(this),this.classes=new R(this),this.hooks=new q(this),this.visit=this.createVisit({to:""}),this.currentHistoryIndex=(i=(n=window.history.state)==null?void 0:n.index)!=null?i:1,this.enable()}async enable(){var t;let{linkSelector:i}=this.options;this.clickDelegate=this.delegateEvent(i,"click",this.handleLinkClick),window.addEventListener("popstate",this.handlePopState),this.options.animateHistoryBrowsing&&(window.history.scrollRestoration="manual"),this.options.native=this.options.native&&!!document.startViewTransition,this.options.plugins.forEach(n=>this.use(n));for(let[n,o]of Object.entries(this.options.hooks)){let[s,a]=this.hooks.parseName(n);this.hooks.on(s,o,a)}((t=window.history.state)==null?void 0:t.source)!=="swup"&&x(null,{index:this.currentHistoryIndex}),await G(),await this.hooks.call("enable",void 0,void 0,()=>{let n=document.documentElement;n.classList.add("swup-enabled"),n.classList.toggle("swup-native",this.options.native)})}async destroy(){this.clickDelegate.destroy(),window.removeEventListener("popstate",this.handlePopState),this.cache.clear(),this.plugins.forEach(t=>this.unuse(t)),await this.hooks.call("disable",void 0,void 0,()=>{let t=document.documentElement;t.classList.remove("swup-enabled"),t.classList.remove("swup-native")}),this.hooks.clear()}shouldIgnoreVisit(t,{el:i,event:n}={}){let{origin:o,url:s,hash:a}=v.fromUrl(t);return o!==window.location.origin||!(!i||!this.triggerWillOpenNewWindow(i))||!!this.options.ignoreVisit(s+a,{el:i,event:n})}handleLinkClick(t){let i=t.delegateTarget,{href:n,url:o,hash:s}=v.fromElement(i);if(this.shouldIgnoreVisit(n,{el:i,event:t}))return;if(this.navigating&&o===this.visit.to.url)return void t.preventDefault();let a=this.createVisit({to:o,hash:s,el:i,event:t});t.metaKey||t.ctrlKey||t.shiftKey||t.altKey?this.hooks.callSync("link:newtab",a,{href:n}):t.button===0&&this.hooks.callSync("link:click",a,{el:i,event:t},()=>{var r;let c=(r=a.from.url)!=null?r:"";t.preventDefault(),o&&o!==c?this.isSameResolvedUrl(o,c)||this.performNavigation(a):s?this.hooks.callSync("link:anchor",a,{hash:s},()=>{x(o+s),this.scrollToContent(a)}):this.hooks.callSync("link:self",a,void 0,()=>{this.options.linkToSelf==="navigate"?this.performNavigation(a):(x(o),this.scrollToContent(a))})})}handlePopState(t){var i,n,o,s;let a=(i=(n=t.state)==null?void 0:n.url)!=null?i:window.location.href;if(this.options.skipPopStateHandling(t)||this.isSameResolvedUrl(S(),this.location.url))return;let{url:r,hash:c}=v.fromUrl(a),l=this.createVisit({to:r,hash:c,event:t});l.history.popstate=!0;let h=(o=(s=t.state)==null?void 0:s.index)!=null?o:0;h&&h!==this.currentHistoryIndex&&(l.history.direction=h-this.currentHistoryIndex>0?"forwards":"backwards",this.currentHistoryIndex=h),l.animation.animate=!1,l.scroll.reset=!1,l.scroll.target=!1,this.options.animateHistoryBrowsing&&!t.hasUAVisualTransition&&(l.animation.animate=!0,l.scroll.reset=!0),this.hooks.callSync("history:popstate",l,{event:t},()=>{this.performNavigation(l)})}triggerWillOpenNewWindow(t){return!!t.matches(\'[download], [target="_blank"]\')}};var wt=100,vt=50,yt=65,bt=50,Et=3.5,kt=4.5;function Lt(e){try{let t=new URL(e,window.location.origin);return t.pathname==="/"||t.pathname===""}catch{return e==="/"||e.startsWith("/?")}}function St(e){let t=Lt(e),i=t?wt:vt,n=t?yt:bt,o=document.getElementById("fuwari-banner-wrapper");o&&(o.style.height=`${i}vh`);let s=document.getElementById("fuwari-main-wrapper");s&&(s.style.marginTop=`calc(${n}vh - ${Et}rem - ${kt}rem)`);let a=document.getElementById("fuwari-navbar-wrapper");a&&a.setAttribute("data-banner-vh",String(n))}function xt(e){try{let i=new URL(e,window.location.origin).pathname;document.querySelectorAll("#fuwari-navbar nav a").forEach(s=>{let a=s.getAttribute("href")||"";(a==="/"?i==="/":i===a||a!=="/"&&i.startsWith(a))?(s.classList.add("text-(--fuwari-primary)"),s.classList.remove("fuwari-text-75")):(s.classList.remove("text-(--fuwari-primary)"),s.classList.add("fuwari-text-75"))}),document.querySelectorAll("#mobile-menu-panel nav a").forEach(s=>{let a=s.getAttribute("href")||"";(a==="/"?i==="/":i===a||a!=="/"&&i.startsWith(a))?(s.classList.add("text-(--fuwari-primary)"),s.classList.remove("fuwari-text-75")):(s.classList.remove("text-(--fuwari-primary)"),s.classList.add("fuwari-text-75"))})}catch(t){console.error("Update navbar error:",t)}}function At(e){e.querySelectorAll("script").forEach(i=>{if(i.hasAttribute("data-swup-ignore-script"))return;let n=document.createElement("script");Array.from(i.attributes).forEach(o=>{n.setAttribute(o.name,o.value)}),n.textContent=i.textContent,i.parentNode?.replaceChild(n,i)})}function Ht(){let e=document.getElementById("mobile-menu-overlay"),t=document.getElementById("mobile-menu-panel");e&&t&&(e.classList.add("opacity-0","pointer-events-none"),t.classList.add("-translate-y-4"))}var p=null,b=null,U=null;function _t(){if(p)return p;p=document.createElement("div"),p.id="fuwari-image-lightbox",p.className="fuwari-lightbox",p.setAttribute("aria-hidden","true"),p.innerHTML=`\n    <div class="fuwari-lightbox__backdrop"></div>\n    <div class="fuwari-lightbox__container">\n      <button class="fuwari-lightbox__close" aria-label="\\u5173\\u95ED">&times;</button>\n      <img class="fuwari-lightbox__image" src="" alt="" />\n      <div class="fuwari-lightbox__caption"></div>\n    </div>\n  `,document.body.appendChild(p),b=p.querySelector(".fuwari-lightbox__image"),U=p.querySelector(".fuwari-lightbox__caption");let e=p.querySelector(".fuwari-lightbox__close"),t=p.querySelector(".fuwari-lightbox__backdrop");function i(){p&&(p.classList.remove("is-open"),p.setAttribute("aria-hidden","true"),document.body.style.overflow="",setTimeout(()=>{b&&!p?.classList.contains("is-open")&&(b.src="")},250))}return e&&e.addEventListener("click",i),t&&t.addEventListener("click",i),b&&b.addEventListener("click",i),document.addEventListener("keydown",n=>{n.key==="Escape"&&p?.classList.contains("is-open")&&i()}),p}function Ct(e,t,i){if(_t(),!(!p||!b)){if(b.src=e,b.alt=t||i||"Enlarged image",U){let n=i||t||"";U.textContent=n,U.style.display=n?"block":"none"}p.classList.add("is-open"),p.setAttribute("aria-hidden","false"),document.body.style.overflow="hidden"}}function V(){window.__fuwari_lightbox_initialized||(window.__fuwari_lightbox_initialized=!0,document.addEventListener("click",e=>{let t=e.target;if(t&&t.tagName==="IMG"){let i=t,n=i.classList.contains("zoomable")||i.hasAttribute("data-zoomable")||!!i.closest(".prose"),o=i.closest(".profile")||i.closest("#fuwari-banner-wrapper")||i.closest("nav")||i.classList.contains("no-zoom");if(n&&!o&&i.src){e.preventDefault(),e.stopPropagation();let s=i.getAttribute("title")||i.getAttribute("alt")||"";Ct(i.src,i.alt,s)}}}))}function J(){if(window.__fuwari_swup_initialized)return;window.__fuwari_swup_initialized=!0,V();let e=new T({containers:["#swup-container"],animationSelector:\'[class*="transition-swup-"]\',cache:!0});e.hooks.on("visit:start",t=>{St(t.to.url),xt(t.to.url),Ht()}),e.hooks.on("content:replace",()=>{if(window.location.hash)try{let i=document.querySelector(decodeURIComponent(window.location.hash));i&&i.scrollIntoView({behavior:"smooth"})}catch{}else window.scrollTo({top:0,behavior:"smooth"});if(window.hljs)try{window.hljs.highlightAll()}catch{}let t=document.getElementById("swup-container");t&&At(t)}),window.swup=e}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",()=>{V(),J()}):(V(),J());})();\n';
+var swupClientJs = '"use strict";(()=>{var $=new WeakMap;function q(i,t,e,s){if(!i&&!$.has(t))return!1;let n=$.get(t)??new WeakMap;$.set(t,n);let o=n.get(e)??new Set;n.set(e,o);let r=o.has(s);return i?o.add(s):o.delete(s),r&&i}function ot(i,t){let e=i.target;if(e instanceof Text&&(e=e.parentElement),e instanceof Element&&i.currentTarget instanceof Node){let s=e.closest(t);if(s&&i.currentTarget.contains(s))return s}}function G(i,t,e,s={}){if(Array.isArray(t)){for(let p of t)G(i,p,e,s);return}let n=t,{signal:o,base:r=document}=s;if(o?.aborted)return;let{once:a,...c}=s,l=r instanceof Document?r.documentElement:r,h=!!(typeof s=="object"?s.capture:s),u=p=>{let d=ot(p,String(i));if(d){let g=Object.assign(p,{delegateTarget:d});e.call(l,g),a&&(l.removeEventListener(n,u,c),q(!1,l,e,f))}},f=JSON.stringify({selector:i,type:n,capture:h});q(!0,l,e,f)||l.addEventListener(n,u,c),o?.addEventListener("abort",()=>{q(!1,l,e,f)})}var P=G;function b(){return b=Object.assign?Object.assign.bind():function(i){for(var t=1;t<arguments.length;t++){var e=arguments[t];for(var s in e)({}).hasOwnProperty.call(e,s)&&(i[s]=e[s])}return i},b.apply(null,arguments)}var Z=(i,t)=>String(i).toLowerCase().replace(/[\\s/_.]+/g,"-").replace(/[^\\w-]+/g,"").replace(/--+/g,"-").replace(/^-+|-+$/g,"")||t||"",E=({hash:i}={})=>window.location.pathname+window.location.search+(i?window.location.hash:""),rt=(i,t={})=>{let e=b({url:i=i||E({hash:!0}),random:Math.random(),source:"swup"},t);window.history.pushState(e,"",i)},A=(i=null,t={})=>{i=i||E({hash:!0});let e=b({},window.history.state||{},{url:i,random:Math.random(),source:"swup"},t);window.history.replaceState(e,"",i)},at=(i,t,e,s)=>{let n=new AbortController;return s=b({},s,{signal:n.signal}),P(i,t,e,s),{destroy:()=>n.abort()}},v=class i extends URL{constructor(t,e=document.baseURI){super(t.toString(),e),Object.setPrototypeOf(this,i.prototype)}get url(){return this.pathname+this.search}static fromElement(t){let e=t.getAttribute("href")||t.getAttribute("xlink:href")||"";return new i(e)}static fromUrl(t){return new i(t)}};var S=class extends Error{constructor(t,e){super(t),this.url=void 0,this.status=void 0,this.aborted=void 0,this.timedOut=void 0,this.name="FetchError",this.url=e.url,this.status=e.status,this.aborted=e.aborted||!1,this.timedOut=e.timedOut||!1}};async function lt(i,t={}){var e;i=v.fromUrl(i).url;let{visit:s=this.visit}=t,n=b({},this.options.requestHeaders,t.headers),o=(e=t.timeout)!=null?e:this.options.timeout,r=new AbortController,{signal:a}=r;t=b({},t,{headers:n,signal:a});let c,l=!1,h=null;o&&o>0&&(h=setTimeout(()=>{l=!0,r.abort("timeout")},o));try{c=await this.hooks.call("fetch:request",s,{url:i,options:t},(g,{url:y,options:k})=>fetch(y,k)),h&&clearTimeout(h)}catch(g){throw l?(this.hooks.call("fetch:timeout",s,{url:i}),new S(`Request timed out: ${i}`,{url:i,timedOut:l})):g?.name==="AbortError"||a.aborted?new S(`Request aborted: ${i}`,{url:i,aborted:!0}):g}let{status:u,url:f}=c,m=await c.text();if(u===500)throw this.hooks.call("fetch:error",s,{status:u,response:c,url:f}),new S(`Server error: ${f}`,{status:u,url:f});if(!m)throw new S(`Empty response: ${f}`,{status:u,url:f});let{url:p}=v.fromUrl(f),d={url:p,html:m};return!s.cache.write||t.method&&t.method!=="GET"||i!==p||this.cache.set(d.url,d),d}var R=class{constructor(t){this.swup=void 0,this.pages=new Map,this.swup=t}get size(){return this.pages.size}get all(){let t=new Map;return this.pages.forEach((e,s)=>{t.set(s,b({},e))}),t}has(t){return this.pages.has(this.resolve(t))}get(t){let e=this.pages.get(this.resolve(t));return e&&b({},e)}set(t,e){e=b({},e,{url:t=this.resolve(t)}),this.pages.set(t,e),this.swup.hooks.callSync("cache:set",void 0,{page:e})}update(t,e){t=this.resolve(t);let s=b({},this.get(t),e,{url:t});this.pages.set(t,s)}delete(t){this.pages.delete(this.resolve(t))}clear(){this.pages.clear(),this.swup.hooks.callSync("cache:clear",void 0,void 0)}prune(t){this.pages.forEach((e,s)=>{t(s,e)&&this.delete(s)})}resolve(t){let{url:e}=v.fromUrl(t);return this.swup.resolveUrl(e)}},D=(i,t=document)=>t.querySelector(i),B=(i,t=document)=>Array.from(t.querySelectorAll(i)),Q=()=>new Promise(i=>{requestAnimationFrame(()=>{requestAnimationFrame(()=>{i()})})});function tt(i){return!!i&&(typeof i=="object"||typeof i=="function")&&typeof i.then=="function"}function ct(i,t=[]){return new Promise((e,s)=>{let n=i(...t);tt(n)?n.then(e,s):e(n)})}function K(i,t){let e=i?.closest(`[${t}]`);return e!=null&&e.hasAttribute(t)?e?.getAttribute(t)||!0:void 0}var j=class{constructor(t){this.swup=void 0,this.swupClasses=["to-","is-changing","is-rendering","is-popstate","is-animating","is-leaving"],this.swup=t}get selectors(){let{scope:t}=this.swup.visit.animation;return t==="containers"?this.swup.visit.containers:t==="html"?["html"]:Array.isArray(t)?t:[]}get selector(){return this.selectors.join(",")}get targets(){return this.selector.trim()?B(this.selector):[]}add(...t){this.targets.forEach(e=>e.classList.add(...t))}remove(...t){this.targets.forEach(e=>e.classList.remove(...t))}clear(){this.targets.forEach(t=>{let e=t.className.split(" ").filter(s=>this.isSwupClass(s));t.classList.remove(...e)})}isSwupClass(t){return this.swupClasses.some(e=>t.startsWith(e))}},_=class{constructor(t,e){this.id=void 0,this.state=void 0,this.from=void 0,this.to=void 0,this.containers=void 0,this.animation=void 0,this.trigger=void 0,this.cache=void 0,this.history=void 0,this.scroll=void 0,this.meta=void 0;let{to:s,from:n,hash:o,el:r,event:a}=e;this.id=Math.random(),this.state=1,this.from={url:n??t.location.url,hash:t.location.hash},this.to={url:s,hash:o},this.containers=t.options.containers,this.animation={animate:!0,wait:!1,name:void 0,native:t.options.native,scope:t.options.animationScope,selector:t.options.animationSelector},this.trigger={el:r,event:a},this.cache={read:t.options.cache,write:t.options.cache},this.history={action:"push",popstate:!1,direction:void 0},this.scroll={reset:!0,target:void 0},this.meta={}}advance(t){this.state<t&&(this.state=t)}abort(){this.state=8}ignore(){this.state=10}get done(){return this.state>=7}get ignored(){return this.state===10}};function ht(i){return new _(this,i)}var W=class{constructor(t){this.swup=void 0,this.registry=new Map,this.hooks=["animation:out:start","animation:out:await","animation:out:end","animation:in:start","animation:in:await","animation:in:end","animation:skip","cache:clear","cache:set","content:replace","content:scroll","enable","disable","fetch:request","fetch:error","fetch:timeout","history:popstate","link:click","link:self","link:anchor","link:newtab","page:load","page:view","scroll:top","scroll:anchor","visit:start","visit:transition","visit:abort","visit:end","visit:fail"],this.nextHookId=0,this.swup=t,this.init()}init(){this.hooks.forEach(t=>this.create(t))}create(t){this.registry.has(t)||this.registry.set(t,new Map)}exists(t){return this.registry.has(t)}get(t){let e=this.registry.get(t);if(e)return e;console.error(`Unknown hook \'${t}\'`)}clear(){this.registry.forEach(t=>t.clear())}on(t,e,s={}){let n=this.get(t);if(!n)return console.warn(`Hook \'${t}\' not found.`),()=>{};let o=b({},s,{id:++this.nextHookId,hook:t,handler:e});return n.set(e,o),()=>this.off(t,e)}before(t,e,s={}){return this.on(t,e,b({},s,{before:!0}))}replace(t,e,s={}){return this.on(t,e,b({},s,{replace:!0}))}once(t,e,s={}){return this.on(t,e,b({},s,{once:!0}))}off(t,e){let s=this.get(t);s&&e?s.delete(e)||console.warn(`Handler for hook \'${t}\' not found.`):s&&s.clear()}async call(t,e,s,n){let[o,r,a]=this.parseCallArgs(t,e,s,n),{before:c,handler:l,after:h}=this.getHandlers(t,a);await this.run(c,o,r);let[u]=await this.run(l,o,r,!0);return await this.run(h,o,r),this.dispatchDomEvent(t,o,r),u}callSync(t,e,s,n){let[o,r,a]=this.parseCallArgs(t,e,s,n),{before:c,handler:l,after:h}=this.getHandlers(t,a);this.runSync(c,o,r);let[u]=this.runSync(l,o,r,!0);return this.runSync(h,o,r),this.dispatchDomEvent(t,o,r),u}parseCallArgs(t,e,s,n){return e instanceof _||typeof e!="object"&&typeof s!="function"?[e,s,n]:[void 0,e,s]}async run(t,e=this.swup.visit,s,n=!1){let o=[];for(let{hook:r,handler:a,defaultHandler:c,once:l}of t)if(e==null||!e.done){l&&this.off(r,a);try{let h=await ct(a,[e,s,c]);o.push(h)}catch(h){if(n)throw h;console.error(`Error in hook \'${r}\':`,h)}}return o}runSync(t,e=this.swup.visit,s,n=!1){let o=[];for(let{hook:r,handler:a,defaultHandler:c,once:l}of t)if(e==null||!e.done){l&&this.off(r,a);try{let h=a(e,s,c);o.push(h),tt(h)&&console.warn(`Swup will not await Promises in handler for synchronous hook \'${r}\'.`)}catch(h){if(n)throw h;console.error(`Error in hook \'${r}\':`,h)}}return o}getHandlers(t,e){let s=this.get(t);if(!s)return{found:!1,before:[],handler:[],after:[],replaced:!1};let n=Array.from(s.values()),o=this.sortRegistrations,r=n.filter(({before:u,replace:f})=>u&&!f).sort(o),a=n.filter(({replace:u})=>u).filter(u=>!0).sort(o),c=n.filter(({before:u,replace:f})=>!u&&!f).sort(o),l=a.length>0,h=[];if(e&&(h=[{id:0,hook:t,handler:e}],l)){let u=a.length-1,{handler:f,once:m}=a[u],p=d=>{let g=a[d-1];return g?(y,k)=>g.handler(y,k,p(d-1)):e};h=[{id:0,hook:t,once:m,handler:f,defaultHandler:p(u)}]}return{found:!0,before:r,handler:h,after:c,replaced:l}}sortRegistrations(t,e){var s,n;return((s=t.priority)!=null?s:0)-((n=e.priority)!=null?n:0)||t.id-e.id||0}dispatchDomEvent(t,e,s){if(e!=null&&e.done)return;let n={hook:t,args:s,visit:e||this.swup.visit};document.dispatchEvent(new CustomEvent("swup:any",{detail:n,bubbles:!0})),document.dispatchEvent(new CustomEvent(`swup:${t}`,{detail:n,bubbles:!0}))}parseName(t){let[e,...s]=t.split(".");return[e,s.reduce((n,o)=>b({},n,{[o]:!0}),{})]}},ut=i=>{if(i&&i.charAt(0)==="#"&&(i=i.substring(1)),!i)return null;let t=decodeURIComponent(i),e=document.getElementById(i)||document.getElementById(t)||D(`a[name=\'${CSS.escape(i)}\']`)||D(`a[name=\'${CSS.escape(t)}\']`);return e||i!=="top"||(e=document.body),e},T="transition",N="animation";async function dt({selector:i,elements:t}){if(i===!1&&!t)return;let e=[];if(t)e=Array.from(t);else if(i&&(e=B(i,document.body),!e.length))return void console.warn(`[swup] No elements found matching animationSelector \\`${i}\\``);let s=e.map(n=>(function(o){let{type:r,timeout:a,propCount:c}=(function(l){let h=window.getComputedStyle(l),u=H(h,`${T}Delay`),f=H(h,`${T}Duration`),m=J(u,f),p=H(h,`${N}Delay`),d=H(h,`${N}Duration`),g=J(p,d),y=Math.max(m,g),k=y>0?m>g?T:N:null;return{type:k,timeout:y,propCount:k?k===T?f.length:d.length:0}})(o);return!(!r||!a)&&new Promise(l=>{let h=`${r}end`,u=performance.now(),f=0,m=()=>{o.removeEventListener(h,p),l()},p=d=>{d.target===o&&((performance.now()-u)/1e3<d.elapsedTime||++f>=c&&m())};setTimeout(()=>{f<c&&m()},a+1),o.addEventListener(h,p)})})(n)).filter(n=>n!==!1);s.length?await Promise.all(s):i&&console.warn(`[swup] No CSS animation duration defined on elements matching \\`${i}\\``)}function H(i,t){return(i[t]||"").split(", ")}function J(i,t){for(;i.length<t.length;)i=i.concat(i);return Math.max(...t.map((e,s)=>X(e)+X(i[s])))}function X(i){return 1e3*parseFloat(i)}function pt(i,t={},e={}){if(typeof i!="string")throw new Error("swup.navigate() requires a URL parameter");if(this.shouldIgnoreVisit(i,{el:e.el,event:e.event}))return void window.location.assign(i);let{url:s,hash:n}=v.fromUrl(i),o=this.createVisit(b({},e,{to:s,hash:n}));this.performNavigation(o,t)}async function ft(i,t={}){if(this.navigating){if(this.visit.state>=6)return i.state=2,void(this.onVisitEnd=()=>this.performNavigation(i,t));await this.hooks.call("visit:abort",this.visit,void 0),delete this.visit.to.document,this.visit.state=8}this.navigating=!0,this.visit=i;let{el:e}=i.trigger;t.referrer=t.referrer||this.location.url,t.animate===!1&&(i.animation.animate=!1),i.animation.animate||this.classes.clear();let s=t.history||K(e,"data-swup-history");typeof s=="string"&&["push","replace"].includes(s)&&(i.history.action=s);let n=t.animation||K(e,"data-swup-animation");var o,r;typeof n=="string"&&(i.animation.name=n),i.meta=t.meta||{},typeof t.cache=="object"?(i.cache.read=(o=t.cache.read)!=null?o:i.cache.read,i.cache.write=(r=t.cache.write)!=null?r:i.cache.write):t.cache!==void 0&&(i.cache={read:!!t.cache,write:!!t.cache}),delete t.cache;try{await this.hooks.call("visit:start",i,void 0),i.state=3;let a=this.hooks.call("page:load",i,{options:t},async(l,h)=>{let u;return l.cache.read&&(u=this.cache.get(l.to.url)),h.page=u||await this.fetchPage(l.to.url,h.options),h.cache=!!u,h.page});a.then(({html:l})=>{i.advance(5),i.to.html=l,i.to.document=new DOMParser().parseFromString(l,"text/html")});let c=i.to.url+i.to.hash;if(i.history.popstate||(i.history.action==="replace"||i.to.url===this.location.url?A(c):(this.currentHistoryIndex++,rt(c,{index:this.currentHistoryIndex}))),this.location=v.fromUrl(c),i.history.popstate&&this.classes.add("is-popstate"),i.animation.name&&this.classes.add(`to-${Z(i.animation.name)}`),i.animation.wait&&await a,i.ignored)throw new Error(`Visit to ${i.to.url} manually ignored`);if(i.done||(await this.hooks.call("visit:transition",i,void 0,async()=>{if(!i.animation.animate)return await this.hooks.call("animation:skip",void 0),void await this.renderPage(i,await a);i.advance(4),await this.animatePageOut(i),i.animation.native&&document.startViewTransition?await document.startViewTransition(async()=>await this.renderPage(i,await a)).finished:await this.renderPage(i,await a),await this.animatePageIn(i)}),i.done))return;await this.hooks.call("visit:end",i,void 0,()=>this.classes.clear()),i.state=7,this.navigating=!1,this.onVisitEnd&&(this.onVisitEnd(),this.onVisitEnd=void 0)}catch(a){if(!a||a!=null&&a.aborted)return void i.advance(8);if(i.ignored)return void Y.call(this,i);await this.hooks.call("visit:fail",i,{error:a},(c,{error:l})=>{console.error(l),Y.call(this,c)}),i.advance(9)}finally{delete i.to.document,this.visit===i&&(this.navigating=!1)}}function Y(i){let t=i.to.url+i.to.hash;E()===i.to.url?(window.removeEventListener("popstate",this.handlePopState),window.addEventListener("popstate",()=>window.location.assign(t),{once:!0}),window.history.back()):window.location.assign(t)}var mt=async function(i){await this.hooks.call("animation:out:start",i,void 0,()=>{this.classes.add("is-changing","is-animating","is-leaving")}),await this.hooks.call("animation:out:await",i,{skip:!1},(t,{skip:e})=>{if(!e)return this.awaitAnimations({selector:t.animation.selector})}),await this.hooks.call("animation:out:end",i,void 0)},gt=function(i){var t;let e=i.to.document;if(!e)return!1;let s=((t=e.querySelector("title"))==null?void 0:t.innerText)||"";document.title=s;let n=B(\'[data-swup-persist]:not([data-swup-persist=""])\'),o=i.containers.map(r=>{let a=document.querySelector(r),c=e.querySelector(r);return a&&c?(a.replaceWith(c.cloneNode(!0)),!0):(a||console.warn(`[swup] Container missing in current document: ${r}`),c||console.warn(`[swup] Container missing in incoming document: ${r}`),!1)}).filter(Boolean);return n.forEach(r=>{let a=r.getAttribute("data-swup-persist"),c=D(`[data-swup-persist="${a}"]`);c&&c!==r&&c.replaceWith(r)}),o.length===i.containers.length},wt=function(i){let t={behavior:"auto"},{target:e,reset:s}=i.scroll,n=e??i.to.hash,o=!1;return n&&(o=this.hooks.callSync("scroll:anchor",i,{hash:n,options:t},(r,{hash:a,options:c})=>{let l=this.getAnchorElement(a);return l&&l.scrollIntoView(c),!!l})),s&&!o&&(o=this.hooks.callSync("scroll:top",i,{options:t},(r,{options:a})=>(window.scrollTo(b({top:0,left:0},a)),!0))),o},vt=async function(i){if(i.done)return;let t=this.hooks.call("animation:in:await",i,{skip:!1},(e,{skip:s})=>{if(!s)return this.awaitAnimations({selector:e.animation.selector})});await Q(),await this.hooks.call("animation:in:start",i,void 0,()=>{this.classes.remove("is-animating")}),await t,await this.hooks.call("animation:in:end",i,void 0)},yt=async function(i,t){if(i.done)return;i.advance(6);let{url:e}=t;this.isSameResolvedUrl(E(),e)||(A(e),this.location=v.fromUrl(e),i.to.url=this.location.url,i.to.hash=this.location.hash),await this.hooks.call("content:replace",i,{page:t},(s,{})=>{if(this.classes.remove("is-leaving"),s.animation.animate&&this.classes.add("is-rendering"),!this.replaceContent(s))throw new Error("[swup] Container mismatch, aborting");s.animation.animate&&(this.classes.add("is-changing","is-animating","is-rendering"),s.animation.name&&this.classes.add(`to-${Z(s.animation.name)}`))}),await this.hooks.call("content:scroll",i,void 0,()=>this.scrollToContent(i)),await this.hooks.call("page:view",i,{url:this.location.url,title:document.title})},bt=function(i){var t;if(t=i,!!t?.isSwupPlugin){if(i.swup=this,!i._checkRequirements||i._checkRequirements())return i._beforeMount&&i._beforeMount(),i.mount(),this.plugins.push(i),this.plugins}else console.error("Not a swup plugin instance",i)};function kt(i){let t=this.findPlugin(i);if(t)return t.unmount(),t._afterUnmount&&t._afterUnmount(),this.plugins=this.plugins.filter(e=>e!==t),this.plugins;console.error("No such plugin",t)}function Et(i){return this.plugins.find(t=>typeof i=="string"?[`Swup${i}`,i].includes(t.name):t===i)}function Lt(i){if(typeof this.options.resolveUrl!="function")return console.warn("[swup] options.resolveUrl expects a callback function."),i;let t=this.options.resolveUrl(i);return t&&typeof t=="string"?t.startsWith("//")||t.startsWith("http")?(console.warn("[swup] options.resolveUrl needs to return a relative url"),i):t:(console.warn("[swup] options.resolveUrl needs to return a url"),i)}function St(i,t){return this.resolveUrl(i)===this.resolveUrl(t)}var At={animateHistoryBrowsing:!1,animationSelector:\'[class*="transition-"]\',animationScope:"html",cache:!0,containers:["#swup"],hooks:{},ignoreVisit:(i,{el:t}={})=>!(t==null||!t.closest("[data-no-swup]")),linkSelector:"a[href]",linkToSelf:"scroll",native:!1,plugins:[],resolveUrl:i=>i,requestHeaders:{"X-Requested-With":"swup",Accept:"text/html, application/xhtml+xml"},skipPopStateHandling:i=>{var t;return((t=i.state)==null?void 0:t.source)!=="swup"},timeout:0},U=class{get currentPageUrl(){return this.location.url}constructor(t={}){var e,s;this.version="4.10.0",this.options=void 0,this.defaults=At,this.plugins=[],this.visit=void 0,this.cache=void 0,this.hooks=void 0,this.classes=void 0,this.location=v.fromUrl(window.location.href),this.currentHistoryIndex=void 0,this.clickDelegate=void 0,this.navigating=!1,this.onVisitEnd=void 0,this.use=bt,this.unuse=kt,this.findPlugin=Et,this.log=()=>{},this.navigate=pt,this.performNavigation=ft,this.createVisit=ht,this.delegateEvent=at,this.fetchPage=lt,this.awaitAnimations=dt,this.renderPage=yt,this.replaceContent=gt,this.animatePageIn=vt,this.animatePageOut=mt,this.scrollToContent=wt,this.getAnchorElement=ut,this.getCurrentUrl=E,this.resolveUrl=Lt,this.isSameResolvedUrl=St,this.options=b({},this.defaults,t),this.handleLinkClick=this.handleLinkClick.bind(this),this.handlePopState=this.handlePopState.bind(this),this.cache=new R(this),this.classes=new j(this),this.hooks=new W(this),this.visit=this.createVisit({to:""}),this.currentHistoryIndex=(e=(s=window.history.state)==null?void 0:s.index)!=null?e:1,this.enable()}async enable(){var t;let{linkSelector:e}=this.options;this.clickDelegate=this.delegateEvent(e,"click",this.handleLinkClick),window.addEventListener("popstate",this.handlePopState),this.options.animateHistoryBrowsing&&(window.history.scrollRestoration="manual"),this.options.native=this.options.native&&!!document.startViewTransition,this.options.plugins.forEach(s=>this.use(s));for(let[s,n]of Object.entries(this.options.hooks)){let[o,r]=this.hooks.parseName(s);this.hooks.on(o,n,r)}((t=window.history.state)==null?void 0:t.source)!=="swup"&&A(null,{index:this.currentHistoryIndex}),await Q(),await this.hooks.call("enable",void 0,void 0,()=>{let s=document.documentElement;s.classList.add("swup-enabled"),s.classList.toggle("swup-native",this.options.native)})}async destroy(){this.clickDelegate.destroy(),window.removeEventListener("popstate",this.handlePopState),this.cache.clear(),this.plugins.forEach(t=>this.unuse(t)),await this.hooks.call("disable",void 0,void 0,()=>{let t=document.documentElement;t.classList.remove("swup-enabled"),t.classList.remove("swup-native")}),this.hooks.clear()}shouldIgnoreVisit(t,{el:e,event:s}={}){let{origin:n,url:o,hash:r}=v.fromUrl(t);return n!==window.location.origin||!(!e||!this.triggerWillOpenNewWindow(e))||!!this.options.ignoreVisit(o+r,{el:e,event:s})}handleLinkClick(t){let e=t.delegateTarget,{href:s,url:n,hash:o}=v.fromElement(e);if(this.shouldIgnoreVisit(s,{el:e,event:t}))return;if(this.navigating&&n===this.visit.to.url)return void t.preventDefault();let r=this.createVisit({to:n,hash:o,el:e,event:t});t.metaKey||t.ctrlKey||t.shiftKey||t.altKey?this.hooks.callSync("link:newtab",r,{href:s}):t.button===0&&this.hooks.callSync("link:click",r,{el:e,event:t},()=>{var a;let c=(a=r.from.url)!=null?a:"";t.preventDefault(),n&&n!==c?this.isSameResolvedUrl(n,c)||this.performNavigation(r):o?this.hooks.callSync("link:anchor",r,{hash:o},()=>{A(n+o),this.scrollToContent(r)}):this.hooks.callSync("link:self",r,void 0,()=>{this.options.linkToSelf==="navigate"?this.performNavigation(r):(A(n),this.scrollToContent(r))})})}handlePopState(t){var e,s,n,o;let r=(e=(s=t.state)==null?void 0:s.url)!=null?e:window.location.href;if(this.options.skipPopStateHandling(t)||this.isSameResolvedUrl(E(),this.location.url))return;let{url:a,hash:c}=v.fromUrl(r),l=this.createVisit({to:a,hash:c,event:t});l.history.popstate=!0;let h=(n=(o=t.state)==null?void 0:o.index)!=null?n:0;h&&h!==this.currentHistoryIndex&&(l.history.direction=h-this.currentHistoryIndex>0?"forwards":"backwards",this.currentHistoryIndex=h),l.animation.animate=!1,l.scroll.reset=!1,l.scroll.target=!1,this.options.animateHistoryBrowsing&&!t.hasUAVisualTransition&&(l.animation.animate=!0,l.scroll.reset=!0),this.hooks.callSync("history:popstate",l,{event:t},()=>{this.performNavigation(l)})}triggerWillOpenNewWindow(t){return!!t.matches(\'[download], [target="_blank"]\')}};function x(){return x=Object.assign?Object.assign.bind():function(i){for(var t=1;t<arguments.length;t++){var e=arguments[t];for(var s in e)Object.prototype.hasOwnProperty.call(e,s)&&(i[s]=e[s])}return i},x.apply(this,arguments)}var et=i=>String(i).split(".").map(t=>String(parseInt(t||"0",10))).concat(["0","0"]).slice(0,3).join("."),C=class{constructor(){this.isSwupPlugin=!0,this.swup=void 0,this.version=void 0,this.requires={},this.handlersToUnregister=[]}mount(){}unmount(){this.handlersToUnregister.forEach(t=>t()),this.handlersToUnregister=[]}_beforeMount(){if(!this.name)throw new Error("You must define a name of plugin when creating a class.")}_afterUnmount(){}_checkRequirements(){return typeof this.requires!="object"||Object.entries(this.requires).forEach(([t,e])=>{if(!(function(s,n,o){let r=(function(a,c){var l;if(a==="swup")return(l=c.version)!=null?l:"";{var h;let u=c.findPlugin(a);return(h=u?.version)!=null?h:""}})(s,o);return!!r&&((a,c)=>c.every(l=>{let[,h,u]=l.match(/^([\\D]+)?(.*)$/)||[];var f,m;return((p,d)=>{let g={"":y=>y===0,">":y=>y>0,">=":y=>y>=0,"<":y=>y<0,"<=":y=>y<=0};return(g[d]||g[""])(p)})((m=u,f=et(f=a),m=et(m),f.localeCompare(m,void 0,{numeric:!0})),h||">=")}))(r,n)})(t,e=Array.isArray(e)?e:[e],this.swup)){let s=`${t} ${e.join(", ")}`;throw new Error(`Plugin version mismatch: ${this.name} requires ${s}`)}}),!0}on(t,e,s={}){var n;e=!(n=e).name.startsWith("bound ")||n.hasOwnProperty("prototype")?e.bind(this):e;let o=this.swup.hooks.on(t,e,s);return this.handlersToUnregister.push(o),o}once(t,e,s={}){return this.on(t,e,x({},s,{once:!0}))}before(t,e,s={}){return this.on(t,e,x({},s,{before:!0}))}replace(t,e,s={}){return this.on(t,e,x({},s,{replace:!0}))}off(t,e){return this.swup.hooks.off(t,e)}};function O(){return O=Object.assign?Object.assign.bind():function(i){for(var t=1;t<arguments.length;t++){var e=arguments[t];for(var s in e)({}).hasOwnProperty.call(e,s)&&(i[s]=e[s])}return i},O.apply(null,arguments)}function it(){return window.matchMedia("(hover: hover)").matches}function M(i){return!!i&&(i instanceof HTMLAnchorElement||i instanceof SVGAElement)}var st=window.requestIdleCallback||(i=>setTimeout(i,1)),xt=["preloadVisibleLinks"],I=class extends C{constructor(t={}){var e;super(),e=this,this.name="SwupPreloadPlugin",this.requires={swup:">=4.5"},this.defaults={throttle:5,preloadInitialPage:!0,preloadHoveredLinks:!0,preloadVisibleLinks:{enabled:!1,threshold:.2,delay:500,containers:["body"],ignore:()=>!1}},this.options=void 0,this.queue=void 0,this.preloadObserver=void 0,this.preloadPromises=new Map,this.mouseEnterDelegate=void 0,this.touchStartDelegate=void 0,this.focusDelegate=void 0,this.onPageLoad=async function(o,r,a){var c;let{url:l}=o.to,h=l?e.preloadPromises.get(l):void 0,u=(c=await h?.catch(()=>{}))!=null?c:null;return u?(r.page=u,r.cache=!1,u):a(o,r)},this.onMouseEnter=async function(o){if(o.target!==o.delegateTarget||!it())return;let r=o.delegateTarget;if(!M(r))return;let{url:a,hash:c}=v.fromElement(r),l=e.swup.createVisit({to:a,hash:c,el:r,event:o});e.swup.hooks.callSync("link:hover",l,{el:r,event:o}),e.preload(r,{priority:!0})},this.onTouchStart=o=>{if(it())return;let r=o.delegateTarget;M(r)&&this.preload(r,{priority:!0})},this.onFocus=o=>{let r=o.delegateTarget;M(r)&&this.preload(r,{priority:!0})};let{preloadVisibleLinks:s}=t,n=(function(o,r){if(o==null)return{};var a={};for(var c in o)if({}.hasOwnProperty.call(o,c)){if(r.includes(c))continue;a[c]=o[c]}return a})(t,xt);this.options=O({},this.defaults,n),typeof s=="object"?this.options.preloadVisibleLinks=O({},this.options.preloadVisibleLinks,{enabled:!0},s):this.options.preloadVisibleLinks.enabled=!!s,this.preload=this.preload.bind(this),this.queue=(function(o=1){let r=[],a=[],c=0,l=0;function h(){l<o&&c>0&&((a.shift()||r.shift()||(()=>{}))(),c--,l++)}return{add:function(u,f=!1){if(u.__queued){if(!f)return;{let m=r.indexOf(u);if(m>=0){let p=r.splice(m,1);c-=p.length}}}u.__queued=!0,(f?a:r).push(u),c++,c<=1&&h()},next:function(){l--,h()}}})(this.options.throttle)}mount(){let t=this.swup;t.options.cache?(t.hooks.create("page:preload"),t.hooks.create("link:hover"),t.preload=this.preload,t.preloadLinks=this.preloadLinks,this.replace("page:load",this.onPageLoad),this.preloadLinks(),this.on("page:view",()=>this.preloadLinks()),this.options.preloadVisibleLinks.enabled&&(this.preloadVisibleLinks(),this.on("page:view",()=>this.preloadVisibleLinks())),this.options.preloadHoveredLinks&&this.preloadLinksOnAttention(),this.options.preloadInitialPage&&this.preload(E())):console.warn("SwupPreloadPlugin: swup cache needs to be enabled for preloading")}unmount(){var t,e,s;this.swup.preload=void 0,this.swup.preloadLinks=void 0,this.preloadPromises.clear(),(t=this.mouseEnterDelegate)==null||t.destroy(),(e=this.touchStartDelegate)==null||e.destroy(),(s=this.focusDelegate)==null||s.destroy(),this.stopPreloadingVisibleLinks()}async preload(t,e={}){var s;let n,o,r=(s=e.priority)!=null&&s;if(Array.isArray(t))return Promise.all(t.map(c=>this.preload(c)));if(M(t))o=t,{href:n}=v.fromElement(t);else{if(typeof t!="string")return;n=t}if(!n)return;if(this.swup.cache.has(n))return this.swup.cache.get(n);if(this.preloadPromises.has(n))return this.preloadPromises.get(n);if(!this.shouldPreload(n,{el:o}))return;let a=new Promise(c=>{this.queue.add(()=>{this.performPreload(n).catch(()=>{}).then(l=>c(l)).finally(()=>{this.queue.next(),this.preloadPromises.delete(n)})},r)});return this.preloadPromises.set(n,a),a}preloadLinks(){st(()=>{Array.from(document.querySelectorAll("a[data-swup-preload], [data-swup-preload-all] a")).forEach(t=>this.preload(t))})}preloadLinksOnAttention(){let{swup:t}=this,{linkSelector:e}=t.options,s={passive:!0,capture:!0};this.mouseEnterDelegate=t.delegateEvent(e,"mouseenter",this.onMouseEnter,s),this.touchStartDelegate=t.delegateEvent(e,"touchstart",this.onTouchStart,s),this.focusDelegate=t.delegateEvent(e,"focus",this.onFocus,s)}preloadVisibleLinks(){if(this.preloadObserver)return void this.preloadObserver.update();let{threshold:t,delay:e,containers:s}=this.options.preloadVisibleLinks;this.preloadObserver=(function({threshold:n,delay:o,containers:r,callback:a,filter:c}){let l=new Map,h=new IntersectionObserver(p=>{p.forEach(d=>{d.isIntersecting?u(d.target):f(d.target)})},{threshold:n}),u=p=>{var d;let{href:g}=v.fromElement(p),y=(d=l.get(g))!=null?d:new Set;l.set(g,y),y.add(p),setTimeout(()=>{let k=l.get(g);k!=null&&k.size&&(a(p),h.unobserve(p),k.delete(p))},o)},f=p=>{var d;let{href:g}=v.fromElement(p);(d=l.get(g))==null||d.delete(p)},m=()=>{st(()=>{let p=r.map(d=>`${d} a[*|href]`).join(", ");Array.from(document.querySelectorAll(p)).filter(d=>c(d)).forEach(d=>h.observe(d))})};return{start:()=>m(),stop:()=>h.disconnect(),update:()=>(l.clear(),m())}})({threshold:t,delay:e,containers:s,callback:n=>this.preload(n),filter:n=>{if(this.options.preloadVisibleLinks.ignore(n)||!n.matches(this.swup.options.linkSelector))return!1;let{href:o}=v.fromElement(n);return this.shouldPreload(o,{el:n})}}),this.preloadObserver.start()}stopPreloadingVisibleLinks(){this.preloadObserver&&this.preloadObserver.stop()}shouldPreload(t,{el:e}={}){let{url:s,href:n}=v.fromUrl(t);return!(!(function(){if(navigator.connection){var o;if(navigator.connection.saveData||(o=navigator.connection.effectiveType)!=null&&o.endsWith("2g"))return!1}return!0})()||this.swup.cache.has(s)||this.preloadPromises.has(s)||this.swup.shouldIgnoreVisit(n,{el:e})||e&&this.swup.resolveUrl(s)===this.swup.resolveUrl(E()))}async performPreload(t){var e=this;let{url:s}=v.fromUrl(t),n=this.swup.createVisit({to:s});return await this.swup.hooks.call("page:preload",n,{url:s},async function(r,a){return a.page=await e.swup.fetchPage(t,{visit:r}),a.page})}};var Pt=100,Tt=50,Ht=65,_t=50,Ut=3.5,Ct=4.5;function Mt(i){try{let t=new URL(i,window.location.origin);return t.pathname==="/"||t.pathname===""}catch{return i==="/"||i.startsWith("/?")}}function Ot(i){let t=Mt(i),e=t?Pt:Tt,s=t?Ht:_t,n=document.getElementById("fuwari-banner-wrapper");n&&(n.style.height=`${e}vh`);let o=document.getElementById("fuwari-main-wrapper");o&&(o.style.marginTop=`calc(${s}vh - ${Ut}rem - ${Ct}rem)`);let r=document.getElementById("fuwari-navbar-wrapper");r&&r.setAttribute("data-banner-vh",String(s))}function It(i){try{let e=new URL(i,window.location.origin).pathname;document.querySelectorAll("#fuwari-navbar nav a").forEach(o=>{let r=o.getAttribute("href")||"";(r==="/"?e==="/":e===r||r!=="/"&&e.startsWith(r))?(o.classList.add("text-(--fuwari-primary)"),o.classList.remove("fuwari-text-75")):(o.classList.remove("text-(--fuwari-primary)"),o.classList.add("fuwari-text-75"))}),document.querySelectorAll("#mobile-menu-panel nav a").forEach(o=>{let r=o.getAttribute("href")||"";(r==="/"?e==="/":e===r||r!=="/"&&e.startsWith(r))?(o.classList.add("text-(--fuwari-primary)"),o.classList.remove("fuwari-text-75")):(o.classList.remove("text-(--fuwari-primary)"),o.classList.add("fuwari-text-75"))})}catch(t){console.error("Update navbar error:",t)}}function Vt(i){i.querySelectorAll("script").forEach(e=>{if(e.hasAttribute("data-swup-ignore-script"))return;let s=document.createElement("script");Array.from(e.attributes).forEach(n=>{s.setAttribute(n.name,n.value)}),s.textContent=e.textContent,e.parentNode?.replaceChild(s,e)})}function $t(){let i=document.getElementById("mobile-menu-overlay"),t=document.getElementById("mobile-menu-panel");i&&t&&(i.classList.add("opacity-0","pointer-events-none"),t.classList.add("-translate-y-4"))}var w=null,L=null,V=null;function qt(){if(w)return w;w=document.createElement("div"),w.id="fuwari-image-lightbox",w.className="fuwari-lightbox",w.setAttribute("aria-hidden","true"),w.innerHTML=`\n    <div class="fuwari-lightbox__backdrop"></div>\n    <div class="fuwari-lightbox__container">\n      <button class="fuwari-lightbox__close" aria-label="\\u5173\\u95ED">&times;</button>\n      <img class="fuwari-lightbox__image" src="" alt="" />\n      <div class="fuwari-lightbox__caption"></div>\n    </div>\n  `,document.body.appendChild(w),L=w.querySelector(".fuwari-lightbox__image"),V=w.querySelector(".fuwari-lightbox__caption");let i=w.querySelector(".fuwari-lightbox__close"),t=w.querySelector(".fuwari-lightbox__backdrop");function e(){w&&(w.classList.remove("is-open"),w.setAttribute("aria-hidden","true"),document.body.style.overflow="",setTimeout(()=>{L&&!w?.classList.contains("is-open")&&(L.src="")},250))}return i&&i.addEventListener("click",e),t&&t.addEventListener("click",e),L&&L.addEventListener("click",e),document.addEventListener("keydown",s=>{s.key==="Escape"&&w?.classList.contains("is-open")&&e()}),w}function Nt(i,t,e){if(qt(),!(!w||!L)){if(L.src=i,L.alt=t||e||"Enlarged image",V){let s=e||t||"";V.textContent=s,V.style.display=s?"block":"none"}w.classList.add("is-open"),w.setAttribute("aria-hidden","false"),document.body.style.overflow="hidden"}}function F(){window.__fuwari_lightbox_initialized||(window.__fuwari_lightbox_initialized=!0,document.addEventListener("click",i=>{let t=i.target;if(t&&t.tagName==="IMG"){let e=t,s=e.classList.contains("zoomable")||e.hasAttribute("data-zoomable")||!!e.closest(".prose"),n=e.closest(".profile")||e.closest("#fuwari-banner-wrapper")||e.closest("nav")||e.classList.contains("no-zoom");if(s&&!n&&e.src){i.preventDefault(),i.stopPropagation();let o=e.getAttribute("title")||e.getAttribute("alt")||"";Nt(e.src,e.alt,o)}}}))}function nt(){if(window.__fuwari_swup_initialized)return;window.__fuwari_swup_initialized=!0,F();let i=new U({containers:["#swup-container"],animationSelector:\'[class*="transition-swup-"]\',cache:!0,plugins:[new I({throttle:4,preloadInitialPage:!1,preloadHoveredLinks:!0,preloadVisibleLinks:{enabled:!0,threshold:.2,delay:400,containers:["#fuwari-navbar","#mobile-menu-panel","#swup-container"],ignore:t=>{let e=t.getAttribute("href")||"";return e.startsWith("http")||e.startsWith("#")||e.startsWith("mailto:")||e.startsWith("javascript:")}}})]});try{let t=i.resolveUrl(window.location.pathname+window.location.search);i.cache.has(t)||i.cache.set(t,{url:t,html:document.documentElement.outerHTML})}catch(t){console.warn("Swup initial cache hydration warning:",t)}i.hooks.on("visit:start",t=>{Ot(t.to.url),It(t.to.url),$t()}),i.hooks.on("content:replace",()=>{if(window.location.hash)try{let e=document.querySelector(decodeURIComponent(window.location.hash));e&&e.scrollIntoView({behavior:"smooth"})}catch{}else window.scrollTo({top:0,behavior:"smooth"});if(window.hljs)try{window.hljs.highlightAll()}catch{}let t=document.getElementById("swup-container");t&&(z(t),Vt(t))}),window.swup=i}function z(i=document){i.querySelectorAll("iframe").forEach(s=>{let n=s.getAttribute("src")||"";if(/player\\.bilibili\\.com/i.test(n)&&!/autoplay=(?:1|true)/i.test(n)&&!/autoplay=/i.test(n)){let l=n.includes("?")?"&":"?";s.setAttribute("src",`${n}${l}autoplay=0`)}let o=s.getAttribute("allow")||"",r=s.outerHTML,a=/autoplay=(?:0|false)/i.test(r),c=/autoplay=(?:1|true)/i.test(r);if((a||!c)&&!o.includes("autoplay \'none\'")){let l=o.replace(/\\bautoplay(?:\\s+\'[^\']*\')?/gi,"").replace(/(?:^|;)\\s*;\\s*/g,";").replace(/^;\\s*|\\s*;$/g,"").trim(),h=`${l?l+"; ":""}autoplay \'none\'`;s.setAttribute("allow",h)}}),i.querySelectorAll("video").forEach(s=>{let n=s.getAttribute("autoplay");(n==="false"||n==="0"||n==="off"||n==="no")&&(s.removeAttribute("autoplay"),s.autoplay=!1)})}document.readyState==="loading"?document.addEventListener("DOMContentLoaded",()=>{z(),F(),nt()}):(z(),F(),nt());})();\n';
 
 // src/styles/sitemapXsl.ts
 var sitemapXsl = `<?xml version="1.0" encoding="UTF-8"?>
@@ -31763,6 +32061,14 @@ app.use("*", async (c, next) => {
   }
   await next();
 });
+app.use("*", async (c, next) => {
+  await next();
+  if (c.res.status === 404 && (c.req.method === "GET" || c.req.method === "HEAD") && c.req.path !== "/" && c.req.path.endsWith("/")) {
+    const url = new URL(c.req.url);
+    const cleanPath = url.pathname.replace(/\/+$/, "");
+    return c.res = c.redirect(`${cleanPath}${url.search}`, 301);
+  }
+});
 app.get("/css/giscus-fuwari-light.css", (c) => {
   return c.text(giscusLightCss, 200, {
     "Content-Type": "text/css; charset=utf-8",
@@ -31914,9 +32220,9 @@ app.get("/rss.xml", async (c) => {
     ${items}
   </channel>
 </rss>`;
+  setTieredCache(c, { browserMaxAge: 0, edgeMaxAge: 3600, swrMaxAge: 86400, tags: ["rss"] });
   return c.text(rss, 200, {
-    "Content-Type": "application/xml; charset=utf-8",
-    "Cache-Control": "public, max-age=3600, s-maxage=3600"
+    "Content-Type": "application/xml; charset=utf-8"
   });
 });
 app.get("/feed", (c) => c.redirect("/rss.xml", 301));
@@ -31973,9 +32279,9 @@ ${staticPages.map(
   ).join("\n")}
 ${articlePages.join("\n")}
 </urlset>`;
+  setTieredCache(c, { browserMaxAge: 0, edgeMaxAge: 3600, swrMaxAge: 86400, tags: ["sitemap"] });
   return c.text(sitemapXml, 200, {
-    "Content-Type": "application/xml; charset=utf-8",
-    "Cache-Control": "public, max-age=3600, s-maxage=3600"
+    "Content-Type": "application/xml; charset=utf-8"
   });
 });
 app.get("/robots.txt", (c) => {
@@ -31986,10 +32292,19 @@ Disallow: /api/
 
 Sitemap: ${baseUrl}/sitemap.xml
 `;
+  setTieredCache(c, { browserMaxAge: 86400, edgeMaxAge: 604800, swrMaxAge: 604800, tags: ["robots"] });
   return c.text(robotsTxt, 200, {
-    "Content-Type": "text/plain; charset=utf-8",
-    "Cache-Control": "public, max-age=86400, s-maxage=86400"
+    "Content-Type": "text/plain; charset=utf-8"
   });
+});
+app.get("/post", (c) => {
+  const url = new URL(c.req.url);
+  return c.redirect(`/posts${url.search}`, 301);
+});
+app.get("/post/*", (c) => {
+  const url = new URL(c.req.url);
+  const cleanPath = url.pathname.replace(/^\/post\/?/, "/posts/").replace(/\/+$/, "");
+  return c.redirect(`${cleanPath || "/posts"}${url.search}`, 301);
 });
 app.route("/", home_default);
 app.route("/posts", post_default);

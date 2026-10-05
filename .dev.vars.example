@@ -56,4 +56,26 @@ PURGE_SECRET="local-dev-purge-secret"
 # 本地开发 (pnpm dev) 时，Wrangler 会自动在本地模拟 D1 SQLite 数据库，无需额外配置；
 # 线上生产部署时，只需在 GitHub 仓库 Secrets 中配置 CLOUDFLARE_D1_ID 即可。
 
+# ------------------------------------------------------------------------------
+# 5. 边缘 CDN 强制缓存失效与 SWR 配置 (可选，配置后支持一键清除全球边缘 CDN)
+# ------------------------------------------------------------------------------
+# 数据层默认缓存时长（秒，默认 86400 即 24 小时，搭配主动 Purge 彻底杜绝 GitHub 限流）
+# CACHE_TTL=86400
+
+# [Cloudflare 全球 CDN 广播清除]
+# 域名 Zone ID (在 Cloudflare 域名概述页面右侧获取)
+# CLOUDFLARE_ZONE_ID="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+# 具备 Cache Purge 权限的 API Token
+# CLOUDFLARE_API_TOKEN="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+# [Netlify 全球 CDN 缓存清除]
+# Netlify 站点 ID (在 Netlify 控制台 Site configuration 中获取)
+# NETLIFY_SITE_ID="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+# Netlify Personal Access Token (在 Netlify 用户设置中生成)
+# NETLIFY_AUTH_TOKEN="nfp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+# [Vercel 重新构建与 CDN 全量刷新]
+# Vercel Deploy Hook URL (在 Vercel 项目设置 -> Git -> Deploy Hooks 中创建并获取)
+# VERCEL_DEPLOY_HOOK_URL="https://api.vercel.com/v1/integrations/deploy/prj_xxxx/xxxx"
+
 
