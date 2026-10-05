@@ -41,6 +41,30 @@ jobs:
           node-version: 22
           cache: 'pnpm'
 
+      # 解析 Pages CMS 传入的上下文 Payload 与字段输入
+      - name: Parse Pages CMS payload inputs
+        run: |
+          node -e '
+            const fs = require("fs");
+            let dbType = process.env.INPUT_DATABASE_TYPE;
+            if (process.env.INPUT_PAYLOAD) {
+              try {
+                const payload = JSON.parse(process.env.INPUT_PAYLOAD);
+                if (payload?.inputs?.database_type) {
+                  dbType = payload.inputs.database_type;
+                }
+              } catch (e) {
+                console.warn("Could not parse Pages CMS payload:", e.message);
+              }
+            }
+            if (dbType) {
+              fs.appendFileSync(process.env.GITHUB_ENV, `DATABASE_TYPE=${dbType}\n`);
+            }
+          '
+        env:
+          INPUT_DATABASE_TYPE: ${{ github.event.inputs.database_type }}
+          INPUT_PAYLOAD: ${{ github.event.inputs.payload }}
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -50,7 +74,7 @@ jobs:
       # 若使用 Supabase，自动检测数据库状态；未初始化且配置了凭证时自动执行建表
       - name: Check and initialize Supabase database
         env:
-          DATABASE_TYPE: ${{ github.event.inputs.database_type || vars.DATABASE_TYPE || 'auto' }}
+          DATABASE_TYPE: ${{ env.DATABASE_TYPE || github.event.inputs.database_type || vars.DATABASE_TYPE || 'auto' }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY || vars.SUPABASE_KEY || secrets.SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -66,7 +90,7 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID || vars.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID || vars.VERCEL_PROJECT_ID }}
           VERCEL_PROJECT_NAME: ${{ vars.VERCEL_PROJECT_NAME || vars.PROJECT_NAME || vars.GH_REPO || vars.GITHUB_REPO || github.event.repository.name }}
-          DATABASE_TYPE: ${{ github.event.inputs.database_type || vars.DATABASE_TYPE || 'auto' }}
+          DATABASE_TYPE: ${{ env.DATABASE_TYPE || github.event.inputs.database_type || vars.DATABASE_TYPE || 'auto' }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY || vars.SUPABASE_KEY || secrets.SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY }}
           BLOG_URL: ${{ vars.BLOG_URL || secrets.BLOG_URL }}
