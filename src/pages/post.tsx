@@ -14,6 +14,7 @@ import {
 } from '../components/Icons.js'
 import { getPost, getManifest, getSidebarData, getBlogConfig } from '../services/github.js'
 import { getPostStats, isStatsEnabled } from '../services/stats.js'
+import { processEmbeddedMediaHtml } from '../utils/markdown.js'
 import { marked } from 'marked'
 
 const postPage = new Hono<AppEnv>()
@@ -96,11 +97,16 @@ postPage.get('/:title', async (c) => {
     </span>`
   }
 
-  const htmlContent = await marked.parse(post.content, {
+  renderer.html = function ({ text }: { text: string }) {
+    return processEmbeddedMediaHtml(text)
+  }
+
+  const rawHtmlContent = await marked.parse(post.content, {
     gfm: true,
     breaks: true,
     renderer,
   })
+  const htmlContent = processEmbeddedMediaHtml(rawHtmlContent)
 
   // Approximate word count
   const chineseChars = (post.content.match(/[\u4e00-\u9fff]/g) || []).length
