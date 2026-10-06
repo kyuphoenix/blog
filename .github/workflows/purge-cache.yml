@@ -75,13 +75,75 @@ jobs:
         run: |
           CF_ZONE_ID="${{ secrets.CLOUDFLARE_ZONE_ID || vars.CLOUDFLARE_ZONE_ID }}"
           CF_TOKEN="${{ secrets.CLOUDFLARE_API_TOKEN }}"
+          BLOG_URL="${{ vars.BLOG_URL || secrets.BLOG_URL }}"
 
-          if [ -z "$CF_ZONE_ID" ] || [ -z "$CF_TOKEN" ]; then
-            echo "ℹ️ 未配置 CLOUDFLARE_ZONE_ID 或 CLOUDFLARE_API_TOKEN，跳过 Cloudflare CDN 清理。"
+          # 自动清理首尾空格与可能误粘的 Bearer 前缀
+          CF_ZONE_ID=$(echo "$CF_ZONE_ID" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+          CF_TOKEN=$(echo "$CF_TOKEN" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/^Bearer[[:space:]]\+//I')
+
+          if [ -z "$CF_TOKEN" ]; then
+            echo "ℹ️ 未配置 CLOUDFLARE_API_TOKEN，跳过 Cloudflare CDN 清理。"
             exit 0
           fi
 
-          echo "正在请求 Cloudflare Control Plane 广播强制清空全球 CDN 边缘节点缓存..."
+          # 若未显式配置 CF_ZONE_ID，自动通过 Cloudflare API 检索并匹配 Zone ID
+          if [ -z "$CF_ZONE_ID" ]; then
+            echo "🔍 未显式配置 CLOUDFLARE_ZONE_ID，正在尝试通过 API 自动检索与匹配..."
+            AUTO_ZONE_ID=$(CF_TOKEN="$CF_TOKEN" BLOG_URL="$BLOG_URL" node -e '
+              async function run() {
+                const token = process.env.CF_TOKEN;
+                const blogUrl = process.env.BLOG_URL;
+                let targetHost = "";
+                if (blogUrl) {
+                  try {
+                    const u = new URL(blogUrl.startsWith("http") ? blogUrl : "https://" + blogUrl);
+                    targetHost = u.hostname.toLowerCase();
+                  } catch {}
+                }
+                try {
+                  const res = await fetch("https://api.cloudflare.com/client/v4/zones?per_page=50", {
+                    headers: {
+                      Authorization: "Bearer " + token,
+                      "Content-Type": "application/json"
+                    }
+                  });
+                  if (!res.ok) process.exit(1);
+                  const data = await res.json();
+                  const zones = data?.result || [];
+                  if (zones.length === 0) process.exit(1);
+
+                  if (targetHost) {
+                    const matched = zones.find(z => targetHost === z.name.toLowerCase() || targetHost.endsWith("." + z.name.toLowerCase()));
+                    if (matched) {
+                      console.log(matched.id);
+                      process.exit(0);
+                    }
+                  }
+
+                  if (zones.length === 1) {
+                    console.log(zones[0].id);
+                    process.exit(0);
+                  }
+                } catch {
+                  process.exit(1);
+                }
+                process.exit(1);
+              }
+              run();
+            ' 2>/dev/null || true)
+
+            if [ -n "$AUTO_ZONE_ID" ]; then
+              CF_ZONE_ID="$AUTO_ZONE_ID"
+              echo "✓ 自动发现并解析到 Cloudflare Zone ID: ${CF_ZONE_ID}"
+              gh variable set CLOUDFLARE_ZONE_ID --body "$CF_ZONE_ID" 2>/dev/null || true
+            else
+              echo "⚠️ 自动解析 Zone ID 失败（可能未配置 BLOG_URL，或 Token 未包含【Zone -> Zone -> Read】权限）。"
+              echo "💡 提示：请在 GitHub Secrets/Variables 中手动配置 CLOUDFLARE_ZONE_ID，或为 Token 追加【Zone -> Zone -> Read】权限。"
+              exit 0
+            fi
+          fi
+
+          echo "正在请求 Cloudflare Control Plane 广播强制清空全球 CDN 边缘节点缓存 (Zone: ${CF_ZONE_ID})..."
           HTTP_CODE=$(curl -s -o /tmp/cf_purge.json -w "%{http_code}" -X POST \
             "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/purge_cache" \
             -H "Authorization: Bearer ${CF_TOKEN}" \
@@ -96,7 +158,13 @@ jobs:
           if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
             echo "✅ Cloudflare 全球 300+ 机房 CDN 缓存已全量清空！"
           else
-            echo "⚠️ Cloudflare CDN 清除未返回 2xx (请检查 Token 权限是否包含 Cache Purge)"
+            echo "⚠️ Cloudflare CDN 清除未返回 2xx (HTTP $HTTP_CODE)"
+            if [ "$HTTP_CODE" -eq 401 ]; then
+              echo "💡 提示 401 Authentication error 常见原因排查："
+              echo "   1. CLOUDFLARE_ZONE_ID 是否误填为 Account ID？(请进入具体域名 kyuphoenix.com 页面右下角获取【区域 ID / Zone ID】)"
+              echo "   2. CLOUDFLARE_API_TOKEN 是否包含【区域 (Zone) -> 缓存清除 (Cache Purge) -> 清除 (Purge)】权限？"
+              echo "   3. Token 的 Zone 范围是否包含该域名？是否误设了 Client IP 筛选限制？"
+            fi
           fi
 
       # 3. 强制清除 Netlify 全球 CDN 边缘节点缓存
