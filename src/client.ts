@@ -140,7 +140,7 @@ function ensureLightbox() {
   lightboxModal.innerHTML = `
     <div class="fuwari-lightbox__backdrop"></div>
     <div class="fuwari-lightbox__container">
-      <button class="fuwari-lightbox__close" aria-label="关闭">&times;</button>
+      <button class="fuwari-lightbox__close" aria-label="关闭图片预览" title="关闭">&times;</button>
       <img class="fuwari-lightbox__image" src="" alt="" />
       <div class="fuwari-lightbox__caption"></div>
     </div>
@@ -415,6 +415,7 @@ function initSwup() {
     updateBannerAndLayout(visit.to.url)
     updateNavbarActive(visit.to.url)
     closeMobileMenu()
+    closeMobileToc()
   })
 
   // 2. 页面内容替换完成时：滚动复位、执行脚本与重新高亮
@@ -430,6 +431,9 @@ function initSwup() {
     } else {
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
+
+    // 重置并更新阅读进度条
+    updateReadingProgressBar()
 
     // 重新触发代码高亮
     if ((window as any).hljs) {
@@ -495,14 +499,185 @@ function sanitizeEmbeddedMedia(container: Document | HTMLElement = document) {
   })
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    sanitizeEmbeddedMedia()
-    initImageLightbox()
-    initSwup()
+/**
+ * 顶部阅读进度条更新计算 (Reading Progress Bar)
+ */
+function updateReadingProgressBar() {
+  const bar = document.getElementById('reading-progress-bar')
+  if (!bar) return
+
+  const totalScroll = document.documentElement.scrollHeight - window.innerHeight
+  if (totalScroll <= 0) {
+    bar.style.width = '0%'
+    return
+  }
+
+  const currentScroll = window.scrollY || document.documentElement.scrollTop
+  const progress = Math.min(100, Math.max(0, (currentScroll / totalScroll) * 100))
+  bar.style.width = `${progress}%`
+}
+
+function initReadingProgressBar() {
+  if ((window as any).__fuwari_progress_bar_initialized) return
+  ;(window as any).__fuwari_progress_bar_initialized = true
+
+  window.addEventListener('scroll', updateReadingProgressBar, { passive: true })
+  window.addEventListener('resize', updateReadingProgressBar, { passive: true })
+  updateReadingProgressBar()
+}
+
+/**
+ * 代码块一键复制监听器 (事件委托，无缝兼容 Swup 路由切换)
+ */
+function initCodeBlockCopy() {
+  if ((window as any).__fuwari_code_copy_initialized) return
+  ;(window as any).__fuwari_code_copy_initialized = true
+
+  document.addEventListener('click', async (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.code-copy-btn')
+    if (!btn) return
+
+    const wrapper = btn.closest('.code-block-wrapper')
+    const codeEl = wrapper?.querySelector('code')
+    const textToCopy = codeEl?.textContent || ''
+
+    if (!textToCopy) return
+
+    try {
+      await navigator.clipboard.writeText(textToCopy)
+      const textSpan = btn.querySelector('.copy-btn-text')
+      const originalText = textSpan ? textSpan.textContent : ''
+
+      if (textSpan) {
+        textSpan.textContent = '✓'
+      }
+      btn.classList.add('text-emerald-500', 'dark:text-emerald-400')
+
+      setTimeout(() => {
+        if (textSpan) {
+          textSpan.textContent = originalText
+        }
+        btn.classList.remove('text-emerald-500', 'dark:text-emerald-400')
+      }, 2000)
+    } catch (err) {
+      console.error('Failed to copy code block:', err)
+    }
   })
-} else {
+}
+
+/**
+ * 文章版权卡片链接复制监听器
+ */
+function initLicenseLinkCopy() {
+  if ((window as any).__fuwari_license_copy_initialized) return
+  ;(window as any).__fuwari_license_copy_initialized = true
+
+  document.addEventListener('click', async (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('#license-copy-btn')
+    if (!btn) return
+
+    const url = btn.getAttribute('data-url') || window.location.href
+    try {
+      await navigator.clipboard.writeText(url)
+      btn.classList.add('text-emerald-500', 'dark:text-emerald-400')
+      setTimeout(() => {
+        btn.classList.remove('text-emerald-500', 'dark:text-emerald-400')
+      }, 2000)
+    } catch (err) {
+      console.error('Failed to copy article URL:', err)
+    }
+  })
+}
+
+/**
+ * 移动端悬浮目录抽屉逻辑
+ */
+function closeMobileToc() {
+  const drawer = document.getElementById('mobile-toc-drawer')
+  const panel = document.getElementById('mobile-toc-panel')
+  if (drawer && panel) {
+    drawer.classList.add('opacity-0', 'pointer-events-none')
+    panel.classList.add('translate-y-full')
+    drawer.setAttribute('aria-hidden', 'true')
+    document.body.style.overflow = ''
+  }
+}
+
+function openMobileToc() {
+  const drawer = document.getElementById('mobile-toc-drawer')
+  const panel = document.getElementById('mobile-toc-panel')
+  if (drawer && panel) {
+    drawer.classList.remove('opacity-0', 'pointer-events-none')
+    panel.classList.remove('translate-y-full')
+    drawer.setAttribute('aria-hidden', 'false')
+    document.body.style.overflow = 'hidden'
+  }
+}
+
+function initMobileToc() {
+  if ((window as any).__fuwari_mobile_toc_initialized) return
+  ;(window as any).__fuwari_mobile_toc_initialized = true
+
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement
+
+    // 打开抽屉
+    if (target.closest('#mobile-toc-open')) {
+      openMobileToc()
+      return
+    }
+
+    // 关闭抽屉
+    if (target.closest('#mobile-toc-close')) {
+      closeMobileToc()
+      return
+    }
+
+    // 点击抽屉背景遮罩关闭
+    const drawer = document.getElementById('mobile-toc-drawer')
+    if (target === drawer) {
+      closeMobileToc()
+      return
+    }
+
+    // 点击目录链接跳转并自动收起抽屉
+    const tocLink = target.closest<HTMLAnchorElement>('.mobile-toc-link')
+    if (tocLink) {
+      closeMobileToc()
+      const href = tocLink.getAttribute('href')
+      if (href && href.startsWith('#')) {
+        const targetHeading = document.getElementById(href.slice(1))
+        if (targetHeading) {
+          e.preventDefault()
+          targetHeading.scrollIntoView({ behavior: 'smooth' })
+        }
+      }
+    }
+  })
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const drawer = document.getElementById('mobile-toc-drawer')
+      if (drawer && !drawer.classList.contains('pointer-events-none')) {
+        closeMobileToc()
+      }
+    }
+  })
+}
+
+function initAllClientFeatures() {
   sanitizeEmbeddedMedia()
   initImageLightbox()
+  initReadingProgressBar()
+  initCodeBlockCopy()
+  initLicenseLinkCopy()
+  initMobileToc()
   initSwup()
 }
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initAllClientFeatures)
+} else {
+  initAllClientFeatures()
+}
+

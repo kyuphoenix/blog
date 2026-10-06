@@ -104,4 +104,30 @@ export const en: Translation = {
   [I18nKey.commentsNotConfigured]: 'Giscus comments not configured',
   [I18nKey.commentsCommonFormats]: 'Formatting:',
   [I18nKey.commentsSyntaxGuide]: '💡 Markdown Guide',
+
+  // Accessibility & Controls
+  [I18nKey.closeMenu]: 'Close Menu',
+  [I18nKey.closeSearch]: 'Close Search',
+  [I18nKey.toc]: 'Table of Contents',
+  [I18nKey.closeToc]: 'Close Table of Contents',
+
+  // Code Block
+  [I18nKey.copyCode]: 'Copy code',
+  [I18nKey.codeCopied]: 'Copied',
+
+  // Article License (CC-BY-NC-SA 4.0)
+  [I18nKey.licenseTitle]: 'License',
+  [I18nKey.licenseAuthor]: 'Author',
+  [I18nKey.licensePublished]: 'Published at',
+  [I18nKey.licenseLink]: 'License Link',
+  [I18nKey.licenseNotice]: 'For commercial use, please contact the author for authorization. For non-commercial use, please credit the source.',
+  [I18nKey.copyLink]: 'Copy Link',
+  [I18nKey.linkCopied]: 'Link Copied',
+
+  // Admonitions (Callouts)
+  [I18nKey.admonitionNote]: 'Note',
+  [I18nKey.admonitionTip]: 'Tip',
+  [I18nKey.admonitionImportant]: 'Important',
+  [I18nKey.admonitionWarning]: 'Warning',
+  [I18nKey.admonitionCaution]: 'Caution',
 }

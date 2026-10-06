@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { raw } from 'hono/html'
 import type { AppEnv } from '../types/env.js'
-import { Layout, Giscus } from '../components/index.js'
+import { Layout, Giscus, LicenseCard } from '../components/index.js'
 import {
   FileTextIcon,
   ClockIcon,
@@ -11,10 +11,17 @@ import {
   QuoteIcon,
   ChevronRightIcon,
   EyeIcon,
+  ListIcon,
+  XIcon,
 } from '../components/Icons.js'
 import { getPost, getManifest, getSidebarData, getBlogConfig } from '../services/github.js'
 import { getPostStats, isStatsEnabled } from '../services/stats.js'
-import { processEmbeddedMediaHtml, isHtmlRenderCodeBlock } from '../utils/markdown.js'
+import {
+  processEmbeddedMediaHtml,
+  renderKaTeXMath,
+  renderAdmonitions,
+  renderEnhancedCodeBlock,
+} from '../utils/markdown.js'
 import { setTieredCache, setNoCache } from '../utils/cache.js'
 import { marked } from 'marked'
 import { i18n, I18nKey, formatDate } from '../i18n/index.js'
@@ -117,15 +124,18 @@ postPage.get('/:title', async (c) => {
     return processEmbeddedMediaHtml(text)
   }
 
-  const origCode = renderer.code.bind(renderer)
   renderer.code = function (token: any) {
-    if (isHtmlRenderCodeBlock(token?.lang)) {
-      return processEmbeddedMediaHtml(token?.text || '')
-    }
-    return origCode(token)
+    return renderEnhancedCodeBlock(token, siteConfig.lang)
   }
 
-  const rawHtmlContent = await marked.parse(post.content, {
+  // 1. 先进行 LaTeX / KaTeX 数学公式 SSR 静态解析渲染
+  let preprocessedContent = renderKaTeXMath(post.content)
+
+  // 2. 解析 Admonitions (彩色告示/警告框)
+  preprocessedContent = renderAdmonitions(preprocessedContent, siteConfig.lang)
+
+  // 3. Marked GFM 渲染
+  const rawHtmlContent = await marked.parse(preprocessedContent, {
     gfm: true,
     breaks: true,
     renderer,
@@ -418,6 +428,14 @@ postPage.get('/:title', async (c) => {
             {raw(htmlContent)}
           </div>
 
+          {/* Article License Card (CC-BY-NC-SA 4.0) */}
+          <LicenseCard
+            title={cleanTitle}
+            url={`${c.env.BLOG_URL || new URL(c.req.url).origin}/posts/${encodeURIComponent(post.title)}`}
+            date={post.date}
+            siteConfig={siteConfig}
+          />
+
           {/* End of Content Notice */}
           <div class="my-8 flex items-center justify-center w-full">
             <div class="h-px w-full bg-linear-to-r from-transparent via-(--fuwari-meta-divider) to-transparent opacity-20" />
@@ -471,6 +489,74 @@ postPage.get('/:title', async (c) => {
           )}
         </div>
       </div>
+
+      {/* Mobile Floating TOC Button (Bottom Right FAB) */}
+      {toc.length > 0 && (
+        <div class="2xl:hidden fixed bottom-20 right-4 z-40">
+          <button
+            type="button"
+            id="mobile-toc-open"
+            class="fuwari-card-base w-12 h-12 rounded-full shadow-lg flex items-center justify-center text-(--fuwari-primary) hover:scale-105 active:scale-95 transition-all cursor-pointer border border-black/5 dark:border-white/10"
+            aria-label={i18n(I18nKey.toc, siteConfig.lang)}
+            title={i18n(I18nKey.toc, siteConfig.lang)}
+          >
+            <ListIcon size={20} strokeWidth={2} />
+            <span class="sr-only">{i18n(I18nKey.toc, siteConfig.lang)}</span>
+          </button>
+        </div>
+      )}
+
+      {/* Mobile TOC Drawer Sheet */}
+      {toc.length > 0 && (
+        <div
+          id="mobile-toc-drawer"
+          class="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs opacity-0 pointer-events-none transition-opacity duration-300 2xl:hidden flex flex-col justify-end"
+          aria-hidden="true"
+        >
+          <div
+            id="mobile-toc-panel"
+            class="fuwari-card-base rounded-b-none! rounded-t-3xl max-h-[75vh] w-full p-5 shadow-2xl translate-y-full transition-transform duration-300 flex flex-col"
+          >
+            <div class="flex items-center justify-between pb-3 mb-2 border-b border-black/5 dark:border-white/10">
+              <div class="flex items-center gap-2 font-bold text-base fuwari-text-90">
+                <ListIcon size={18} class="text-(--fuwari-primary)" />
+                <span>{i18n(I18nKey.toc, siteConfig.lang)}</span>
+              </div>
+              <button
+                id="mobile-toc-close"
+                type="button"
+                class="fuwari-expand-animation rounded-lg w-8 h-8 flex items-center justify-center fuwari-text-75 cursor-pointer border-none bg-transparent"
+                aria-label={i18n(I18nKey.closeToc, siteConfig.lang)}
+                title={i18n(I18nKey.closeToc, siteConfig.lang)}
+              >
+                <XIcon size={18} />
+                <span class="sr-only">{i18n(I18nKey.closeToc, siteConfig.lang)}</span>
+              </button>
+            </div>
+            <div class="overflow-y-auto fuwari-toc-scrollbar py-2 flex flex-col gap-1">
+              {toc
+                .filter((h) => h.level < minDepth + 3)
+                .map((heading) => {
+                  const indentClass =
+                    heading.level === minDepth
+                      ? 'font-bold'
+                      : heading.level === minDepth + 1
+                        ? 'pl-4'
+                        : 'pl-8'
+                  return (
+                    <a
+                      href={`#${heading.id}`}
+                      class={`mobile-toc-link py-2 px-3 rounded-xl transition text-sm fuwari-text-75 hover:text-(--fuwari-primary) hover:bg-(--fuwari-btn-plain-bg-hover) flex items-center gap-2 no-underline ${indentClass}`}
+                    >
+                      <span class="w-1.5 h-1.5 rounded-full bg-(--fuwari-primary)/60 shrink-0 inline-block" />
+                      <span class="truncate">{heading.text}</span>
+                    </a>
+                  )
+                })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* TOC Active Indicator Scroll Spy Script */}
       {toc.length > 0 &&

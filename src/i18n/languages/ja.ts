@@ -104,4 +104,30 @@ export const ja: Translation = {
   [I18nKey.commentsNotConfigured]: 'Giscusコメントは未設定です',
   [I18nKey.commentsCommonFormats]: '書式:',
   [I18nKey.commentsSyntaxGuide]: '💡 構文ヘルプ',
+
+  // Accessibility & Controls
+  [I18nKey.closeMenu]: 'メニューを閉じる',
+  [I18nKey.closeSearch]: '検索を閉じる',
+  [I18nKey.toc]: '目次',
+  [I18nKey.closeToc]: '目次を閉じる',
+
+  // Code Block
+  [I18nKey.copyCode]: 'コードをコピー',
+  [I18nKey.codeCopied]: 'コピー完了',
+
+  // Article License (CC-BY-NC-SA 4.0)
+  [I18nKey.licenseTitle]: 'ライセンス',
+  [I18nKey.licenseAuthor]: '著者',
+  [I18nKey.licensePublished]: '公開日',
+  [I18nKey.licenseLink]: '記事URL',
+  [I18nKey.licenseNotice]: '商用利用は著者の許可が必要です。非商用利用の場合は出展を明記してください。',
+  [I18nKey.copyLink]: 'URLをコピー',
+  [I18nKey.linkCopied]: 'URLをコピーしました',
+
+  // Admonitions (Callouts)
+  [I18nKey.admonitionNote]: '注意',
+  [I18nKey.admonitionTip]: 'ヒント',
+  [I18nKey.admonitionImportant]: '重要',
+  [I18nKey.admonitionWarning]: '警告',
+  [I18nKey.admonitionCaution]: '危険',
 }

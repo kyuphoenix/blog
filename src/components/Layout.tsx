@@ -311,6 +311,12 @@ export const Layout: FC<LayoutProps> = ({
         <link rel="apple-touch-icon" href={cfg.icons.appleTouchIcon} />
         {/* Pre-compiled static Tailwind CSS v4 (AOT, 0 JS runtime overhead) */}
         <link rel="stylesheet" href={`/css/tailwind.css?v=${tailwindVersion}`} />
+        {/* KaTeX CSS for mathematical formula rendering */}
+        <link
+          rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css"
+          crossOrigin="anonymous"
+        />
         {/* Highlight.js for code syntax highlighting */}
         <link
           rel="stylesheet"
@@ -333,6 +339,17 @@ export const Layout: FC<LayoutProps> = ({
         <style>{raw(css)}</style>
       </head>
       <body>
+        {/* Reading Progress Bar (Top of Viewport) */}
+        <div
+          id="reading-progress-bar-container"
+          class="fixed top-0 left-0 right-0 z-100 h-[3px] bg-transparent pointer-events-none"
+        >
+          <div
+            id="reading-progress-bar"
+            class="h-full bg-(--fuwari-primary) w-0 transition-all duration-75 ease-out shadow-xs"
+          />
+        </div>
+
         {/* Exact flare-stack-blog PublicLayout structure */}
         <div class="relative min-h-screen bg-(--fuwari-page-bg) transition-colors">
           {/* Top row: Navbar - sticky */}

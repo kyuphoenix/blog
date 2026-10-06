@@ -42,9 +42,12 @@ export const Navbar: FC<{
             <button
               id="mobile-menu-close"
               type="button"
-              class="fuwari-expand-animation rounded-lg w-8 h-8 flex items-center justify-center fuwari-text-75"
+              class="fuwari-expand-animation rounded-lg w-8 h-8 flex items-center justify-center fuwari-text-75 cursor-pointer border-none bg-transparent"
+              aria-label={i18n(I18nKey.closeMenu, cfg.lang)}
+              title={i18n(I18nKey.closeMenu, cfg.lang)}
             >
               <XIcon size={16} />
+              <span class="sr-only">{i18n(I18nKey.closeMenu, cfg.lang)}</span>
             </button>
           </div>
           <nav class="flex flex-col gap-1">
@@ -192,6 +195,7 @@ export const Navbar: FC<{
                         type="button"
                         id="hue-reset"
                         class="fuwari-btn-regular w-6 h-6 rounded-md text-xs cursor-pointer border-none"
+                        aria-label={i18n(I18nKey.resetHue, cfg.lang)}
                         title={i18n(I18nKey.resetHue, cfg.lang)}
                       >
                         ↺
@@ -256,6 +260,8 @@ export const Navbar: FC<{
               type="button"
               id="search-close"
               class="fuwari-btn-regular px-2 py-1 rounded-md text-xs border-none cursor-pointer"
+              aria-label={i18n(I18nKey.closeSearch, cfg.lang)}
+              title={i18n(I18nKey.closeSearch, cfg.lang)}
             >
               ESC
             </button>

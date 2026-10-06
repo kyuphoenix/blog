@@ -104,4 +104,30 @@ export const zh_CN: Translation = {
   [I18nKey.commentsNotConfigured]: 'Giscus 评论系统尚未配置',
   [I18nKey.commentsCommonFormats]: '常用格式:',
   [I18nKey.commentsSyntaxGuide]: '💡 语法速查',
+
+  // Accessibility & Controls
+  [I18nKey.closeMenu]: '关闭菜单',
+  [I18nKey.closeSearch]: '关闭搜索',
+  [I18nKey.toc]: '文章目录',
+  [I18nKey.closeToc]: '关闭目录',
+
+  // Code Block
+  [I18nKey.copyCode]: '复制代码',
+  [I18nKey.codeCopied]: '已复制',
+
+  // Article License (CC-BY-NC-SA 4.0)
+  [I18nKey.licenseTitle]: '许可协议',
+  [I18nKey.licenseAuthor]: '本文作者',
+  [I18nKey.licensePublished]: '发布于',
+  [I18nKey.licenseLink]: '许可链接',
+  [I18nKey.licenseNotice]: '商业转载请联系作者获得授权，非商业转载请注明出处。',
+  [I18nKey.copyLink]: '复制链接',
+  [I18nKey.linkCopied]: '链接已复制',
+
+  // Admonitions (Callouts)
+  [I18nKey.admonitionNote]: '注意',
+  [I18nKey.admonitionTip]: '提示',
+  [I18nKey.admonitionImportant]: '重要',
+  [I18nKey.admonitionWarning]: '警告',
+  [I18nKey.admonitionCaution]: '小心',
 }

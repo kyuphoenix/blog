@@ -102,6 +102,32 @@ export enum I18nKey {
   commentsNotConfigured = 'commentsNotConfigured',
   commentsCommonFormats = 'commentsCommonFormats',
   commentsSyntaxGuide = 'commentsSyntaxGuide',
+
+  // Accessibility & Controls
+  closeMenu = 'closeMenu',
+  closeSearch = 'closeSearch',
+  toc = 'toc',
+  closeToc = 'closeToc',
+
+  // Code Block
+  copyCode = 'copyCode',
+  codeCopied = 'codeCopied',
+
+  // Article License (CC-BY-NC-SA 4.0)
+  licenseTitle = 'licenseTitle',
+  licenseAuthor = 'licenseAuthor',
+  licensePublished = 'licensePublished',
+  licenseLink = 'licenseLink',
+  licenseNotice = 'licenseNotice',
+  copyLink = 'copyLink',
+  linkCopied = 'linkCopied',
+
+  // Admonitions (Callouts)
+  admonitionNote = 'admonitionNote',
+  admonitionTip = 'admonitionTip',
+  admonitionImportant = 'admonitionImportant',
+  admonitionWarning = 'admonitionWarning',
+  admonitionCaution = 'admonitionCaution',
 }
 
 export type Translation = Record<I18nKey, string>

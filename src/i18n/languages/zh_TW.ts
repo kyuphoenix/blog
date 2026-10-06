@@ -104,4 +104,30 @@ export const zh_TW: Translation = {
   [I18nKey.commentsNotConfigured]: 'Giscus 評論系統尚未配置',
   [I18nKey.commentsCommonFormats]: '常用格式:',
   [I18nKey.commentsSyntaxGuide]: '💡 語法速查',
+
+  // Accessibility & Controls
+  [I18nKey.closeMenu]: '關閉選單',
+  [I18nKey.closeSearch]: '關閉搜尋',
+  [I18nKey.toc]: '文章目錄',
+  [I18nKey.closeToc]: '關閉目錄',
+
+  // Code Block
+  [I18nKey.copyCode]: '複製代碼',
+  [I18nKey.codeCopied]: '已複製',
+
+  // Article License (CC-BY-NC-SA 4.0)
+  [I18nKey.licenseTitle]: '許可協議',
+  [I18nKey.licenseAuthor]: '本文作者',
+  [I18nKey.licensePublished]: '發布於',
+  [I18nKey.licenseLink]: '許可連結',
+  [I18nKey.licenseNotice]: '商業轉載請聯絡作者獲得授權，非商業轉載請註明出處。',
+  [I18nKey.copyLink]: '複製連結',
+  [I18nKey.linkCopied]: '連結已複製',
+
+  // Admonitions (Callouts)
+  [I18nKey.admonitionNote]: '注意',
+  [I18nKey.admonitionTip]: '提示',
+  [I18nKey.admonitionImportant]: '重要',
+  [I18nKey.admonitionWarning]: '警告',
+  [I18nKey.admonitionCaution]: '小心',
 }
