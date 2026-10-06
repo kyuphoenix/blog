@@ -8,6 +8,71 @@ export interface CacheOptions {
   tags?: string[]
 }
 
+export type DeployPlatform = 'cloudflare' | 'netlify' | 'vercel' | 'generic'
+
+/**
+ * 智能探测当前代码运行的宿主平台 (Cloudflare Workers / Netlify / Vercel)
+ *
+ * 识别依据（多重兜底）：
+ * 1. 环境变量 DEPLOY_PLATFORM (由各平台 GitHub Actions 部署脚本自动注入)
+ * 2. 平台专属运行时环境变量 (VERCEL, NETLIFY)
+ * 3. 平台专属请求头 (CF-Ray, x-vercel-id, x-nf-request-id)
+ * 4. 平台专属全局运行时对象 (WebSocketPair / caches.default / Deno / Netlify)
+ */
+export function detectPlatform(c?: Context): DeployPlatform {
+  // 1. 优先读取显式注入的环境变量 (最精准)
+  const envPlatform =
+    (c?.env as any)?.DEPLOY_PLATFORM ||
+    (typeof process !== 'undefined' ? process.env?.DEPLOY_PLATFORM : undefined)
+
+  if (envPlatform) {
+    const p = String(envPlatform).toLowerCase().trim()
+    if (p === 'cloudflare' || p === 'cf') return 'cloudflare'
+    if (p === 'netlify') return 'netlify'
+    if (p === 'vercel') return 'vercel'
+  }
+
+  // 2. 检查各云厂商特有的原生运行期环境变量
+  if (typeof process !== 'undefined') {
+    if (process.env?.VERCEL === '1' || process.env?.VERCEL_ENV) {
+      return 'vercel'
+    }
+    if (process.env?.NETLIFY === 'true' || process.env?.NETLIFY) {
+      return 'netlify'
+    }
+  }
+
+  // 3. 检查全局运行时特征
+  if (typeof (globalThis as any).Netlify !== 'undefined') {
+    return 'netlify'
+  }
+
+  // 4. 检查请求特征标头 (各边缘网关在转发至应用时均会携带唯一定位头)
+  if (c?.req) {
+    try {
+      if (c.req.header('cf-ray') || (c.req.raw as any)?.cf) {
+        return 'cloudflare'
+      }
+      if (c.req.header('x-vercel-id') || c.req.header('x-vercel-cache')) {
+        return 'vercel'
+      }
+      if (c.req.header('x-nf-request-id') || c.req.header('x-netlify-cache')) {
+        return 'netlify'
+      }
+    } catch {}
+  }
+
+  // 5. Cloudflare Workers 特有全局对象
+  if (
+    typeof (globalThis as any).WebSocketPair !== 'undefined' &&
+    typeof (globalThis as any).caches !== 'undefined'
+  ) {
+    return 'cloudflare'
+  }
+
+  return 'generic'
+}
+
 /**
  * 设置多平台分层缓存与 SWR (Stale-While-Revalidate) 响应头
  *
@@ -17,9 +82,7 @@ export interface CacheOptions {
  * 2. 边缘 CDN (Edge CDN)：
  *    - s-maxage: 默认 86400 (24小时)，在 Vercel / Cloudflare / Netlify 边缘节点全球强缓存。
  *    - stale-while-revalidate (SWR): 默认 604800 (7天)，缓存过期后优先微秒级返回陈旧副本，同时后台异步静默从源站重新拉取。
- *    - 针对 Cloudflare 设置 Cloudflare-CDN-Cache-Control / CDN-Cache-Control。
- *    - 针对 Netlify 设置 Netlify-CDN-Cache-Control 与 Netlify-Cache-Tag。
- *    - 针对 Vercel 设置 Vercel-Cache-Tag。
+ *    - 平台严格隔离：根据部署平台自动按需输出对应标头，Cloudflare 部署绝不输出 Netlify / Vercel 专属私有头。
  */
 export function setTieredCache(c: Context, options: CacheOptions = {}) {
   const browserMaxAge = options.browserMaxAge ?? 0
@@ -27,32 +90,50 @@ export function setTieredCache(c: Context, options: CacheOptions = {}) {
   const swrMaxAge = options.swrMaxAge ?? 604800 // 7 天
   const tags = options.tags || ['page']
 
-  // 1. 标准 HTTP 缓存头 (通用浏览器与 Vercel / Cloudflare / Netlify 等共享缓存)
+  const platform = detectPlatform(c)
+
+  // 1. 标准 HTTP 缓存头 (通用浏览器与所有边缘 CDN 遵循的标准规范)
   c.header(
     'Cache-Control',
     `public, max-age=${browserMaxAge}, s-maxage=${edgeMaxAge}, stale-while-revalidate=${swrMaxAge}, must-revalidate`
   )
 
-  // 2. Cloudflare 边缘缓存控制专用头（优先级高于标准 Cache-Control）
-  c.header(
-    'Cloudflare-CDN-Cache-Control',
-    `public, max-age=${edgeMaxAge}, stale-while-revalidate=${swrMaxAge}`
-  )
-  c.header(
-    'CDN-Cache-Control',
-    `public, max-age=${edgeMaxAge}, stale-while-revalidate=${swrMaxAge}`
-  )
-
-  // 3. Netlify 边缘缓存控制专用头与细粒度标签
-  c.header(
-    'Netlify-CDN-Cache-Control',
-    `public, max-age=${edgeMaxAge}, stale-while-revalidate=${swrMaxAge}`
-  )
-
-  if (tags.length > 0) {
-    const tagHeaderValue = tags.join(',')
-    c.header('Netlify-Cache-Tag', tagHeaderValue)
-    c.header('Vercel-Cache-Tag', tagHeaderValue)
+  // 2. 根据部署运行的宿主平台，按需输出对应平台的专属边缘控制头与标签，彻底隔离其他平台的标头
+  if (platform === 'cloudflare') {
+    // Cloudflare 专属：优先级高于标准 Cache-Control，指示 CF 边缘节点强缓存与 SWR
+    c.header(
+      'Cloudflare-CDN-Cache-Control',
+      `public, max-age=${edgeMaxAge}, stale-while-revalidate=${swrMaxAge}`
+    )
+    c.header(
+      'CDN-Cache-Control',
+      `public, max-age=${edgeMaxAge}, stale-while-revalidate=${swrMaxAge}`
+    )
+    // 绝不输出 Netlify / Vercel 私有标头
+  } else if (platform === 'netlify') {
+    // Netlify 专属：Netlify 边缘节点 CDN 控制头与细粒度标签
+    c.header(
+      'Netlify-CDN-Cache-Control',
+      `public, max-age=${edgeMaxAge}, stale-while-revalidate=${swrMaxAge}`
+    )
+    if (tags.length > 0) {
+      c.header('Netlify-Cache-Tag', tags.join(','))
+    }
+  } else if (platform === 'vercel') {
+    // Vercel 专属：标准 CDN 标头与 Vercel Edge Cache 精准 Purge 标签
+    c.header(
+      'CDN-Cache-Control',
+      `public, max-age=${edgeMaxAge}, stale-while-revalidate=${swrMaxAge}`
+    )
+    if (tags.length > 0) {
+      c.header('Vercel-Cache-Tag', tags.join(','))
+    }
+  } else {
+    // 通用 / 本地环境：输出标准 RFC 9213 CDN-Cache-Control
+    c.header(
+      'CDN-Cache-Control',
+      `public, max-age=${edgeMaxAge}, stale-while-revalidate=${swrMaxAge}`
+    )
   }
 }
 
