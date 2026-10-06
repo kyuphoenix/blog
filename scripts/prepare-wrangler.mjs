@@ -206,18 +206,54 @@ async function resolveCloudflareAutoResources() {
     }
   }
 
-  return { autoKvId, autoD1Id }
+  // 3. 自动探测 Cloudflare Zone ID (如果未显式提供 CLOUDFLARE_ZONE_ID)
+  let autoZoneId = null
+  let zoneId = (process.env.CLOUDFLARE_ZONE_ID || process.env.CF_ZONE_ID)?.trim()
+  if (!zoneId) {
+    try {
+      const zonesRes = await fetch('https://api.cloudflare.com/client/v4/zones?per_page=50', {
+        headers: apiHeaders,
+      })
+      if (zonesRes.ok) {
+        const zonesData = await zonesRes.json()
+        const zones = zonesData.result || []
+        let targetHost = ''
+        if (blogUrl) {
+          try {
+            targetHost = new URL(blogUrl.startsWith('http') ? blogUrl : `https://${blogUrl}`).hostname.toLowerCase()
+          } catch {}
+        }
+        if (targetHost) {
+          const matched = zones.find(
+            (z) => targetHost === z.name.toLowerCase() || targetHost.endsWith('.' + z.name.toLowerCase())
+          )
+          if (matched) autoZoneId = matched.id
+        }
+        if (!autoZoneId && zones.length === 1) {
+          autoZoneId = zones[0].id
+        }
+        if (autoZoneId) {
+          console.log(`✓ [自动发现] 解析到 Cloudflare Zone ID: ${autoZoneId}`)
+        }
+      }
+    } catch (err) {
+      console.warn(`⚠️ 自动查询 Zone 异常: ${err.message}`)
+    }
+  }
+
+  return { autoKvId, autoD1Id, autoZoneId }
 }
 
 async function main() {
-  // 0. 执行 Cloudflare API 自动资源探测（根据 API Token 权限自动创建与绑定 KV/D1）
-  const { autoKvId, autoD1Id } = await resolveCloudflareAutoResources()
+  // 0. 执行 Cloudflare API 自动资源探测（根据 API Token 权限自动创建与绑定 KV/D1/Zone）
+  const { autoKvId, autoD1Id, autoZoneId } = await resolveCloudflareAutoResources()
   if (!kvId && autoKvId) {
     kvId = autoKvId
   }
   if (!d1Id && autoD1Id) {
     d1Id = autoD1Id
   }
+  const resolvedZoneId = (process.env.CLOUDFLARE_ZONE_ID || process.env.CF_ZONE_ID)?.trim() || autoZoneId
 
   // 1. 注入 KV 命名空间 ID（若未提供且仍为占位符则安全移除，unstorage 会自动平滑降级为内存缓存）
   if (kvId && kvId.trim()) {
@@ -301,6 +337,7 @@ async function main() {
   // 5. 动态注入非敏感运行期环境变量（仅注入有效配置项，未配置项自动忽略，彻底避免部署报错）
   const runtimeVars = {
     DEPLOY_PLATFORM: 'cloudflare',
+    CLOUDFLARE_ZONE_ID: resolvedZoneId || undefined,
     DATABASE_TYPE: dbType || 'auto',
     GH_OWNER: (process.env.GH_OWNER || process.env.GITHUB_OWNER)?.trim(),
     GH_REPO: (process.env.GH_REPO || process.env.GITHUB_REPO)?.trim(),

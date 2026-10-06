@@ -162,8 +162,44 @@ export async function purgePlatformCaches(
   const results: PurgePlatformResult[] = []
 
   // 1. Cloudflare 全局 CDN 缓存清除
-  const cfZoneId = env?.CLOUDFLARE_ZONE_ID || (env as any)?.CF_ZONE_ID
+  let cfZoneId = env?.CLOUDFLARE_ZONE_ID || (env as any)?.CF_ZONE_ID
   const cfToken = env?.CLOUDFLARE_API_TOKEN || (env as any)?.CF_API_TOKEN
+
+  // 若未显式配置 Zone ID 但有 Token，尝试自动通过 Cloudflare API 查询匹配 Zone ID
+  if (!cfZoneId && cfToken) {
+    try {
+      const blogUrl = env?.BLOG_URL
+      let targetHostname = ''
+      if (blogUrl) {
+        try {
+          targetHostname = new URL(
+            blogUrl.startsWith('http') ? blogUrl : `https://${blogUrl}`
+          ).hostname.toLowerCase()
+        } catch {}
+      }
+
+      const zonesRes = await fetch('https://api.cloudflare.com/client/v4/zones?per_page=50', {
+        headers: {
+          Authorization: `Bearer ${cfToken}`,
+          'Content-Type': 'application/json',
+        },
+      })
+      if (zonesRes.ok) {
+        const zonesData = (await zonesRes.json()) as any
+        const zones: Array<{ id: string; name: string }> = zonesData?.result || []
+        if (targetHostname) {
+          const matched = zones.find(
+            (z) => targetHostname === z.name.toLowerCase() || targetHostname.endsWith('.' + z.name.toLowerCase())
+          )
+          if (matched) cfZoneId = matched.id
+        }
+        if (!cfZoneId && zones.length === 1) {
+          cfZoneId = zones[0].id
+        }
+      }
+    } catch {}
+  }
+
   if (cfZoneId && cfToken) {
     try {
       const payload: Record<string, any> = {}

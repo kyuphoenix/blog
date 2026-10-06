@@ -3978,8 +3978,42 @@ function setNoCache(c) {
 }
 async function purgePlatformCaches(env, options) {
   const results = [];
-  const cfZoneId = env?.CLOUDFLARE_ZONE_ID || env?.CF_ZONE_ID;
+  let cfZoneId = env?.CLOUDFLARE_ZONE_ID || env?.CF_ZONE_ID;
   const cfToken = env?.CLOUDFLARE_API_TOKEN || env?.CF_API_TOKEN;
+  if (!cfZoneId && cfToken) {
+    try {
+      const blogUrl = env?.BLOG_URL;
+      let targetHostname = "";
+      if (blogUrl) {
+        try {
+          targetHostname = new URL(
+            blogUrl.startsWith("http") ? blogUrl : `https://${blogUrl}`
+          ).hostname.toLowerCase();
+        } catch {
+        }
+      }
+      const zonesRes = await fetch("https://api.cloudflare.com/client/v4/zones?per_page=50", {
+        headers: {
+          Authorization: `Bearer ${cfToken}`,
+          "Content-Type": "application/json"
+        }
+      });
+      if (zonesRes.ok) {
+        const zonesData = await zonesRes.json();
+        const zones = zonesData?.result || [];
+        if (targetHostname) {
+          const matched = zones.find(
+            (z2) => targetHostname === z2.name.toLowerCase() || targetHostname.endsWith("." + z2.name.toLowerCase())
+          );
+          if (matched) cfZoneId = matched.id;
+        }
+        if (!cfZoneId && zones.length === 1) {
+          cfZoneId = zones[0].id;
+        }
+      }
+    } catch {
+    }
+  }
   if (cfZoneId && cfToken) {
     try {
       const payload = {};
