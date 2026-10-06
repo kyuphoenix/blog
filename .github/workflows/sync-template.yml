@@ -23,9 +23,9 @@ on:
         default: 'main'
         type: string
       protected_dirs:
-        description: '同步时排除并保护的本地目录（空格分隔，默认排除 posts 与 public）'
+        description: '同步时排除并保护的本地目录（空格分隔，默认排除 posts 与 public/images）'
         required: false
-        default: 'posts public'
+        default: 'posts public/images'
         type: string
       payload:
         description: 'Pages CMS 上下文 Payload'
@@ -89,7 +89,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN || secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
           UPSTREAM_REPO: ${{ env.UPSTREAM_REPO || github.event.inputs.template_repo || vars.TEMPLATE_REPO || 'kyuphoenix/honoki' }}
           UPSTREAM_BRANCH: ${{ env.UPSTREAM_BRANCH || github.event.inputs.template_branch || vars.TEMPLATE_BRANCH || 'main' }}
-          PROTECTED_DIRS: ${{ env.PROTECTED_DIRS || github.event.inputs.protected_dirs || vars.PROTECTED_DIRS || 'posts public' }}
+          PROTECTED_DIRS: ${{ env.PROTECTED_DIRS || github.event.inputs.protected_dirs || vars.PROTECTED_DIRS || 'posts public/images' }}
           SYNC_MODE: ${{ env.SYNC_MODE || github.event.inputs.sync_mode || 'direct' }}
         run: |
           set -e
@@ -178,12 +178,17 @@ jobs:
 
           echo "🚀 检测到上游模板有新更新，准备执行同步..."
 
-          # 定义保护目录函数：保护 posts/ 与 public/ 不被上游覆盖或混入模板演示资源
+          # 定义保护目录函数：保护 posts/ 与 public/images 不被上游覆盖或混入模板演示资源
           protect_directories() {
             echo "🛡️ 正在保护用户文章与静态资源目录（$PROTECTED_DIRS）..."
             for dir in $PROTECTED_DIRS; do
               dir="${dir%/}"
               [ -z "$dir" ] && continue
+              # 若保护目录传入了 public 全目录，智能细化为 public/images，确保 public/js 与 public/css 能正常接收模板升级
+              if [ "$dir" = "public" ]; then
+                dir="public/images"
+                echo "   💡 检测到传入了 public 全目录保护，已自动精细化为图库目录: public/images"
+              fi
               if [ -n "$(git ls-tree HEAD "$dir" 2>/dev/null)" ]; then
                 echo "   🔒 还原目录: $dir (保留本地 HEAD 状态)"
                 git reset HEAD -- "$dir" 2>/dev/null || true
