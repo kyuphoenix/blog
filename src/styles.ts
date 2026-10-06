@@ -595,6 +595,8 @@ html.is-animating .transition-swup-fade {
 .prose img,
 .post-image.zoomable {
   cursor: zoom-in;
+  height: auto;
+  max-width: 100%;
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 .prose img:hover,
@@ -631,5 +633,13 @@ html.is-animating .transition-swup-fade {
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
   margin-top: 1.5rem;
   margin-bottom: 1.5rem;
+}
+
+/* ==========================================
+   Mobile Drawers Accessibility & Transitions
+   ========================================== */
+#mobile-toc-drawer,
+#mobile-menu-overlay {
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s ease;
 }
 `;

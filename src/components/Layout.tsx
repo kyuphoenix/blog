@@ -316,12 +316,29 @@ export const Layout: FC<LayoutProps> = ({
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css"
           crossOrigin="anonymous"
+          media="print"
+          onload="this.media='all'"
         />
+        <noscript>
+          <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css"
+            crossOrigin="anonymous"
+          />
+        </noscript>
         {/* Highlight.js for code syntax highlighting */}
         <link
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
+          media="print"
+          onload="this.media='all'"
         />
+        <noscript>
+          <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css"
+          />
+        </noscript>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" defer></script>
         {/* Anti-FOUC: apply theme & OKLCH hue before render */}
         {raw(`<script>
@@ -346,7 +363,8 @@ export const Layout: FC<LayoutProps> = ({
         >
           <div
             id="reading-progress-bar"
-            class="h-full bg-(--fuwari-primary) w-0 transition-all duration-75 ease-out shadow-xs"
+            class="h-full w-full bg-(--fuwari-primary) origin-left scale-x-0 shadow-xs"
+            style="will-change: transform;"
           />
         </div>
 
@@ -368,6 +386,8 @@ export const Layout: FC<LayoutProps> = ({
             <img
               src={cfg.theme.fuwari.homeBg}
               alt="banner"
+              width="1920"
+              height="1080"
               fetchpriority="high"
               class="w-full h-full object-cover object-top"
             />

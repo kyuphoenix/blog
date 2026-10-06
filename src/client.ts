@@ -118,8 +118,10 @@ function closeMobileMenu() {
   const overlay = document.getElementById('mobile-menu-overlay')
   const panel = document.getElementById('mobile-menu-panel')
   if (overlay && panel) {
-    overlay.classList.add('opacity-0', 'pointer-events-none')
+    overlay.classList.add('opacity-0', 'pointer-events-none', 'invisible')
+    overlay.classList.remove('visible')
     panel.classList.add('-translate-y-4')
+    overlay.setAttribute('aria-hidden', 'true')
   }
 }
 
@@ -508,13 +510,13 @@ function updateReadingProgressBar() {
 
   const totalScroll = document.documentElement.scrollHeight - window.innerHeight
   if (totalScroll <= 0) {
-    bar.style.width = '0%'
+    bar.style.transform = 'scaleX(0)'
     return
   }
 
   const currentScroll = window.scrollY || document.documentElement.scrollTop
-  const progress = Math.min(100, Math.max(0, (currentScroll / totalScroll) * 100))
-  bar.style.width = `${progress}%`
+  const progress = Math.min(1, Math.max(0, currentScroll / totalScroll))
+  bar.style.transform = `scaleX(${progress})`
 }
 
 function initReadingProgressBar() {
@@ -596,7 +598,8 @@ function closeMobileToc() {
   const drawer = document.getElementById('mobile-toc-drawer')
   const panel = document.getElementById('mobile-toc-panel')
   if (drawer && panel) {
-    drawer.classList.add('opacity-0', 'pointer-events-none')
+    drawer.classList.add('opacity-0', 'pointer-events-none', 'invisible')
+    drawer.classList.remove('visible')
     panel.classList.add('translate-y-full')
     drawer.setAttribute('aria-hidden', 'true')
     document.body.style.overflow = ''
@@ -607,7 +610,8 @@ function openMobileToc() {
   const drawer = document.getElementById('mobile-toc-drawer')
   const panel = document.getElementById('mobile-toc-panel')
   if (drawer && panel) {
-    drawer.classList.remove('opacity-0', 'pointer-events-none')
+    drawer.classList.remove('opacity-0', 'pointer-events-none', 'invisible')
+    drawer.classList.add('visible')
     panel.classList.remove('translate-y-full')
     drawer.setAttribute('aria-hidden', 'false')
     document.body.style.overflow = 'hidden'
