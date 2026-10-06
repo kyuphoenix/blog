@@ -302,8 +302,9 @@ async function main() {
     console.log(`✓ 已设置 Worker 名称: ${workerName.trim()}`)
   }
 
-  // 4. 自定义域名路由（从 BLOG_URL 解析，非 workers.dev 域名时配置）
-  if (blogUrl && blogUrl.trim()) {
+  // 4. 自定义域名路由（仅当显式设置 CLOUDFLARE_BIND_ROUTES=true 时才注入，避免因 API Token 缺少 Zone 路由修改权限导致部署报错）
+  const shouldBindRoutes = process.env.CLOUDFLARE_BIND_ROUTES === 'true' || process.env.BIND_CUSTOM_DOMAIN === 'true'
+  if (shouldBindRoutes && blogUrl && blogUrl.trim()) {
     try {
       const raw = blogUrl.trim()
       const parsed = new URL(raw.startsWith('http://') || raw.startsWith('https://') ? raw : `https://${raw}`)
@@ -323,6 +324,8 @@ async function main() {
     } catch (err) {
       console.warn('⚠️ 无法从 BLOG_URL 解析域名:', err.message)
     }
+  } else if (blogUrl && blogUrl.trim()) {
+    console.log('ℹ️ 自定义域名路由已由 Cloudflare 控制台管理，跳过由 Wrangler 自动绑定路由（如需通过 CI 自动管理，可配置 CLOUDFLARE_BIND_ROUTES=true 并授予 Token 对应路由权限）')
   }
 
   // 确保包含 Cloudflare Workers 原生边缘 CDN 响应缓存配置
