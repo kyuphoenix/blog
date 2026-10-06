@@ -5,6 +5,7 @@ import { Layout, Giscus } from '../components/index.js'
 import { ExternalLinkIcon } from '../components/Icons.js'
 import { getSidebarData, getFriends, getBlogConfig } from '../services/github.js'
 import { setTieredCache } from '../utils/cache.js'
+import { i18n, I18nKey } from '../i18n/index.js'
 
 const links = new Hono<AppEnv>()
 
@@ -22,15 +23,15 @@ links.get('/', async (c) => {
   const emailSocial = siteConfig.social.find((s) => s.platform === 'email')
   const adminEmail = emailSocial ? emailSocial.url.replace(/^mailto:/i, '') : ''
 
-  const siteInfoText = `博客名称：${siteConfig.title}
-博客简介：${siteConfig.description}
-博客链接：${baseUrl}
-博客头像：${avatarUrl}`
+  const siteInfoText = `${i18n(I18nKey.siteName, siteConfig.lang)}：${siteConfig.title}
+${i18n(I18nKey.siteDesc, siteConfig.lang)}：${siteConfig.description}
+${i18n(I18nKey.siteUrl, siteConfig.lang)}：${baseUrl}
+${i18n(I18nKey.siteAvatar, siteConfig.lang)}：${avatarUrl}`
 
-  const applyTemplateText = `- 博客名称：您的博客名称
-- 博客简介：一句话简介
-- 博客链接：https://example.com
-- 博客头像：https://example.com/avatar.webp`
+  const applyTemplateText = `- ${i18n(I18nKey.siteName, siteConfig.lang)}：...
+- ${i18n(I18nKey.siteDesc, siteConfig.lang)}：...
+- ${i18n(I18nKey.siteUrl, siteConfig.lang)}：https://example.com
+- ${i18n(I18nKey.siteAvatar, siteConfig.lang)}：https://example.com/avatar.webp`
 
   const mailtoSubject = encodeURIComponent(`申请交换友链 - 来自 ${siteConfig.title} 的访客`)
   const mailtoBody = encodeURIComponent(
@@ -44,8 +45,8 @@ links.get('/', async (c) => {
 
   return c.html(
     <Layout
-      title="友链"
-      description="友情链接 - 优秀博主与开发者朋友们的空间导航与友链申请"
+      title={i18n(I18nKey.links, siteConfig.lang)}
+      description={i18n(I18nKey.linksSubtitle, siteConfig.lang)}
       currentPath="/links"
       isHomePage={false}
       categories={categories}
@@ -61,11 +62,11 @@ links.get('/', async (c) => {
         <div>
           <div class="relative mb-2">
             <h1 class="transition w-full block font-bold text-3xl fuwari-text-90 md:before:w-1 before:h-5 before:rounded-md before:bg-(--fuwari-primary) before:absolute before:top-2.5 before:-left-4.5">
-              友情链接
+              {i18n(I18nKey.linksTitle, siteConfig.lang)}
             </h1>
           </div>
           <p class="fuwari-text-50 text-sm leading-relaxed">
-            海内存知己，天涯若比邻。欢迎各位志同道合的朋友交换友链！
+            {i18n(I18nKey.linksSubtitle, siteConfig.lang)}
           </p>
         </div>
 
@@ -76,7 +77,7 @@ links.get('/', async (c) => {
           class="fuwari-btn-regular px-4 py-2.5 rounded-xl text-sm font-bold text-(--fuwari-primary) flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer shrink-0 transition-all border-none"
         >
           <span class="apply-btn-icon text-base leading-none font-bold">+</span>
-          <span class="apply-btn-text">申请友链</span>
+          <span class="apply-btn-text">{i18n(I18nKey.applyLinks, siteConfig.lang)}</span>
         </button>
       </div>
 
@@ -92,9 +93,9 @@ links.get('/', async (c) => {
               class="w-1 h-4 rounded-md inline-block"
               style="background-color: var(--fuwari-primary)"
             />
-            交换友链须知
+            {i18n(I18nKey.applyRules, siteConfig.lang)}
           </div>
-          <span class="text-xs fuwari-text-50">先加本站 · 优质原创</span>
+          <span class="text-xs fuwari-text-50">{i18n(I18nKey.applyRulesSubtitle, siteConfig.lang)}</span>
         </div>
 
         {/* 规则与信息双列网格 */}
@@ -103,13 +104,13 @@ links.get('/', async (c) => {
           <div class="bg-black/3 dark:bg-white/4 p-4.5 rounded-xl flex flex-col justify-between">
             <div>
               <div class="font-bold text-sm fuwari-text-90 mb-2.5 flex items-center gap-1.5">
-                <span>📋 本站信息（请先添加本站）</span>
+                <span>{i18n(I18nKey.siteInfo, siteConfig.lang)}</span>
               </div>
               <ul class="text-xs fuwari-text-75 space-y-1.5 font-mono leading-relaxed list-none p-0 m-0">
-                <li><span class="fuwari-text-50 font-sans">名称：</span>{siteConfig.title}</li>
-                <li><span class="fuwari-text-50 font-sans">简介：</span>{siteConfig.description}</li>
-                <li><span class="fuwari-text-50 font-sans">网址：</span>{baseUrl}</li>
-                <li><span class="fuwari-text-50 font-sans">头像：</span>{avatarUrl}</li>
+                <li><span class="fuwari-text-50 font-sans">{i18n(I18nKey.siteName, siteConfig.lang)}：</span>{siteConfig.title}</li>
+                <li><span class="fuwari-text-50 font-sans">{i18n(I18nKey.siteDesc, siteConfig.lang)}：</span>{siteConfig.description}</li>
+                <li><span class="fuwari-text-50 font-sans">{i18n(I18nKey.siteUrl, siteConfig.lang)}：</span>{baseUrl}</li>
+                <li><span class="fuwari-text-50 font-sans">{i18n(I18nKey.siteAvatar, siteConfig.lang)}：</span>{avatarUrl}</li>
               </ul>
             </div>
             <button
@@ -117,7 +118,7 @@ links.get('/', async (c) => {
               onclick={`copyFriendText(${JSON.stringify(siteInfoText)}, this)`}
               class="fuwari-btn-regular mt-3 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer self-start border-none"
             >
-              复制本站信息
+              {i18n(I18nKey.copySiteInfo, siteConfig.lang)}
             </button>
           </div>
 
@@ -125,7 +126,7 @@ links.get('/', async (c) => {
           <div class="bg-black/3 dark:bg-white/4 p-4.5 rounded-xl flex flex-col justify-between">
             <div>
               <div class="font-bold text-sm fuwari-text-90 mb-2.5 flex items-center gap-1.5">
-                <span>📝 申请格式模板</span>
+                <span>{i18n(I18nKey.applyTemplate, siteConfig.lang)}</span>
               </div>
               <pre class="text-xs fuwari-text-75 font-mono m-0 p-0 bg-transparent leading-relaxed whitespace-pre-wrap">{applyTemplateText}</pre>
             </div>
@@ -134,7 +135,7 @@ links.get('/', async (c) => {
               onclick={`copyFriendText(${JSON.stringify(applyTemplateText)}, this)`}
               class="fuwari-btn-regular mt-3 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer self-start border-none"
             >
-              复制申请格式
+              {i18n(I18nKey.copyApplyTemplate, siteConfig.lang)}
             </button>
           </div>
         </div>
@@ -142,10 +143,10 @@ links.get('/', async (c) => {
         {/* 申请方式一：邮件申请 */}
         <div class="p-4 rounded-xl bg-(--fuwari-primary)/10 border border-(--fuwari-primary)/20 mb-4">
           <div class="font-bold text-sm fuwari-text-90 flex items-center gap-1.5 mb-1.5">
-            <span>📧 邮件申请（推荐）</span>
+            <span>{i18n(I18nKey.emailApply, siteConfig.lang)}</span>
           </div>
           <p class="text-xs fuwari-text-75 leading-relaxed mb-3">
-            点击下方按钮可直接调起您的邮件客户端，正文已预填好申请模板，发送后博主会尽快查收并添加：
+            {i18n(I18nKey.emailApplyDesc, siteConfig.lang)}
           </p>
           <div class="flex flex-wrap items-center gap-2.5">
             {adminEmail ? (
@@ -154,18 +155,18 @@ links.get('/', async (c) => {
                   href={mailtoUrl}
                   class="fuwari-btn-primary px-3.5 py-1.5 rounded-lg text-xs font-bold no-underline inline-flex items-center gap-1.5 shadow-xs"
                 >
-                  <span>一键发送申请邮件</span>
+                  <span>{i18n(I18nKey.sendEmail, siteConfig.lang)}</span>
                 </a>
                 <button
                   type="button"
                   onclick={`copyFriendText('${adminEmail}', this)`}
                   class="fuwari-btn-regular px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer border-none"
                 >
-                  复制邮箱
+                  {i18n(I18nKey.copyEmail, siteConfig.lang)}
                 </button>
               </>
             ) : (
-              <span class="text-xs fuwari-text-50">博主暂未公开邮箱地址</span>
+              <span class="text-xs fuwari-text-50">{i18n(I18nKey.noPublicEmail, siteConfig.lang)}</span>
             )}
           </div>
         </div>
@@ -173,20 +174,20 @@ links.get('/', async (c) => {
         {/* 申请方式二：评论申请 */}
         <div class="p-4 rounded-xl bg-black/3 dark:bg-white/4 border border-black/5 dark:border-white/10 mb-2">
           <div class="font-bold text-sm fuwari-text-90 flex items-center gap-1.5 mb-1.5">
-            <span>💬 评论申请</span>
+            <span>{i18n(I18nKey.commentApply, siteConfig.lang)}</span>
           </div>
           <p class="text-xs fuwari-text-75 leading-relaxed mb-3">
-            您也可以直接通过下方评论区提交友链申请，请按照上方格式模板留言（留言内容由 Giscus 托管，对所有访客公开可见）：
+            {i18n(I18nKey.commentApplyDesc, siteConfig.lang)}
           </p>
           <button
             type="button"
             id="toggle-public-comments-btn"
             class="fuwari-btn-regular px-3.5 py-1.5 rounded-lg text-xs font-medium cursor-pointer border-none flex items-center gap-1.5 text-(--fuwari-primary)"
           >
-            <span id="comment-toggle-text">展开评论留言区</span>
+            <span id="comment-toggle-text">{i18n(I18nKey.expandComments, siteConfig.lang)}</span>
           </button>
           <div id="public-comments-wrap" class="hidden mt-4 pt-4 border-t border-black/5 dark:border-white/10">
-            <Giscus env={c.env} />
+            <Giscus env={c.env} lang={siteConfig.lang} />
           </div>
         </div>
       </div>
@@ -227,17 +228,23 @@ links.get('/', async (c) => {
         (function() {
           var btn = document.getElementById('apply-toggle-btn');
           var panel = document.getElementById('apply-panel');
+          var collapseRulesText = ${JSON.stringify(i18n(I18nKey.collapseRules, siteConfig.lang))};
+          var applyLinksText = ${JSON.stringify(i18n(I18nKey.applyLinks, siteConfig.lang))};
+          var expandCommentsText = ${JSON.stringify(i18n(I18nKey.expandComments, siteConfig.lang))};
+          var collapseCommentsText = ${JSON.stringify(i18n(I18nKey.collapseComments, siteConfig.lang))};
+          var copiedText = ${JSON.stringify(i18n(I18nKey.copied, siteConfig.lang))};
+
           if (btn && panel) {
             btn.addEventListener('click', function() {
               var isHidden = panel.classList.contains('hidden');
               if (isHidden) {
                 panel.classList.remove('hidden');
-                btn.querySelector('.apply-btn-text').textContent = '收起规则';
+                btn.querySelector('.apply-btn-text').textContent = collapseRulesText;
                 btn.querySelector('.apply-btn-icon').textContent = '✕';
                 panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
               } else {
                 panel.classList.add('hidden');
-                btn.querySelector('.apply-btn-text').textContent = '申请友链';
+                btn.querySelector('.apply-btn-text').textContent = applyLinksText;
                 btn.querySelector('.apply-btn-icon').textContent = '+';
               }
             });
@@ -250,7 +257,7 @@ links.get('/', async (c) => {
             commentToggleBtn.addEventListener('click', function() {
               var isHidden = commentWrap.classList.toggle('hidden');
               if (commentText) {
-                commentText.textContent = isHidden ? '展开评论留言区' : '收起评论留言区';
+                commentText.textContent = isHidden ? expandCommentsText : collapseCommentsText;
               }
             });
           }
@@ -259,7 +266,7 @@ links.get('/', async (c) => {
             if (!navigator.clipboard) return;
             navigator.clipboard.writeText(text).then(function() {
               var original = btnElement.textContent;
-              btnElement.textContent = '✓ 已复制';
+              btnElement.textContent = copiedText;
               setTimeout(function() {
                 btnElement.textContent = original;
               }, 2000);

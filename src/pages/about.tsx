@@ -6,6 +6,7 @@ import { Layout } from '../components/index.js'
 import { getSidebarData, getBlogConfig, getAboutContent } from '../services/github.js'
 import { processEmbeddedMediaHtml, isHtmlRenderCodeBlock } from '../utils/markdown.js'
 import { setTieredCache } from '../utils/cache.js'
+import { i18n, I18nKey } from '../i18n/index.js'
 
 const about = new Hono<AppEnv>()
 
@@ -45,7 +46,7 @@ about.get('/', async (c) => {
   })
   const htmlContent = processEmbeddedMediaHtml(rawHtmlContent)
 
-  const pageTitle = aboutData.title || '关于本站'
+  const pageTitle = aboutData.title || i18n(I18nKey.about, siteConfig.lang)
   const pageDescription =
     aboutData.description || `关于本站 - 了解 ${siteConfig.title} 的技术架构、个人介绍与建站初衷`
 

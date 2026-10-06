@@ -6,6 +6,7 @@ import { getManifest, getSidebarData, getBlogConfig } from '../services/github.j
 import { getTopPosts, getAllPostStats, isStatsEnabled } from '../services/stats.js'
 import { parsePagination } from '../utils/pagination.js'
 import { setTieredCache } from '../utils/cache.js'
+import { i18n, I18nKey } from '../i18n/index.js'
 
 const home = new Hono<AppEnv>()
 
@@ -98,10 +99,10 @@ home.get('/', async (c) => {
   let pageTitle = undefined
   let pageDescription = undefined
   if (category) {
-    pageTitle = `分类: ${category}`
+    pageTitle = i18n(I18nKey.filterCategory, siteConfig.lang, { category })
     pageDescription = `${siteConfig.title} - “${category}”分类下的所有精选文章与技术分享（共 ${total} 篇）。`
   } else if (tag) {
-    pageTitle = `标签: ${tag}`
+    pageTitle = i18n(I18nKey.filterTag, siteConfig.lang, { tag })
     pageDescription = `${siteConfig.title} - 包含“#${tag}”标签的所有相关文章与教程（共 ${total} 篇）。`
   }
 
@@ -125,14 +126,14 @@ home.get('/', async (c) => {
         >
           <div class="flex items-center gap-2 font-bold fuwari-text-90">
             <span class="w-1 h-4 rounded-md bg-(--fuwari-primary) inline-block" />
-            <span>{category ? `分类：${category}` : `标签：#${tag}`}</span>
-            <span class="text-sm font-normal fuwari-text-50">（共 {total} 篇）</span>
+            <span>{category ? i18n(I18nKey.filterCategory, siteConfig.lang, { category: category || '' }) : i18n(I18nKey.filterTag, siteConfig.lang, { tag: tag || '' })}</span>
+            <span class="text-sm font-normal fuwari-text-50">{i18n(I18nKey.postsCountTotal, siteConfig.lang, { count: total })}</span>
           </div>
           <a
             href="/"
             class="fuwari-btn-regular px-3 py-1.5 rounded-lg text-xs font-medium no-underline"
           >
-            ✕ 清除筛选
+            {i18n(I18nKey.clearFilter, siteConfig.lang)}
           </a>
         </div>
       )}
@@ -142,17 +143,17 @@ home.get('/', async (c) => {
           class="fuwari-card-base p-12 text-center fuwari-text-50 fuwari-onload-animation"
           style="animation-delay: 150ms"
         >
-          暂无相关文章
+          {i18n(I18nKey.noPosts, siteConfig.lang)}
         </div>
       ) : (
         <div class="flex flex-col gap-4">
           {displayPosts.map((post, i) => (
-            <PostCard post={post} index={i} />
+            <PostCard post={post} index={i} lang={siteConfig.lang} />
           ))}
         </div>
       )}
 
-      <Pagination currentPage={page} totalPages={totalPages} baseUrl={baseUrl} />
+      <Pagination currentPage={page} totalPages={totalPages} baseUrl={baseUrl} lang={siteConfig.lang} />
     </Layout>
   )
 })

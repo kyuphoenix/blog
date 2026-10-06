@@ -115,6 +115,21 @@ content:
         type: text
         required: true
         description: 博客的一句话简介/描述，展示在侧边栏、SEO Description 与友链交换中
+      - name: lang
+        label: 网站语言 (Language)
+        type: select
+        default: zh_CN
+        options:
+          values:
+            - name: zh_CN
+              label: 简体中文 (zh-CN)
+            - name: zh_TW
+              label: 繁體中文 (zh-TW)
+            - name: en
+              label: English (en)
+            - name: ja
+              label: 日本語 (ja)
+        description: 网站核心语言，控制全站界面 UI、日期时间格式、Giscus 评论区语言及搜索引擎元标记
       - name: repository
         label: GitHub 仓库链接
         type: string

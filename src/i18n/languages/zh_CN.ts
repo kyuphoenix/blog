@@ -1,0 +1,133 @@
+import { I18nKey, Translation } from '../i18nKey.js'
+
+export const zh_CN: Translation = {
+  // Navigation & Global
+  [I18nKey.home]: '首页',
+  [I18nKey.about]: '关于',
+  [I18nKey.archive]: '归档',
+  [I18nKey.links]: '友链',
+  [I18nKey.search]: '搜索',
+
+  // Sidebar & Widgets
+  [I18nKey.tags]: '标签',
+  [I18nKey.categories]: '分类',
+  [I18nKey.recentPosts]: '最新文章',
+  [I18nKey.profile]: '个人简介',
+  [I18nKey.profileView]: '查看关于我',
+
+  // Posts & Content
+  [I18nKey.untitled]: '无标题',
+  [I18nKey.uncategorized]: '未分类',
+  [I18nKey.noTags]: '无标签',
+  [I18nKey.wordCount]: '字',
+  [I18nKey.wordsCount]: '字',
+  [I18nKey.minuteCount]: '分钟',
+  [I18nKey.minutesCount]: '分钟',
+  [I18nKey.postCount]: '篇文章',
+  [I18nKey.postsCount]: '篇文章',
+  [I18nKey.postsCountTotal]: '（共 {count} 篇）',
+  [I18nKey.viewsCount]: '次阅读',
+  [I18nKey.author]: '作者',
+  [I18nKey.publishedAt]: '发布于',
+  [I18nKey.updatedAt]: '更新于',
+  [I18nKey.readingTime]: '阅读时间',
+  [I18nKey.postSummary]: '文章摘要',
+  [I18nKey.prevPost]: '上一篇',
+  [I18nKey.nextPost]: '下一篇',
+  [I18nKey.prevPage]: '上一页',
+  [I18nKey.nextPage]: '下一页',
+  [I18nKey.filterCategory]: '分类：{category}',
+  [I18nKey.filterTag]: '标签：#{tag}',
+  [I18nKey.clearFilter]: '✕ 清除筛选',
+  [I18nKey.noPosts]: '暂无相关文章',
+  [I18nKey.backToHome]: '返回首页',
+  [I18nKey.pageNotFound]: '404 - 页面未找到',
+  [I18nKey.pageNotFoundDesc]: '抱歉，您访问的页面不存在或已被移除',
+  [I18nKey.postNotFound]: '404 - 文章不存在',
+  [I18nKey.postNotFoundDesc]: '抱歉，您访问的文章不存在或已下线。',
+  [I18nKey.post]: '当前文章',
+  [I18nKey.page]: '当前页面',
+
+  // Archive
+  [I18nKey.archiveTitle]: '归档',
+  [I18nKey.archiveSubtitle]: '共 {count} 篇文章的历史时间线与分类归档',
+
+  // Links
+  [I18nKey.linksTitle]: '友情链接',
+  [I18nKey.linksSubtitle]: '海内存知己，天涯若比邻。欢迎各位志同道合的朋友交换友链！',
+  [I18nKey.applyLinks]: '申请友链',
+  [I18nKey.applyRules]: '交换友链须知',
+  [I18nKey.applyRulesSubtitle]: '先加本站 · 优质原创',
+  [I18nKey.siteInfo]: '📋 本站信息（请先添加本站）',
+  [I18nKey.siteName]: '名称',
+  [I18nKey.siteDesc]: '简介',
+  [I18nKey.siteUrl]: '网址',
+  [I18nKey.siteAvatar]: '头像',
+  [I18nKey.copySiteInfo]: '复制本站信息',
+  [I18nKey.applyTemplate]: '📝 申请格式模板',
+  [I18nKey.copyApplyTemplate]: '复制申请格式',
+  [I18nKey.emailApply]: '📧 邮件申请（推荐）',
+  [I18nKey.emailApplyDesc]: '点击下方按钮可直接调起您的邮件客户端，正文已预填好申请模板，发送后博主会尽快查收并添加：',
+  [I18nKey.sendEmail]: '一键发送申请邮件',
+  [I18nKey.copyEmail]: '复制邮箱',
+  [I18nKey.noPublicEmail]: '博主暂未公开邮箱地址',
+  [I18nKey.commentApply]: '💬 评论申请',
+  [I18nKey.commentApplyDesc]: '您也可以直接通过下方评论区提交友链申请，请按照上方格式模板留言（留言内容由 Giscus 托管，对所有访客公开可见）：',
+  [I18nKey.expandComments]: '展开评论留言区',
+  [I18nKey.collapseComments]: '收起评论留言区',
+  [I18nKey.copied]: '✓ 已复制',
+  [I18nKey.collapseRules]: '收起规则',
+
+  // Search & Dialog
+  [I18nKey.searchArticles]: '搜索文章...',
+  [I18nKey.searchPlaceholder]: '输入关键词搜索文章标题或摘要...',
+  [I18nKey.searchStart]: '输入关键词开始搜索',
+  [I18nKey.searching]: '搜索中...',
+  [I18nKey.searchNoResults]: '未找到匹配的文章',
+  [I18nKey.searchError]: '搜索出错，请稍后重试',
+
+  // Theme & Appearance
+  [I18nKey.themeColor]: '主题色',
+  [I18nKey.themeSetting]: '主题色设置',
+  [I18nKey.themeHue]: '主题色相',
+  [I18nKey.resetHue]: '重置默认色相',
+  [I18nKey.toggleTheme]: '切换明暗主题',
+  [I18nKey.lightMode]: '亮色',
+  [I18nKey.darkMode]: '暗色',
+  [I18nKey.systemMode]: '跟随系统',
+  [I18nKey.more]: '更多',
+  [I18nKey.openMenu]: '打开菜单',
+  [I18nKey.backToTop]: '回到顶部',
+
+  // Comments
+  [I18nKey.comments]: '评论',
+  [I18nKey.commentsNotConfigured]: 'Giscus 评论系统尚未配置',
+  [I18nKey.commentsCommonFormats]: '常用格式:',
+  [I18nKey.commentsSyntaxGuide]: '💡 语法速查',
+
+  // Accessibility & Controls
+  [I18nKey.closeMenu]: '关闭菜单',
+  [I18nKey.closeSearch]: '关闭搜索',
+  [I18nKey.toc]: '文章目录',
+  [I18nKey.closeToc]: '关闭目录',
+
+  // Code Block
+  [I18nKey.copyCode]: '复制代码',
+  [I18nKey.codeCopied]: '已复制',
+
+  // Article License (CC-BY-NC-SA 4.0)
+  [I18nKey.licenseTitle]: '许可协议',
+  [I18nKey.licenseAuthor]: '本文作者',
+  [I18nKey.licensePublished]: '发布于',
+  [I18nKey.licenseLink]: '许可链接',
+  [I18nKey.licenseNotice]: '商业转载请联系作者获得授权，非商业转载请注明出处。',
+  [I18nKey.copyLink]: '复制链接',
+  [I18nKey.linkCopied]: '链接已复制',
+
+  // Admonitions (Callouts)
+  [I18nKey.admonitionNote]: '注意',
+  [I18nKey.admonitionTip]: '提示',
+  [I18nKey.admonitionImportant]: '重要',
+  [I18nKey.admonitionWarning]: '警告',
+  [I18nKey.admonitionCaution]: '小心',
+}

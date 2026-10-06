@@ -1,11 +1,13 @@
 import { FC } from 'hono/jsx'
 import type { PostMeta } from '../types/post.js'
+import { i18n, I18nKey, formatMonthDay } from '../i18n/index.js'
 
 interface ArchivePanelProps {
   posts: PostMeta[]
+  lang?: string
 }
 
-export const ArchivePanel: FC<ArchivePanelProps> = ({ posts }) => {
+export const ArchivePanel: FC<ArchivePanelProps> = ({ posts, lang }) => {
   const visiblePosts = posts.filter(
     (p) => p.draft !== true && (p.draft as any) !== 'true'
   )
@@ -40,14 +42,13 @@ export const ArchivePanel: FC<ArchivePanelProps> = ({ posts }) => {
               <div class="h-3 w-3 bg-none rounded-full outline-2 outline-(--fuwari-primary) mx-auto -outline-offset-2 z-50" />
             </div>
             <div class="w-[70%] md:w-[80%] transition text-left fuwari-text-50 text-sm">
-              {groupedPosts[year].length} 篇文章
+              {groupedPosts[year].length} {i18n(groupedPosts[year].length === 1 ? I18nKey.postCount : I18nKey.postsCount, lang)}
             </div>
           </div>
 
           {/* ArchivePost rows */}
           {groupedPosts[year].map((post) => {
-            const dateObj = new Date(post.date)
-            const mmdd = `${String(dateObj.getUTCMonth() + 1).padStart(2, '0')}-${String(dateObj.getUTCDate()).padStart(2, '0')}`
+            const mmdd = formatMonthDay(post.date, lang)
             const postUrl = `/posts/${encodeURIComponent(post.title)}`
             const cleanTitle = post.title.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
 

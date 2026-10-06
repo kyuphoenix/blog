@@ -15,6 +15,7 @@ import { tailwindCss, tailwindVersion } from './styles/tailwindBundle.js'
 import { swupClientJs, swupClientVersion } from './scripts/swupBundle.js'
 import { sitemapXsl } from './styles/sitemapXsl.js'
 import { setTieredCache } from './utils/cache.js'
+import { i18n, I18nKey, getHtmlLang } from './i18n/index.js'
 
 const app = new Hono<AppEnv>()
 
@@ -383,21 +384,28 @@ app.route('/about', aboutPage)
 app.onError(errorHandler)
 
 // 404 处理 (添加 noindex, nofollow 防止搜索引擎将 404 错误页收录)
-app.notFound((c) => {
+app.notFound(async (c) => {
+  const config = await getBlogConfig(c.env)
+  const lang = config.lang
+  const title = i18n(I18nKey.pageNotFound, lang)
+  const desc = i18n(I18nKey.pageNotFoundDesc, lang)
+  const back = i18n(I18nKey.backToHome, lang)
+  const htmlLang = getHtmlLang(lang)
+
   return c.html(
     `<!DOCTYPE html>
-    <html lang="zh-CN">
+    <html lang="${htmlLang}">
       <head>
         <meta charset="utf-8" />
-        <title>404 - 页面未找到</title>
+        <title>${title}</title>
         <meta name="robots" content="noindex, nofollow" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </head>
       <body style="display:flex;justify-content:center;align-items:center;height:100vh;margin:0;font-family:sans-serif;background-color:#fafafa;color:#333;">
         <div style="text-align:center">
           <h1 style="font-size:4rem;margin:0;color:#6366f1">404</h1>
-          <p style="font-size:1.125rem;margin:1rem 0">抱歉，您访问的页面不存在或已被移除</p>
-          <a href="/" style="display:inline-block;padding:0.5rem 1.25rem;background-color:#6366f1;color:#fff;border-radius:0.5rem;text-decoration:none;font-weight:500;">返回首页</a>
+          <p style="font-size:1.125rem;margin:1rem 0">${desc}</p>
+          <a href="/" style="display:inline-block;padding:0.5rem 1.25rem;background-color:#6366f1;color:#fff;border-radius:0.5rem;text-decoration:none;font-weight:500;">${back}</a>
         </div>
       </body>
     </html>`,

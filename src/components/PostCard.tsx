@@ -1,5 +1,6 @@
 import { FC } from 'hono/jsx'
 import type { PostMeta } from '../types/post.js'
+import { i18n, I18nKey, formatDate } from '../i18n/index.js'
 import {
   CalendarIcon,
   EditIcon,
@@ -19,9 +20,10 @@ export interface PostCardItem extends PostMeta {
 interface PostCardProps {
   post: PostCardItem
   index?: number
+  lang?: string
 }
 
-export const PostCard: FC<PostCardProps> = ({ post, index = 0 }) => {
+export const PostCard: FC<PostCardProps> = ({ post, index = 0, lang }) => {
   const delay = 150 + index * 50
   const postUrl = `/posts/${encodeURIComponent(post.title)}`
   const cleanTitle = post.title.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
@@ -69,7 +71,7 @@ export const PostCard: FC<PostCardProps> = ({ post, index = 0 }) => {
               <CalendarIcon size={20} strokeWidth={1.5} />
             </div>
             <time datetime={post.date} class="text-sm font-medium">
-              {post.date}
+              {formatDate(post.date, lang)}
             </time>
           </div>
 
@@ -79,7 +81,7 @@ export const PostCard: FC<PostCardProps> = ({ post, index = 0 }) => {
                 <EditIcon size={20} strokeWidth={1.5} />
               </div>
               <time datetime={post.updated} class="text-sm font-medium">
-                {post.updated}
+                {formatDate(post.updated, lang)}
               </time>
             </div>
           )}
@@ -136,12 +138,12 @@ export const PostCard: FC<PostCardProps> = ({ post, index = 0 }) => {
         <div class="text-sm fuwari-text-50 flex flex-wrap items-center gap-4">
           <span class="inline-flex items-center gap-1.5">
             <ClockIcon size={14} />
-            {post.readingTime} 分钟阅读
+            {post.readingTime} {i18n(post.readingTime === 1 ? I18nKey.minuteCount : I18nKey.minutesCount, lang)}
           </span>
           {post.views !== undefined && post.views > 0 && (
             <span class="inline-flex items-center gap-1.5 text-(--fuwari-primary) font-medium">
               <EyeIcon size={14} />
-              {post.views} 次阅读
+              {post.views} {i18n(I18nKey.viewsCount, lang)}
             </span>
           )}
         </div>

@@ -1,0 +1,133 @@
+export enum I18nKey {
+  // Navigation & Global
+  home = 'home',
+  about = 'about',
+  archive = 'archive',
+  links = 'links',
+  search = 'search',
+
+  // Sidebar & Widgets
+  tags = 'tags',
+  categories = 'categories',
+  recentPosts = 'recentPosts',
+  profile = 'profile',
+  profileView = 'profileView',
+
+  // Posts & Content
+  untitled = 'untitled',
+  uncategorized = 'uncategorized',
+  noTags = 'noTags',
+  wordCount = 'wordCount',
+  wordsCount = 'wordsCount',
+  minuteCount = 'minuteCount',
+  minutesCount = 'minutesCount',
+  postCount = 'postCount',
+  postsCount = 'postsCount',
+  postsCountTotal = 'postsCountTotal',
+  viewsCount = 'viewsCount',
+  author = 'author',
+  publishedAt = 'publishedAt',
+  updatedAt = 'updatedAt',
+  readingTime = 'readingTime',
+  postSummary = 'postSummary',
+  prevPost = 'prevPost',
+  nextPost = 'nextPost',
+  prevPage = 'prevPage',
+  nextPage = 'nextPage',
+  filterCategory = 'filterCategory',
+  filterTag = 'filterTag',
+  clearFilter = 'clearFilter',
+  noPosts = 'noPosts',
+  backToHome = 'backToHome',
+  pageNotFound = 'pageNotFound',
+  pageNotFoundDesc = 'pageNotFoundDesc',
+  postNotFound = 'postNotFound',
+  postNotFoundDesc = 'postNotFoundDesc',
+  post = 'post',
+  page = 'page',
+
+  // Archive
+  archiveTitle = 'archiveTitle',
+  archiveSubtitle = 'archiveSubtitle',
+
+  // Links
+  linksTitle = 'linksTitle',
+  linksSubtitle = 'linksSubtitle',
+  applyLinks = 'applyLinks',
+  applyRules = 'applyRules',
+  applyRulesSubtitle = 'applyRulesSubtitle',
+  siteInfo = 'siteInfo',
+  siteName = 'siteName',
+  siteDesc = 'siteDesc',
+  siteUrl = 'siteUrl',
+  siteAvatar = 'siteAvatar',
+  copySiteInfo = 'copySiteInfo',
+  applyTemplate = 'applyTemplate',
+  copyApplyTemplate = 'copyApplyTemplate',
+  emailApply = 'emailApply',
+  emailApplyDesc = 'emailApplyDesc',
+  sendEmail = 'sendEmail',
+  copyEmail = 'copyEmail',
+  noPublicEmail = 'noPublicEmail',
+  commentApply = 'commentApply',
+  commentApplyDesc = 'commentApplyDesc',
+  expandComments = 'expandComments',
+  collapseComments = 'collapseComments',
+  copied = 'copied',
+  collapseRules = 'collapseRules',
+
+  // Search & Dialog
+  searchArticles = 'searchArticles',
+  searchPlaceholder = 'searchPlaceholder',
+  searchStart = 'searchStart',
+  searching = 'searching',
+  searchNoResults = 'searchNoResults',
+  searchError = 'searchError',
+
+  // Theme & Appearance
+  themeColor = 'themeColor',
+  themeSetting = 'themeSetting',
+  themeHue = 'themeHue',
+  resetHue = 'resetHue',
+  toggleTheme = 'toggleTheme',
+  lightMode = 'lightMode',
+  darkMode = 'darkMode',
+  systemMode = 'systemMode',
+  more = 'more',
+  openMenu = 'openMenu',
+  backToTop = 'backToTop',
+
+  // Comments
+  comments = 'comments',
+  commentsNotConfigured = 'commentsNotConfigured',
+  commentsCommonFormats = 'commentsCommonFormats',
+  commentsSyntaxGuide = 'commentsSyntaxGuide',
+
+  // Accessibility & Controls
+  closeMenu = 'closeMenu',
+  closeSearch = 'closeSearch',
+  toc = 'toc',
+  closeToc = 'closeToc',
+
+  // Code Block
+  copyCode = 'copyCode',
+  codeCopied = 'codeCopied',
+
+  // Article License (CC-BY-NC-SA 4.0)
+  licenseTitle = 'licenseTitle',
+  licenseAuthor = 'licenseAuthor',
+  licensePublished = 'licensePublished',
+  licenseLink = 'licenseLink',
+  licenseNotice = 'licenseNotice',
+  copyLink = 'copyLink',
+  linkCopied = 'linkCopied',
+
+  // Admonitions (Callouts)
+  admonitionNote = 'admonitionNote',
+  admonitionTip = 'admonitionTip',
+  admonitionImportant = 'admonitionImportant',
+  admonitionWarning = 'admonitionWarning',
+  admonitionCaution = 'admonitionCaution',
+}
+
+export type Translation = Record<I18nKey, string>

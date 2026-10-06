@@ -1,6 +1,7 @@
 import { FC } from 'hono/jsx'
 import { raw } from 'hono/html'
 import { blogConfig, BlogConfig, NavItem } from '../blog.config.js'
+import { i18n, I18nKey, getNavLabel } from '../i18n/index.js'
 import {
   HomeIcon,
   SearchIcon,
@@ -41,9 +42,12 @@ export const Navbar: FC<{
             <button
               id="mobile-menu-close"
               type="button"
-              class="fuwari-expand-animation rounded-lg w-8 h-8 flex items-center justify-center fuwari-text-75"
+              class="fuwari-expand-animation rounded-lg w-8 h-8 flex items-center justify-center fuwari-text-75 cursor-pointer border-none bg-transparent"
+              aria-label={i18n(I18nKey.closeMenu, cfg.lang)}
+              title={i18n(I18nKey.closeMenu, cfg.lang)}
             >
               <XIcon size={16} />
+              <span class="sr-only">{i18n(I18nKey.closeMenu, cfg.lang)}</span>
             </button>
           </div>
           <nav class="flex flex-col gap-1">
@@ -66,7 +70,7 @@ export const Navbar: FC<{
                       : 'fuwari-text-75 hover:text-(--fuwari-primary)'
                   }`}
                 >
-                  <span>{item.label}</span>
+                  <span>{getNavLabel(item, cfg.lang)}</span>
                   {isExternal && (
                     <ExternalLinkIcon size={14} class="opacity-60 shrink-0" />
                   )}
@@ -123,7 +127,7 @@ export const Navbar: FC<{
                         : 'fuwari-text-75 hover:text-(--fuwari-primary)'
                     }`}
                   >
-                    <span>{item.label}</span>
+                    <span>{getNavLabel(item, cfg.lang)}</span>
                     {isExternal && (
                       <ExternalLinkIcon size={13} class="opacity-50 shrink-0 -mt-0.5" />
                     )}
@@ -138,7 +142,7 @@ export const Navbar: FC<{
                 type="button"
                 id="search-toggle-desktop"
                 class="hidden lg:flex items-center h-11 mr-2 rounded-lg bg-black/4 hover:bg-black/6 dark:bg-white/5 dark:hover:bg-white/10 transition-all active:scale-95 group w-52 cursor-pointer border-none"
-                aria-label="搜索"
+                aria-label={i18n(I18nKey.search, cfg.lang)}
               >
                 <SearchIcon
                   size={18}
@@ -146,7 +150,7 @@ export const Navbar: FC<{
                   class="ml-3 transition-colors text-black/30 dark:text-white/30 group-hover:text-black/50 dark:group-hover:text-white/50"
                 />
                 <span class="ml-2 text-black/50 dark:text-white/50 text-sm bg-transparent outline-none truncate">
-                  搜索文章...
+                  {i18n(I18nKey.searchArticles, cfg.lang)}
                 </span>
                 <span class="ml-auto mr-3 text-xs text-black/30 dark:text-white/30 font-mono">
                   ⌘K
@@ -158,7 +162,7 @@ export const Navbar: FC<{
                 type="button"
                 id="search-toggle-mobile"
                 class="lg:hidden fuwari-expand-animation rounded-lg h-11 w-11 flex items-center justify-center active:scale-90 fuwari-text-75 hover:text-(--fuwari-primary) cursor-pointer border-none bg-transparent"
-                aria-label="搜索"
+                aria-label={i18n(I18nKey.search, cfg.lang)}
               >
                 <SearchIcon size={18} strokeWidth={1.25} />
               </button>
@@ -169,8 +173,8 @@ export const Navbar: FC<{
                   type="button"
                   id="hue-toggle"
                   class="fuwari-expand-animation rounded-lg h-11 w-11 flex items-center justify-center active:scale-90 fuwari-text-75 hover:text-(--fuwari-primary) cursor-pointer border-none bg-transparent"
-                  aria-label="主题色设置"
-                  title="主题色设置 (OKLCH)"
+                  aria-label={i18n(I18nKey.themeSetting, cfg.lang)}
+                  title={`${i18n(I18nKey.themeSetting, cfg.lang)} (OKLCH)`}
                 >
                   <PaletteIcon size={18} strokeWidth={1.5} />
                 </button>
@@ -178,7 +182,7 @@ export const Navbar: FC<{
                   <div class="flex items-center justify-between mb-3 text-sm font-bold fuwari-text-90">
                     <span class="flex items-center gap-1.5">
                       <span class="w-1 h-4 rounded-md bg-(--fuwari-primary) inline-block" />
-                      主题色相
+                      {i18n(I18nKey.themeHue, cfg.lang)}
                     </span>
                     <div class="flex items-center gap-1.5">
                       <span
@@ -191,7 +195,8 @@ export const Navbar: FC<{
                         type="button"
                         id="hue-reset"
                         class="fuwari-btn-regular w-6 h-6 rounded-md text-xs cursor-pointer border-none"
-                        title="重置默认色相"
+                        aria-label={i18n(I18nKey.resetHue, cfg.lang)}
+                        title={i18n(I18nKey.resetHue, cfg.lang)}
                       >
                         ↺
                       </button>
@@ -214,7 +219,7 @@ export const Navbar: FC<{
                 type="button"
                 id="theme-toggle"
                 class="fuwari-expand-animation rounded-lg h-11 w-11 flex items-center justify-center active:scale-90 fuwari-text-75 hover:text-(--fuwari-primary) cursor-pointer border-none bg-transparent"
-                aria-label="切换明暗主题"
+                aria-label={i18n(I18nKey.toggleTheme, cfg.lang)}
               >
                 <span id="theme-icon-sun" class="block dark:hidden">
                   <SunIcon size={18} strokeWidth={1.5} />
@@ -229,7 +234,7 @@ export const Navbar: FC<{
                 type="button"
                 id="mobile-menu-open"
                 class="fuwari-expand-animation rounded-lg w-11 h-11 flex items-center justify-center active:scale-90 md:hidden fuwari-text-75 hover:text-(--fuwari-primary) cursor-pointer border-none bg-transparent"
-                aria-label="打开菜单"
+                aria-label={i18n(I18nKey.openMenu, cfg.lang)}
               >
                 <MenuIcon size={18} strokeWidth={1.5} />
               </button>
@@ -248,20 +253,22 @@ export const Navbar: FC<{
               type="text"
               id="search-input"
               class="flex-1 bg-transparent border-none outline-none text-base fuwari-text-90"
-              placeholder="输入关键词搜索文章标题或摘要..."
+              placeholder={i18n(I18nKey.searchPlaceholder, cfg.lang)}
               autocomplete="off"
             />
             <button
               type="button"
               id="search-close"
               class="fuwari-btn-regular px-2 py-1 rounded-md text-xs border-none cursor-pointer"
+              aria-label={i18n(I18nKey.closeSearch, cfg.lang)}
+              title={i18n(I18nKey.closeSearch, cfg.lang)}
             >
               ESC
             </button>
           </div>
           <div class="max-h-96 overflow-y-auto p-3" id="search-results">
             <div class="text-center py-8 text-sm fuwari-text-50">
-              输入关键词开始搜索
+              {i18n(I18nKey.searchStart, cfg.lang)}
             </div>
           </div>
         </div>
@@ -270,7 +277,7 @@ export const Navbar: FC<{
   )
 }
 
-export const BackToTop: FC = () => {
+export const BackToTop: FC<{ lang?: string }> = ({ lang }) => {
   return (
     <div class="hidden lg:block absolute right-0 top-0 w-15 h-15 pointer-events-none">
       <div
@@ -280,7 +287,7 @@ export const BackToTop: FC = () => {
         <button
           type="button"
           id="back-to-top-btn"
-          aria-label="回到顶部"
+          aria-label={i18n(I18nKey.backToTop, lang)}
           class="flex items-center justify-center w-15 h-15 fuwari-card-base hover:bg-(--fuwari-btn-plain-bg-hover) active:bg-(--fuwari-btn-plain-bg-active) text-(--fuwari-primary) text-2xl font-bold transition-all active:scale-90 shadow-md cursor-pointer border-none"
         >
           <ArrowUpIcon size={26} strokeWidth={2.5} />
@@ -290,7 +297,16 @@ export const BackToTop: FC = () => {
   )
 }
 
-export const ThemeScript: FC<{ defaultHue?: number }> = ({ defaultHue = blogConfig.theme.fuwari.primaryHue }) => {
+export const ThemeScript: FC<{ defaultHue?: number; lang?: string }> = ({
+  defaultHue = blogConfig.theme.fuwari.primaryHue,
+  lang,
+}) => {
+  const textSearchStart = i18n(I18nKey.searchStart, lang)
+  const textSearching = i18n(I18nKey.searching, lang)
+  const textSearchNoResults = i18n(I18nKey.searchNoResults, lang)
+  const textSearchError = i18n(I18nKey.searchError, lang)
+  const textUncategorized = i18n(I18nKey.uncategorized, lang)
+
   return raw(`<script>
     (function() {
       // 1. Navbar scroll hide/show & BackToTop visibility (exact flare-stack-blog logic)
@@ -443,29 +459,29 @@ export const ThemeScript: FC<{ defaultHue?: number }> = ({ defaultHue = blogConf
           var q = e.target.value.trim();
           clearTimeout(debounceTimer);
           if (!q) {
-            searchResults.innerHTML = '<div class="text-center py-8 text-sm fuwari-text-50">输入关键词开始搜索</div>';
+            searchResults.innerHTML = '<div class="text-center py-8 text-sm fuwari-text-50">' + ${JSON.stringify(textSearchStart)} + '</div>';
             return;
           }
-          searchResults.innerHTML = '<div class="text-center py-8 text-sm fuwari-text-50">搜索中...</div>';
+          searchResults.innerHTML = '<div class="text-center py-8 text-sm fuwari-text-50">' + ${JSON.stringify(textSearching)} + '</div>';
           debounceTimer = setTimeout(function() {
             fetch('/api/posts?keyword=' + encodeURIComponent(q))
               .then(function(r) { return r.json(); })
               .then(function(res) {
                 var items = (res && res.data) || [];
                 if (items.length === 0) {
-                  searchResults.innerHTML = '<div class="text-center py-8 text-sm fuwari-text-50">未找到匹配的文章</div>';
+                  searchResults.innerHTML = '<div class="text-center py-8 text-sm fuwari-text-50">' + ${JSON.stringify(textSearchNoResults)} + '</div>';
                   return;
                 }
                 searchResults.innerHTML = items.map(function(p) {
                   return '<a href="/posts/' + encodeURIComponent(p.title) + '" class="block p-3 rounded-xl hover:bg-(--fuwari-btn-plain-bg-hover) transition-colors no-underline">' +
                     '<div class="font-bold text-(--fuwari-primary) mb-1">' + p.title + '</div>' +
-                    '<div class="text-xs fuwari-text-50 mb-1">' + p.date + ' · ' + (p.category || '未分类') + '</div>' +
+                    '<div class="text-xs fuwari-text-50 mb-1">' + p.date + ' · ' + (p.category || ${JSON.stringify(textUncategorized)}) + '</div>' +
                     '<div class="text-sm fuwari-text-75 line-clamp-2">' + (p.excerpt || '') + '</div>' +
                   '</a>';
                 }).join('');
               })
               .catch(function() {
-                searchResults.innerHTML = '<div class="text-center py-8 text-sm fuwari-text-50">搜索出错，请稍后重试</div>';
+                searchResults.innerHTML = '<div class="text-center py-8 text-sm fuwari-text-50">' + ${JSON.stringify(textSearchError)} + '</div>';
               });
           }, 200);
         });

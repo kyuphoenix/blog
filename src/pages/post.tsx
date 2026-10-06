@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { raw } from 'hono/html'
 import type { AppEnv } from '../types/env.js'
-import { Layout, Giscus } from '../components/index.js'
+import { Layout, Giscus, LicenseCard } from '../components/index.js'
 import {
   FileTextIcon,
   ClockIcon,
@@ -11,12 +11,20 @@ import {
   QuoteIcon,
   ChevronRightIcon,
   EyeIcon,
+  ListIcon,
+  XIcon,
 } from '../components/Icons.js'
 import { getPost, getManifest, getSidebarData, getBlogConfig } from '../services/github.js'
 import { getPostStats, isStatsEnabled } from '../services/stats.js'
-import { processEmbeddedMediaHtml, isHtmlRenderCodeBlock } from '../utils/markdown.js'
+import {
+  processEmbeddedMediaHtml,
+  renderKaTeXMath,
+  renderAdmonitions,
+  renderEnhancedCodeBlock,
+} from '../utils/markdown.js'
 import { setTieredCache, setNoCache } from '../utils/cache.js'
 import { marked } from 'marked'
+import { i18n, I18nKey, formatDate } from '../i18n/index.js'
 
 const postPage = new Hono<AppEnv>()
 
@@ -53,7 +61,7 @@ postPage.get('/:title', async (c) => {
     setNoCache(c)
     return c.html(
       <Layout
-        title="404 - 文章不存在"
+        title={i18n(I18nKey.postNotFound, siteConfig.lang)}
         currentPath="/posts"
         categories={categories}
         tags={tags}
@@ -62,12 +70,12 @@ postPage.get('/:title', async (c) => {
       >
         <div class="fuwari-card-base p-12 text-center fuwari-onload-animation">
           <h1 class="text-4xl font-bold fuwari-text-90 mb-3">404</h1>
-          <p class="fuwari-text-50 mb-6">抱歉，您访问的文章不存在或已下线。</p>
+          <p class="fuwari-text-50 mb-6">{i18n(I18nKey.postNotFoundDesc, siteConfig.lang)}</p>
           <a
             href="/"
             class="fuwari-btn-primary inline-flex px-5 py-2.5 rounded-xl font-bold text-sm no-underline"
           >
-            返回首页
+            {i18n(I18nKey.backToHome, siteConfig.lang)}
           </a>
         </div>
       </Layout>,
@@ -116,15 +124,18 @@ postPage.get('/:title', async (c) => {
     return processEmbeddedMediaHtml(text)
   }
 
-  const origCode = renderer.code.bind(renderer)
   renderer.code = function (token: any) {
-    if (isHtmlRenderCodeBlock(token?.lang)) {
-      return processEmbeddedMediaHtml(token?.text || '')
-    }
-    return origCode(token)
+    return renderEnhancedCodeBlock(token, siteConfig.lang)
   }
 
-  const rawHtmlContent = await marked.parse(post.content, {
+  // 1. 先进行 LaTeX / KaTeX 数学公式 SSR 静态解析渲染
+  let preprocessedContent = renderKaTeXMath(post.content)
+
+  // 2. 解析 Admonitions (彩色告示/警告框)
+  preprocessedContent = renderAdmonitions(preprocessedContent, siteConfig.lang)
+
+  // 3. Marked GFM 渲染
+  const rawHtmlContent = await marked.parse(preprocessedContent, {
     gfm: true,
     breaks: true,
     renderer,
@@ -284,20 +295,20 @@ postPage.get('/:title', async (c) => {
               <div class="transition h-6 w-6 rounded-md bg-black/5 dark:bg-white/10 fuwari-text-50 flex items-center justify-center mr-2">
                 <FileTextIcon strokeWidth={1.5} size={16} />
               </div>
-              <div class="text-sm">{wordCount} 字</div>
+              <div class="text-sm">{wordCount} {i18n(wordCount === 1 ? I18nKey.wordCount : I18nKey.wordsCount, siteConfig.lang)}</div>
             </div>
             <div class="flex flex-row items-center">
               <div class="transition h-6 w-6 rounded-md bg-black/5 dark:bg-white/10 fuwari-text-50 flex items-center justify-center mr-2">
                 <ClockIcon strokeWidth={1.5} size={16} />
               </div>
-              <div class="text-sm">{post.readingTime} 分钟</div>
+              <div class="text-sm">{post.readingTime} {i18n(post.readingTime === 1 ? I18nKey.minuteCount : I18nKey.minutesCount, siteConfig.lang)}</div>
             </div>
             {statsEnabled && (
               <div class="flex flex-row items-center">
                 <div class="transition h-6 w-6 rounded-md bg-black/5 dark:bg-white/10 fuwari-text-50 flex items-center justify-center mr-2 text-(--fuwari-primary)">
                   <EyeIcon strokeWidth={1.5} size={16} />
                 </div>
-                <div class="text-sm"><span id="post-views-count">{viewsCount}</span> 次阅读</div>
+                <div class="text-sm"><span id="post-views-count">{viewsCount}</span> {i18n(I18nKey.viewsCount, siteConfig.lang)}</div>
               </div>
             )}
           </div>
@@ -321,7 +332,7 @@ postPage.get('/:title', async (c) => {
               <div class="fuwari-meta-icon">
                 <CalendarIcon strokeWidth={1.5} size={20} />
               </div>
-              <time datetime={post.date} itemprop="datePublished" class="text-sm font-medium fuwari-text-50">{post.date}</time>
+              <time datetime={post.date} itemprop="datePublished" class="text-sm font-medium fuwari-text-50">{formatDate(post.date, siteConfig.lang)}</time>
             </div>
 
             {post.updated && (
@@ -330,7 +341,7 @@ postPage.get('/:title', async (c) => {
                   <EditIcon strokeWidth={1.5} size={20} />
                 </div>
                 <time datetime={post.updated} itemprop="dateModified" class="text-sm font-medium fuwari-text-50">
-                  {post.updated}
+                  {formatDate(post.updated, siteConfig.lang)}
                 </time>
               </div>
             )}
@@ -400,7 +411,7 @@ postPage.get('/:title', async (c) => {
               </div>
               <div class="flex-1 min-w-0">
                 <h3 class="text-[11px] md:text-xs font-bold text-(--fuwari-primary) flex items-center mb-1 md:mb-1.5 uppercase tracking-[0.2em] opacity-80">
-                  文章摘要
+                  {i18n(I18nKey.postSummary, siteConfig.lang)}
                 </h3>
                 <p class="text-sm md:text-[15px] leading-relaxed fuwari-text-70 font-medium m-0">
                   {post.excerpt}
@@ -417,6 +428,14 @@ postPage.get('/:title', async (c) => {
             {raw(htmlContent)}
           </div>
 
+          {/* Article License Card (CC-BY-NC-SA 4.0) */}
+          <LicenseCard
+            title={cleanTitle}
+            url={`${c.env.BLOG_URL || new URL(c.req.url).origin}/posts/${encodeURIComponent(post.title)}`}
+            date={post.date}
+            siteConfig={siteConfig}
+          />
+
           {/* End of Content Notice */}
           <div class="my-8 flex items-center justify-center w-full">
             <div class="h-px w-full bg-linear-to-r from-transparent via-(--fuwari-meta-divider) to-transparent opacity-20" />
@@ -428,7 +447,7 @@ postPage.get('/:title', async (c) => {
         </article>
 
         {/* Giscus Comments Section */}
-        <Giscus env={c.env} />
+        <Giscus env={c.env} lang={siteConfig.lang} />
 
         {/* Prev / Next Navigation Cards (Fuwari style) */}
         <div
@@ -444,7 +463,7 @@ postPage.get('/:title', async (c) => {
                 <ChevronRightIcon size={24} />
               </span>
               <div class="overflow-hidden">
-                <div class="text-xs fuwari-text-50">上一篇</div>
+                <div class="text-xs fuwari-text-50">{i18n(I18nKey.prevPost, siteConfig.lang)}</div>
                 <div class="font-bold fuwari-text-75 truncate">{prevPost.title}</div>
               </div>
             </a>
@@ -458,7 +477,7 @@ postPage.get('/:title', async (c) => {
               class="fuwari-card-base w-full h-15 px-4 flex items-center justify-end gap-3 text-right hover:bg-(--fuwari-btn-plain-bg-hover) active:scale-98 transition no-underline"
             >
               <div class="overflow-hidden">
-                <div class="text-xs fuwari-text-50">下一篇</div>
+                <div class="text-xs fuwari-text-50">{i18n(I18nKey.nextPost, siteConfig.lang)}</div>
                 <div class="font-bold fuwari-text-75 truncate">{nextPost.title}</div>
               </div>
               <span class="text-(--fuwari-primary) flex shrink-0">
@@ -470,6 +489,74 @@ postPage.get('/:title', async (c) => {
           )}
         </div>
       </div>
+
+      {/* Mobile Floating TOC Button (Bottom Right FAB) */}
+      {toc.length > 0 && (
+        <div class="2xl:hidden fixed bottom-20 right-4 z-40">
+          <button
+            type="button"
+            id="mobile-toc-open"
+            class="fuwari-card-base w-12 h-12 rounded-full shadow-lg flex items-center justify-center text-(--fuwari-primary) hover:scale-105 active:scale-95 transition-all cursor-pointer border border-black/5 dark:border-white/10"
+            aria-label={i18n(I18nKey.toc, siteConfig.lang)}
+            title={i18n(I18nKey.toc, siteConfig.lang)}
+          >
+            <ListIcon size={20} strokeWidth={2} />
+            <span class="sr-only">{i18n(I18nKey.toc, siteConfig.lang)}</span>
+          </button>
+        </div>
+      )}
+
+      {/* Mobile TOC Drawer Sheet */}
+      {toc.length > 0 && (
+        <div
+          id="mobile-toc-drawer"
+          class="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs opacity-0 pointer-events-none transition-opacity duration-300 2xl:hidden flex flex-col justify-end"
+          aria-hidden="true"
+        >
+          <div
+            id="mobile-toc-panel"
+            class="fuwari-card-base rounded-b-none! rounded-t-3xl max-h-[75vh] w-full p-5 shadow-2xl translate-y-full transition-transform duration-300 flex flex-col"
+          >
+            <div class="flex items-center justify-between pb-3 mb-2 border-b border-black/5 dark:border-white/10">
+              <div class="flex items-center gap-2 font-bold text-base fuwari-text-90">
+                <ListIcon size={18} class="text-(--fuwari-primary)" />
+                <span>{i18n(I18nKey.toc, siteConfig.lang)}</span>
+              </div>
+              <button
+                id="mobile-toc-close"
+                type="button"
+                class="fuwari-expand-animation rounded-lg w-8 h-8 flex items-center justify-center fuwari-text-75 cursor-pointer border-none bg-transparent"
+                aria-label={i18n(I18nKey.closeToc, siteConfig.lang)}
+                title={i18n(I18nKey.closeToc, siteConfig.lang)}
+              >
+                <XIcon size={18} />
+                <span class="sr-only">{i18n(I18nKey.closeToc, siteConfig.lang)}</span>
+              </button>
+            </div>
+            <div class="overflow-y-auto fuwari-toc-scrollbar py-2 flex flex-col gap-1">
+              {toc
+                .filter((h) => h.level < minDepth + 3)
+                .map((heading) => {
+                  const indentClass =
+                    heading.level === minDepth
+                      ? 'font-bold'
+                      : heading.level === minDepth + 1
+                        ? 'pl-4'
+                        : 'pl-8'
+                  return (
+                    <a
+                      href={`#${heading.id}`}
+                      class={`mobile-toc-link py-2 px-3 rounded-xl transition text-sm fuwari-text-75 hover:text-(--fuwari-primary) hover:bg-(--fuwari-btn-plain-bg-hover) flex items-center gap-2 no-underline ${indentClass}`}
+                    >
+                      <span class="w-1.5 h-1.5 rounded-full bg-(--fuwari-primary)/60 shrink-0 inline-block" />
+                      <span class="truncate">{heading.text}</span>
+                    </a>
+                  )
+                })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* TOC Active Indicator Scroll Spy Script */}
       {toc.length > 0 &&

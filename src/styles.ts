@@ -361,7 +361,31 @@ html.is-animating .transition-swup-fade {
   color: inherit !important;
   padding: 0 !important;
   font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.875rem;
+}
+
+.code-block-wrapper pre {
+  margin: 0 !important;
+  border-radius: 0 !important;
+  border-bottom-left-radius: 1rem !important;
+  border-bottom-right-radius: 1rem !important;
+}
+
+.admonition {
+  transition: all 0.2s ease;
+}
+.admonition p:last-child {
+  margin-bottom: 0 !important;
+}
+.admonition p:first-child {
+  margin-top: 0 !important;
+}
+
+.fuwari-math-block {
+  overflow-x: auto;
+  padding: 0.5rem 0;
+}
+.fuwari-math-block .katex-display {
+  margin: 0 !important;
 }
 
 .fuwari-custom-md blockquote {
