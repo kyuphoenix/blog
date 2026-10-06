@@ -226,6 +226,150 @@ function initImageLightbox() {
 }
 
 /**
+ * 极速即时预加载引擎 (Instant Preload Engine)
+ *
+ * 彻底修复 @swup/preload-plugin 在链接内包含子元素 (span, svg, div) 时静默丢弃 hover 事件的缺陷：
+ * 1. 鼠标悬停预加载：使用全局 mouseover 委托 + closest('a[href]')，光标无论接触到文字、图标、卡片任意区域，均立即发起预加载；
+ * 2. 触控按压预加载：在移动端 touchstart 瞬间预加载，利用手指从触碰屏幕到抬起点击的 100~300ms 黄金时间差完成数据拉取，彻底抹平触控延迟；
+ * 3. 键盘焦点预加载：在 focusin 发生时预加载；
+ * 4. 浏览器空闲预取：页面初始化及每次切换完成后，在 requestIdleCallback 空闲时段自动静默预加载顶部核心页签（首页、归档、友链、关于），实现 100% 内存瞬开！
+ */
+function initInstantPreload(swup: Swup) {
+  const preloadedUrls = new Set<string>()
+
+  function shouldPreload(targetPath: string, link?: HTMLAnchorElement): boolean {
+    if (!targetPath) return false
+    try {
+      const parsed = new URL(targetPath, window.location.origin)
+      // 仅预加载站内同源链接
+      if (parsed.origin !== window.location.origin) return false
+
+      const cleanPath = parsed.pathname + parsed.search
+      const currentPath = window.location.pathname + window.location.search
+      // 排除当前正在浏览的页面
+      if (cleanPath === currentPath) return false
+
+      // 排除静态文件、API 接口及非 HTML 页面
+      if (
+        parsed.pathname.startsWith('/api/') ||
+        parsed.pathname.startsWith('/css/') ||
+        parsed.pathname.startsWith('/js/') ||
+        parsed.pathname.startsWith('/images/') ||
+        /\.(webp|jpg|jpeg|png|gif|svg|ico|css|js|json|xml|txt|pdf|woff2?)$/i.test(parsed.pathname)
+      ) {
+        return false
+      }
+
+      if (link) {
+        if (link.target && link.target !== '_self') return false
+        if (link.hasAttribute('download')) return false
+        if (link.getAttribute('rel')?.includes('external')) return false
+        if (link.hasAttribute('data-no-swup') || link.hasAttribute('data-swup-ignore')) return false
+        // 遵循 Swup 自身的忽略规则
+        if (typeof swup.shouldIgnoreVisit === 'function' && swup.shouldIgnoreVisit(link.href, { el: link })) {
+          return false
+        }
+      }
+
+      // 避免重复发起
+      if (preloadedUrls.has(cleanPath)) return false
+      const resolved = swup.resolveUrl(cleanPath)
+      if (swup.cache?.has?.(resolved)) return false
+
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  function triggerPreload(url: string, link?: HTMLAnchorElement) {
+    try {
+      const parsed = new URL(url, window.location.origin)
+      const cleanPath = parsed.pathname + parsed.search
+      if (!shouldPreload(cleanPath, link)) return
+
+      preloadedUrls.add(cleanPath)
+
+      // 优先调用 Swup 官方 preload API 填充其内部 cache
+      if (typeof (swup as any).preload === 'function') {
+        ;(swup as any).preload(cleanPath, { priority: true })
+      } else if (typeof swup.fetchPage === 'function') {
+        swup.fetchPage(cleanPath)
+      }
+    } catch (err) {
+      console.warn('Instant preload error:', err)
+    }
+  }
+
+  // 1. 鼠标悬停 (mouseover 无论光标落在链接内哪个 span、svg 或 div 都能 100% 捕获)
+  document.addEventListener(
+    'mouseover',
+    (e) => {
+      const target = e.target as HTMLElement | null
+      const link = target?.closest?.('a[href]') as HTMLAnchorElement | null
+      if (link && link.href) {
+        triggerPreload(link.href, link)
+      }
+    },
+    { passive: true }
+  )
+
+  // 2. 移动端触摸开始瞬间预加载
+  document.addEventListener(
+    'touchstart',
+    (e) => {
+      const target = e.target as HTMLElement | null
+      const link = target?.closest?.('a[href]') as HTMLAnchorElement | null
+      if (link && link.href) {
+        triggerPreload(link.href, link)
+      }
+    },
+    { passive: true }
+  )
+
+  // 3. 键盘 Tab 键焦点预加载
+  document.addEventListener(
+    'focusin',
+    (e) => {
+      const target = e.target as HTMLElement | null
+      const link = target?.closest?.('a[href]') as HTMLAnchorElement | null
+      if (link && link.href) {
+        triggerPreload(link.href, link)
+      }
+    },
+    { passive: true }
+  )
+
+  // 4. 空闲调度预加载核心页签 (首页、归档、友链、关于)
+  function preloadCoreLinks() {
+    const coreLinks = document.querySelectorAll<HTMLAnchorElement>(
+      '#fuwari-navbar nav a[href], #mobile-menu-panel nav a[href]'
+    )
+    coreLinks.forEach((link) => {
+      if (link.href) {
+        triggerPreload(link.href, link)
+      }
+    })
+  }
+
+  const runIdle = (cb: () => void) => {
+    if (typeof (window as any).requestIdleCallback === 'function') {
+      ;(window as any).requestIdleCallback(cb, { timeout: 2000 })
+    } else {
+      setTimeout(cb, 400)
+    }
+  }
+
+  // 页面就绪后延迟 400ms 自动在后台静默预取核心页签
+  runIdle(preloadCoreLinks)
+
+  // 每次切页完成之后，亦在空闲时检查核心页签
+  swup.hooks.on('page:view', () => {
+    runIdle(preloadCoreLinks)
+  })
+}
+
+/**
  * 初始化 Swup 平滑无缝无刷新路由引擎
  */
 function initSwup() {
@@ -242,27 +386,16 @@ function initSwup() {
     cache: true,
     plugins: [
       new SwupPreloadPlugin({
-        throttle: 4,
+        throttle: 5,
         preloadInitialPage: false,
-        preloadHoveredLinks: true,
-        preloadVisibleLinks: {
-          enabled: true,
-          threshold: 0.2,
-          delay: 400,
-          containers: ['#fuwari-navbar', '#mobile-menu-panel', '#swup-container'],
-          ignore: (el) => {
-            const href = el.getAttribute('href') || ''
-            return (
-              href.startsWith('http') ||
-              href.startsWith('#') ||
-              href.startsWith('mailto:') ||
-              href.startsWith('javascript:')
-            )
-          },
-        },
+        preloadHoveredLinks: false, // 禁用插件自带的有缺陷事件判定，由下方自研 Instant Preload 引擎全量接管
+        preloadVisibleLinks: false,
       }),
     ],
   })
+
+  // 启动极速即时预加载引擎 (支持子元素 hover 穿透、touchstart、focusin 与空闲时核心页签静默预取)
+  initInstantPreload(swup)
 
   // 初始页面自注水：直接将初次加载的完整 HTML 存入 Swup 缓存，避免切回当前页时触发冗余网络请求
   try {
