@@ -113,8 +113,9 @@ postPage.get('/:title', async (c) => {
         alt="${escapedCaption}"
         title="${escapedCaption}"
         loading="lazy"
+        decoding="async"
         data-zoomable="true"
-        class="post-image zoomable rounded-xl shadow-md cursor-zoom-in inline-block max-h-[75vh] max-w-full object-contain transition duration-300 hover:shadow-lg hover:scale-[1.01]"
+        class="post-image zoomable rounded-xl shadow-md cursor-zoom-in inline-block max-h-[75vh] max-w-full h-auto object-contain transition duration-300 hover:shadow-lg hover:scale-[1.01]"
       />
       ${caption ? `<span class="post-image-caption block mt-2 text-center text-xs fuwari-text-50">${caption}</span>` : ''}
     </span>`
@@ -391,6 +392,8 @@ postPage.get('/:title', async (c) => {
               <img
                 src={post.cover}
                 alt={post.title}
+                width="1200"
+                height="630"
                 class="w-full h-auto max-h-[650px] object-cover object-center block"
                 loading="eager"
                 decoding="async"
@@ -510,7 +513,7 @@ postPage.get('/:title', async (c) => {
       {toc.length > 0 && (
         <div
           id="mobile-toc-drawer"
-          class="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs opacity-0 pointer-events-none transition-opacity duration-300 2xl:hidden flex flex-col justify-end"
+          class="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs opacity-0 pointer-events-none invisible 2xl:hidden flex flex-col justify-end"
           aria-hidden="true"
         >
           <div

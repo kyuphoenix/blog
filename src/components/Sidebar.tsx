@@ -73,6 +73,10 @@ export const Sidebar: FC<SidebarProps> = ({
             <img
               src={cfg.theme.fuwari.avatar}
               alt={cfg.author}
+              width="240"
+              height="240"
+              loading="eager"
+              decoding="async"
               class="w-full h-auto aspect-square object-cover transition-transform duration-500 group-hover:scale-105"
             />
           </a>

@@ -31,7 +31,8 @@ export const Navbar: FC<{
       {/* Mobile Menu Drawer */}
       <div
         id="mobile-menu-overlay"
-        class="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs opacity-0 pointer-events-none transition-opacity duration-300 md:hidden"
+        class="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs opacity-0 pointer-events-none invisible md:hidden"
+        aria-hidden="true"
       >
         <div
           id="mobile-menu-panel"
@@ -404,13 +405,17 @@ export const ThemeScript: FC<{ defaultHue?: number; lang?: string }> = ({
       var menuPanel = document.getElementById('mobile-menu-panel');
       function openMenu() {
         if (!menuOverlay || !menuPanel) return;
-        menuOverlay.classList.remove('opacity-0', 'pointer-events-none');
+        menuOverlay.classList.remove('opacity-0', 'pointer-events-none', 'invisible');
+        menuOverlay.classList.add('visible');
         menuPanel.classList.remove('-translate-y-4');
+        menuOverlay.setAttribute('aria-hidden', 'false');
       }
       function closeMenu() {
         if (!menuOverlay || !menuPanel) return;
-        menuOverlay.classList.add('opacity-0', 'pointer-events-none');
+        menuOverlay.classList.add('opacity-0', 'pointer-events-none', 'invisible');
+        menuOverlay.classList.remove('visible');
         menuPanel.classList.add('-translate-y-4');
+        menuOverlay.setAttribute('aria-hidden', 'true');
       }
       if (menuOpen) menuOpen.addEventListener('click', openMenu);
       if (menuClose) menuClose.addEventListener('click', closeMenu);
