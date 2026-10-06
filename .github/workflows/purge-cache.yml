@@ -81,7 +81,11 @@ jobs:
             exit 0
           fi
 
-          echo "正在请求 Cloudflare Control Plane 广播强制清空全球 CDN 边缘节点缓存..."
+          # 自动清理首尾空格与可能误粘的 Bearer 前缀
+          CF_ZONE_ID=$(echo "$CF_ZONE_ID" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+          CF_TOKEN=$(echo "$CF_TOKEN" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/^Bearer[[:space:]]\+//I')
+
+          echo "正在请求 Cloudflare Control Plane 广播强制清空全球 CDN 边缘节点缓存 (Zone: ${CF_ZONE_ID})..."
           HTTP_CODE=$(curl -s -o /tmp/cf_purge.json -w "%{http_code}" -X POST \
             "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/purge_cache" \
             -H "Authorization: Bearer ${CF_TOKEN}" \
@@ -96,7 +100,13 @@ jobs:
           if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
             echo "✅ Cloudflare 全球 300+ 机房 CDN 缓存已全量清空！"
           else
-            echo "⚠️ Cloudflare CDN 清除未返回 2xx (请检查 Token 权限是否包含 Cache Purge)"
+            echo "⚠️ Cloudflare CDN 清除未返回 2xx (HTTP $HTTP_CODE)"
+            if [ "$HTTP_CODE" -eq 401 ]; then
+              echo "💡 提示 401 Authentication error 常见原因排查："
+              echo "   1. CLOUDFLARE_ZONE_ID 是否误填为 Account ID？(请进入具体域名 kyuphoenix.com 页面右下角获取【区域 ID / Zone ID】)"
+              echo "   2. CLOUDFLARE_API_TOKEN 是否包含【区域 (Zone) -> 缓存清除 (Cache Purge) -> 清除 (Purge)】权限？"
+              echo "   3. Token 的 Zone 范围是否包含该域名？是否误设了 Client IP 筛选限制？"
+            fi
           fi
 
       # 3. 强制清除 Netlify 全球 CDN 边缘节点缓存
