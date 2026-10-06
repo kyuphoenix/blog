@@ -6,6 +6,7 @@ import { Navbar, BackToTop, ThemeScript } from './Navbar.js'
 import { Sidebar } from './Sidebar.js'
 import { Footer } from './Footer.js'
 import { swupClientVersion } from '../scripts/swupBundle.js'
+import { tailwindVersion } from '../styles/tailwindBundle.js'
 
 interface CategoryItem {
   name: string
@@ -308,7 +309,7 @@ export const Layout: FC<LayoutProps> = ({
         <link rel="icon" href={cfg.icons.faviconIco} />
         <link rel="apple-touch-icon" href={cfg.icons.appleTouchIcon} />
         {/* Pre-compiled static Tailwind CSS v4 (AOT, 0 JS runtime overhead) */}
-        <link rel="stylesheet" href="/css/tailwind.css" />
+        <link rel="stylesheet" href={`/css/tailwind.css?v=${tailwindVersion}`} />
         {/* Highlight.js for code syntax highlighting */}
         <link
           rel="stylesheet"

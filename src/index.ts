@@ -11,6 +11,7 @@ import aboutPage from './pages/about.js'
 import linksPage from './pages/links.js'
 import { getManifest, getBlogConfig } from './services/github.js'
 import { giscusLightCss, giscusDarkCss } from './styles/giscusTheme.js'
+import { tailwindCss, tailwindVersion } from './styles/tailwindBundle.js'
 import { swupClientJs, swupClientVersion } from './scripts/swupBundle.js'
 import { sitemapXsl } from './styles/sitemapXsl.js'
 import { setTieredCache } from './utils/cache.js'
@@ -57,6 +58,21 @@ app.get('/css/giscus-fuwari-dark.css', (c) => {
     'Content-Type': 'text/css; charset=utf-8',
     'Access-Control-Allow-Origin': '*',
     'Cache-Control': 'public, max-age=60',
+  })
+})
+
+// 生产级静态 Tailwind CSS 样式表路由
+app.get('/css/tailwind.css', (c) => {
+  const version = c.req.query('v')
+  const cacheControl = version
+    ? 'public, max-age=31536000, immutable'
+    : 'public, max-age=0, s-maxage=86400, stale-while-revalidate=604800, must-revalidate'
+
+  return c.text(tailwindCss, 200, {
+    'Content-Type': 'text/css; charset=utf-8',
+    'Access-Control-Allow-Origin': '*',
+    'Cache-Control': cacheControl,
+    'ETag': `"${tailwindVersion}"`,
   })
 })
 

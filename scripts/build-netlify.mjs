@@ -14,10 +14,8 @@ try {
 }
 
 // 2. 编译生产级静态 Tailwind CSS (AOT)
-console.log('🎨 正在编译生产级静态 Tailwind CSS (AOT)...')
 try {
-  execSync('npx @tailwindcss/cli -i src/tailwind.css -o public/css/tailwind.css --minify', { stdio: 'inherit' })
-  console.log('✓ 静态 Tailwind CSS 编译完成: public/css/tailwind.css')
+  execSync('node scripts/build-css.mjs', { stdio: 'inherit' })
 } catch (e) {
   console.warn(`⚠️ 编译 Tailwind CSS 失败: ${e.message}`)
 }

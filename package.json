@@ -7,8 +7,9 @@
   },
   "scripts": {
     "dev": "wrangler dev",
-    "build:css": "tailwindcss -i src/tailwind.css -o public/css/tailwind.css --minify",
+    "build:css": "node scripts/build-css.mjs",
     "build:js": "node scripts/build-client.mjs",
+    "build:client": "node scripts/build-client.mjs && node scripts/build-css.mjs",
     "build": "node scripts/build-vercel.mjs",
     "deploy": "wrangler deploy --minify",
     "gen:manifest": "node scripts/gen-manifest.mjs",
