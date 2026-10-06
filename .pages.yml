@@ -441,7 +441,7 @@ actions:
         label: 排除保护目录 (空格分隔)
         type: text
         required: false
-        default: posts public/images
+        default: posts public
 
 # 4. 全局提交设置
 settings:
