@@ -200,7 +200,14 @@ jobs:
                 rm -rf "$dir" 2>/dev/null || true
               fi
             done
-            echo "✓ 已成功排除上游 [$PROTECTED_DIRS]，本地文章与自定义资源保持原样！"
+            # 额外自动保护用户自定义的网站图标，防止上游模板未来调整演示图标时影响用户个性化配置
+            for icon in public/favicon* public/apple-touch-icon* public/web-app-manifest*; do
+              if [ -f "$icon" ] && [ -n "$(git ls-tree HEAD "$icon" 2>/dev/null)" ]; then
+                git reset HEAD -- "$icon" 2>/dev/null || true
+                git checkout HEAD -- "$icon" 2>/dev/null || true
+              fi
+            done
+            echo "✓ 已成功排除上游可能影响用户资产的改动，本地文章、图库与自定义图标保持原样！"
           }
 
           # 5. 执行同步策略
