@@ -3891,31 +3891,84 @@ var parsePagination = (query) => {
 };
 
 // src/utils/cache.ts
+function detectPlatform(c) {
+  const envPlatform = c?.env?.DEPLOY_PLATFORM || (typeof process !== "undefined" ? process.env?.DEPLOY_PLATFORM : void 0);
+  if (envPlatform) {
+    const p = String(envPlatform).toLowerCase().trim();
+    if (p === "cloudflare" || p === "cf") return "cloudflare";
+    if (p === "netlify") return "netlify";
+    if (p === "vercel") return "vercel";
+  }
+  if (typeof process !== "undefined") {
+    if (process.env?.VERCEL === "1" || process.env?.VERCEL_ENV) {
+      return "vercel";
+    }
+    if (process.env?.NETLIFY === "true" || process.env?.NETLIFY) {
+      return "netlify";
+    }
+  }
+  if (typeof globalThis.Netlify !== "undefined") {
+    return "netlify";
+  }
+  if (c?.req) {
+    try {
+      if (c.req.header("cf-ray") || c.req.raw?.cf) {
+        return "cloudflare";
+      }
+      if (c.req.header("x-vercel-id") || c.req.header("x-vercel-cache")) {
+        return "vercel";
+      }
+      if (c.req.header("x-nf-request-id") || c.req.header("x-netlify-cache")) {
+        return "netlify";
+      }
+    } catch {
+    }
+  }
+  if (typeof globalThis.WebSocketPair !== "undefined" && typeof globalThis.caches !== "undefined") {
+    return "cloudflare";
+  }
+  return "generic";
+}
 function setTieredCache(c, options = {}) {
   const browserMaxAge = options.browserMaxAge ?? 0;
   const edgeMaxAge = options.edgeMaxAge ?? 86400;
   const swrMaxAge = options.swrMaxAge ?? 604800;
   const tags = options.tags || ["page"];
+  const platform = detectPlatform(c);
   c.header(
     "Cache-Control",
     `public, max-age=${browserMaxAge}, s-maxage=${edgeMaxAge}, stale-while-revalidate=${swrMaxAge}, must-revalidate`
   );
-  c.header(
-    "Cloudflare-CDN-Cache-Control",
-    `public, max-age=${edgeMaxAge}, stale-while-revalidate=${swrMaxAge}`
-  );
-  c.header(
-    "CDN-Cache-Control",
-    `public, max-age=${edgeMaxAge}, stale-while-revalidate=${swrMaxAge}`
-  );
-  c.header(
-    "Netlify-CDN-Cache-Control",
-    `public, max-age=${edgeMaxAge}, stale-while-revalidate=${swrMaxAge}`
-  );
-  if (tags.length > 0) {
-    const tagHeaderValue = tags.join(",");
-    c.header("Netlify-Cache-Tag", tagHeaderValue);
-    c.header("Vercel-Cache-Tag", tagHeaderValue);
+  if (platform === "cloudflare") {
+    c.header(
+      "Cloudflare-CDN-Cache-Control",
+      `public, max-age=${edgeMaxAge}, stale-while-revalidate=${swrMaxAge}`
+    );
+    c.header(
+      "CDN-Cache-Control",
+      `public, max-age=${edgeMaxAge}, stale-while-revalidate=${swrMaxAge}`
+    );
+  } else if (platform === "netlify") {
+    c.header(
+      "Netlify-CDN-Cache-Control",
+      `public, max-age=${edgeMaxAge}, stale-while-revalidate=${swrMaxAge}`
+    );
+    if (tags.length > 0) {
+      c.header("Netlify-Cache-Tag", tags.join(","));
+    }
+  } else if (platform === "vercel") {
+    c.header(
+      "CDN-Cache-Control",
+      `public, max-age=${edgeMaxAge}, stale-while-revalidate=${swrMaxAge}`
+    );
+    if (tags.length > 0) {
+      c.header("Vercel-Cache-Tag", tags.join(","));
+    }
+  } else {
+    c.header(
+      "CDN-Cache-Control",
+      `public, max-age=${edgeMaxAge}, stale-while-revalidate=${swrMaxAge}`
+    );
   }
 }
 function setNoCache(c) {

@@ -116,6 +116,7 @@ async function main() {
   const ghToken = process.env.GH_TOKEN?.trim()
 
   const envVars = [
+    { key: 'DEPLOY_PLATFORM', value: 'vercel' },
     { key: 'BLOG_URL', value: process.env.BLOG_URL },
     { key: 'GH_OWNER', value: ghOwner },
     { key: 'GH_REPO', value: ghRepo },

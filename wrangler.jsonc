@@ -3,6 +3,12 @@
   "main": "src/index.ts",
   "compatibility_date": "2024-11-01",
   "compatibility_flags": ["nodejs_compat"],
+  // 开启 Cloudflare Workers 原生边缘 CDN 响应缓存
+  // 启用后，Cloudflare 全球 CDN 将位于 Worker 前端，依据 Cache-Control / Cloudflare-CDN-Cache-Control 自动强缓存
+  // 命中时由 CDN 毫秒级直接返回并携带 cf-cache-status: HIT 标头，不消耗 Worker CPU 时间
+  "cache": {
+    "enabled": true
+  },
   // 静态资源目录（托管 /images/home-bg.webp, /images/avatar.webp, favicon 等）
   "assets": {
     "directory": "./public"
@@ -21,5 +27,9 @@
       "database_name": "honoki_db",
       "database_id": "<YOUR_D1_DATABASE_ID>"
     }
-  ]
+  ],
+  // 运行环境变量
+  "vars": {
+    "DEPLOY_PLATFORM": "cloudflare"
+  }
 }

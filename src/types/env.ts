@@ -53,6 +53,8 @@ export type Bindings = {
   SUPABASE_ANON_KEY?: string
   ENABLE_STATS?: string | boolean
   DISABLE_STATS?: string | boolean
+  // 运行与部署平台标记 (cloudflare | vercel | netlify)
+  DEPLOY_PLATFORM?: 'cloudflare' | 'vercel' | 'netlify' | string
   // 边缘 CDN 强制缓存失效与 SWR 配置 (Cloudflare / Netlify / Vercel)
   CLOUDFLARE_ZONE_ID?: string
   CLOUDFLARE_API_TOKEN?: string

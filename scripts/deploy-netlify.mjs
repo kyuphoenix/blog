@@ -256,6 +256,7 @@ async function main() {
   const ghToken = process.env.GH_TOKEN?.trim()
 
   const allEnvVars = [
+    { key: 'DEPLOY_PLATFORM', value: 'netlify' },
     { key: 'BLOG_URL', value: blogUrl || resolvedSite?.ssl_url || resolvedSite?.url },
     { key: 'GH_OWNER', value: ghOwner },
     { key: 'GH_REPO', value: ghRepo },
