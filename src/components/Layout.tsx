@@ -5,6 +5,7 @@ import { blogConfig, BlogConfig } from '../blog.config.js'
 import { Navbar, BackToTop, ThemeScript } from './Navbar.js'
 import { Sidebar } from './Sidebar.js'
 import { Footer } from './Footer.js'
+import { swupClientVersion } from '../scripts/swupBundle.js'
 
 interface CategoryItem {
   name: string
@@ -389,7 +390,7 @@ export const Layout: FC<LayoutProps> = ({
           </div>
         </div>
         <ThemeScript />
-        <script src="/js/swup.js" defer></script>
+        <script src={`/js/swup.js?v=${swupClientVersion}`} defer></script>
         {raw(`<script>
           window.addEventListener('DOMContentLoaded', function() {
             if (window.hljs) hljs.highlightAll();

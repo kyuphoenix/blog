@@ -11,7 +11,7 @@ import aboutPage from './pages/about.js'
 import linksPage from './pages/links.js'
 import { getManifest, getBlogConfig } from './services/github.js'
 import { giscusLightCss, giscusDarkCss } from './styles/giscusTheme.js'
-import { swupClientJs } from './scripts/swupBundle.js'
+import { swupClientJs, swupClientVersion } from './scripts/swupBundle.js'
 import { sitemapXsl } from './styles/sitemapXsl.js'
 import { setTieredCache } from './utils/cache.js'
 
@@ -62,10 +62,16 @@ app.get('/css/giscus-fuwari-dark.css', (c) => {
 
 // 客户端无缝切换引擎与交互脚本 (Swup + Lightbox)
 app.get('/js/swup.js', (c) => {
+  const version = c.req.query('v')
+  const cacheControl = version
+    ? 'public, max-age=31536000, immutable'
+    : 'public, max-age=0, s-maxage=86400, stale-while-revalidate=604800, must-revalidate'
+
   return c.body(swupClientJs, 200, {
     'Content-Type': 'application/javascript; charset=utf-8',
     'Access-Control-Allow-Origin': '*',
-    'Cache-Control': 'public, max-age=86400, s-maxage=86400',
+    'Cache-Control': cacheControl,
+    'ETag': `"${swupClientVersion}"`,
   })
 })
 
