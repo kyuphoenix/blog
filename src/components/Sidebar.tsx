@@ -1,5 +1,6 @@
 import { FC } from 'hono/jsx'
 import { blogConfig, BlogConfig } from '../blog.config.js'
+import { i18n, I18nKey } from '../i18n/index.js'
 import {
   GithubIcon,
   MailIcon,
@@ -61,7 +62,7 @@ export const Sidebar: FC<SidebarProps> = ({
           <a
             href="/about"
             class="group block relative mx-auto mb-3 max-w-48 lg:max-w-none overflow-hidden rounded-xl active:scale-95 no-underline"
-            aria-label="查看关于我"
+            aria-label={i18n(I18nKey.profileView, cfg.lang)}
           >
             <div class="absolute inset-0 z-10 flex items-center justify-center bg-black/0 group-hover:bg-black/35 group-active:bg-black/50 transition-all duration-300 pointer-events-none">
               <AddressCardIcon
@@ -115,7 +116,7 @@ export const Sidebar: FC<SidebarProps> = ({
                 class="absolute -left-4 top-[5.5px] w-1 h-4 rounded-md"
                 style="background-color: var(--fuwari-primary)"
               />
-              分类
+              {i18n(I18nKey.categories, cfg.lang)}
             </div>
             <div class="px-4 flex flex-col gap-1">
               {categories.map((cat) => (
@@ -143,7 +144,7 @@ export const Sidebar: FC<SidebarProps> = ({
                 class="absolute -left-4 top-[5.5px] w-1 h-4 rounded-md"
                 style="background-color: var(--fuwari-primary)"
               />
-              标签
+              {i18n(I18nKey.tags, cfg.lang)}
             </div>
             <div class="px-4 flex flex-wrap gap-2">
               {tags.map((tag) => (

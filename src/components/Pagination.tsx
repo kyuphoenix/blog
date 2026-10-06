@@ -1,16 +1,19 @@
 import { FC } from 'hono/jsx'
 import { ChevronRightIcon } from './Icons.js'
+import { i18n, I18nKey } from '../i18n/index.js'
 
 interface PaginationProps {
   currentPage: number
   totalPages: number
   baseUrl?: string
+  lang?: string
 }
 
 export const Pagination: FC<PaginationProps> = ({
   currentPage,
   totalPages,
   baseUrl = '/',
+  lang,
 }) => {
   if (totalPages <= 1) return null
 
@@ -34,7 +37,7 @@ export const Pagination: FC<PaginationProps> = ({
         <a
           href={buildUrl(currentPage - 1)}
           class="fuwari-card-base fuwari-btn-regular w-11 h-11 rounded-xl flex items-center justify-center active:scale-90"
-          aria-label="上一页"
+          aria-label={i18n(I18nKey.prevPage, lang)}
         >
           <span class="rotate-180 flex">
             <ChevronRightIcon size={20} />
@@ -63,7 +66,7 @@ export const Pagination: FC<PaginationProps> = ({
         <a
           href={buildUrl(currentPage + 1)}
           class="fuwari-card-base fuwari-btn-regular w-11 h-11 rounded-xl flex items-center justify-center active:scale-90"
-          aria-label="下一页"
+          aria-label={i18n(I18nKey.nextPage, lang)}
         >
           <ChevronRightIcon size={20} />
         </a>

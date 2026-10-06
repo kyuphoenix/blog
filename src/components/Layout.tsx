@@ -7,6 +7,7 @@ import { Sidebar } from './Sidebar.js'
 import { Footer } from './Footer.js'
 import { swupClientVersion } from '../scripts/swupBundle.js'
 import { tailwindVersion } from '../styles/tailwindBundle.js'
+import { getHtmlLang, i18n, I18nKey } from '../i18n/index.js'
 
 interface CategoryItem {
   name: string
@@ -131,7 +132,7 @@ export const Layout: FC<LayoutProps> = ({
         '@type': 'Person',
         name: cfg.author,
       },
-      inLanguage: 'zh-CN',
+      inLanguage: getHtmlLang(cfg.lang),
       potentialAction: {
         '@type': 'SearchAction',
         target: {
@@ -173,7 +174,7 @@ export const Layout: FC<LayoutProps> = ({
       keywords: articleMeta.tags?.join(', '),
       wordCount: articleMeta.wordCount,
       timeRequired: articleMeta.readingTime ? `PT${articleMeta.readingTime}M` : undefined,
-      inLanguage: 'zh-CN',
+      inLanguage: getHtmlLang(cfg.lang),
     })
   }
 
@@ -183,7 +184,7 @@ export const Layout: FC<LayoutProps> = ({
       {
         '@type': 'ListItem',
         position: 1,
-        name: '首页',
+        name: i18n(I18nKey.home, cfg.lang),
         item: cleanBlogUrl || '/',
       },
     ]
@@ -193,15 +194,15 @@ export const Layout: FC<LayoutProps> = ({
       breadcrumbItems.push({
         '@type': 'ListItem',
         position: 2,
-        name: articleMeta.section || '文章',
+        name: articleMeta.section || i18n(I18nKey.uncategorized, cfg.lang),
         item: cleanBlogUrl
-          ? `${cleanBlogUrl}/?category=${encodeURIComponent(articleMeta.section || '文章')}`
+          ? `${cleanBlogUrl}/?category=${encodeURIComponent(articleMeta.section || i18n(I18nKey.uncategorized, cfg.lang))}`
           : '/archive',
       })
       breadcrumbItems.push({
         '@type': 'ListItem',
         position: 3,
-        name: title || '当前文章',
+        name: title || i18n(I18nKey.post, cfg.lang),
         item: canonicalUrl || currentPath,
       })
     } else {
@@ -209,7 +210,7 @@ export const Layout: FC<LayoutProps> = ({
       breadcrumbItems.push({
         '@type': 'ListItem',
         position: 2,
-        name: title || '当前页面',
+        name: title || i18n(I18nKey.page, cfg.lang),
         item: canonicalUrl || currentPath,
       })
     }
@@ -224,7 +225,7 @@ export const Layout: FC<LayoutProps> = ({
   return (
     <>
       {raw('<!DOCTYPE html>')}
-      <html lang="zh-CN" style={`--fuwari-hue: ${defaultHue};`}>
+      <html lang={getHtmlLang(cfg.lang)} style={`--fuwari-hue: ${defaultHue};`}>
       <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -386,11 +387,11 @@ export const Layout: FC<LayoutProps> = ({
                 <Footer siteConfig={cfg} />
               </div>
 
-              <BackToTop />
+              <BackToTop lang={cfg.lang} />
             </div>
           </div>
         </div>
-        <ThemeScript />
+        <ThemeScript defaultHue={defaultHue} lang={cfg.lang} />
         <script src={`/js/swup.js?v=${swupClientVersion}`} defer></script>
         {raw(`<script>
           window.addEventListener('DOMContentLoaded', function() {

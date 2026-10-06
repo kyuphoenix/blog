@@ -3,6 +3,7 @@ import type { AppEnv } from '../types/env.js'
 import { Layout, ArchivePanel } from '../components/index.js'
 import { getManifest, getSidebarData, getBlogConfig } from '../services/github.js'
 import { setTieredCache } from '../utils/cache.js'
+import { i18n, I18nKey } from '../i18n/index.js'
 
 const archive = new Hono<AppEnv>()
 
@@ -21,8 +22,8 @@ archive.get('/', async (c) => {
 
   return c.html(
     <Layout
-      title="归档"
-      description={`共 ${manifest.length} 篇文章的历史时间线与分类归档`}
+      title={i18n(I18nKey.archiveTitle, siteConfig.lang)}
+      description={i18n(I18nKey.archiveSubtitle, siteConfig.lang, { count: manifest.length })}
       currentPath="/archive"
       isHomePage={false}
       categories={categories}
@@ -30,7 +31,7 @@ archive.get('/', async (c) => {
       blogUrl={c.env.BLOG_URL || new URL(c.req.url).origin}
       siteConfig={siteConfig}
     >
-      <ArchivePanel posts={manifest} />
+      <ArchivePanel posts={manifest} lang={siteConfig.lang} />
     </Layout>
   )
 })

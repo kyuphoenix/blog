@@ -1,12 +1,14 @@
 import { FC } from 'hono/jsx'
 import { raw } from 'hono/html'
 import type { AppEnv } from '../types/env.js'
+import { getGiscusLang, i18n, I18nKey } from '../i18n/index.js'
 
 interface GiscusProps {
   env?: AppEnv['Bindings']
+  lang?: string
 }
 
-export const Giscus: FC<GiscusProps> = ({ env }) => {
+export const Giscus: FC<GiscusProps> = ({ env, lang }) => {
   // 直接从 Cloudflare Worker 环境变量读取
   const repo = env?.GISCUS_REPO || ''
   const repoId = env?.GISCUS_REPO_ID || ''
@@ -35,7 +37,7 @@ export const Giscus: FC<GiscusProps> = ({ env }) => {
         <div class="rounded-xl border border-dashed border-black/15 dark:border-white/15 p-6 text-center">
           <div class="text-3xl mb-2">💬</div>
           <div class="font-bold fuwari-text-90 mb-1.5">
-            Giscus 评论系统尚未配置
+            {i18n(I18nKey.commentsNotConfigured, lang)}
           </div>
           <p class="text-sm fuwari-text-50 max-w-md mx-auto mb-4 leading-relaxed">
             只需 1 分钟即可启用基于 GitHub Discussions 的免数据库评论系统。
@@ -76,7 +78,7 @@ export const Giscus: FC<GiscusProps> = ({ env }) => {
                   <svg class="w-3.5 h-3.5 opacity-70" viewBox="0 0 16 16" fill="currentColor">
                     <path d="M14.85 3H1.15C.52 3 0 3.52 0 4.15v7.69C0 12.48.52 13 1.15 13h13.69c.64 0 1.15-.52 1.15-1.15v-7.7C16 3.52 15.48 3 14.85 3zM9 11H7V8L5.5 9.92 4 8v3H2V5h2l1.5 2L7 5h2v6zm2.99.5L9.5 8H11V5h2v3h1.5l-2.51 3.5z"/>
                   </svg>
-                  常用格式:
+                  {i18n(I18nKey.commentsCommonFormats, lang)}
                 </span>
 
                 <button type="button" class="markdown-format-btn px-2 py-1 rounded-md bg-black/5 hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10 fuwari-text-75 font-bold transition cursor-pointer" data-format="heading" data-name="标题" title="标题 (### 标题)">H</button>
@@ -99,7 +101,7 @@ export const Giscus: FC<GiscusProps> = ({ env }) => {
                 id="toggle-markdown-cheatsheet"
                 class="inline-flex items-center gap-1 px-2.5 py-1 text-xs rounded-md bg-black/5 hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10 fuwari-text-75 transition cursor-pointer font-medium ml-auto"
               >
-                <span>💡 语法速查</span>
+                <span>{i18n(I18nKey.commentsSyntaxGuide, lang)}</span>
                 <svg id="cheatsheet-chevron" class="w-3 h-3 transition-transform duration-200" viewBox="0 0 20 20" fill="currentColor">
                   <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                 </svg>
@@ -191,7 +193,7 @@ export const Giscus: FC<GiscusProps> = ({ env }) => {
               script.setAttribute('data-emit-metadata', '0');
               script.setAttribute('data-input-position', 'bottom');
               script.setAttribute('data-theme', theme);
-              script.setAttribute('data-lang', 'zh-CN');
+              script.setAttribute('data-lang', '${getGiscusLang(lang)}');
               script.setAttribute('data-loading', 'lazy');
               script.crossOrigin = 'anonymous';
               script.async = true;
