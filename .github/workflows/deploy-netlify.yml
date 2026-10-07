@@ -104,6 +104,9 @@ jobs:
           DATABASE_TYPE: ${{ env.DATABASE_TYPE || github.event.inputs.database_type || vars.DATABASE_TYPE || 'auto' }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY || vars.SUPABASE_KEY || secrets.SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY }}
+          UMAMI_HOST: ${{ vars.UMAMI_HOST || secrets.UMAMI_HOST }}
+          UMAMI_WEBSITE_ID: ${{ vars.UMAMI_WEBSITE_ID || secrets.UMAMI_WEBSITE_ID }}
+          UMAMI_API_KEY: ${{ secrets.UMAMI_API_KEY || vars.UMAMI_API_KEY }}
           BLOG_URL: ${{ vars.BLOG_URL || secrets.BLOG_URL }}
           GH_OWNER: ${{ vars.GH_OWNER || vars.GITHUB_OWNER || github.repository_owner }}
           GH_REPO: ${{ vars.GH_REPO || vars.GITHUB_REPO || github.event.repository.name }}

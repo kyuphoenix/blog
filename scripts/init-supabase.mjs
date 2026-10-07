@@ -37,8 +37,8 @@ async function main() {
   console.log('----------------------------------------------------')
 
   // 1. 判断当前部署是否使用 Supabase
-  if (dbType === 'd1' || dbType === 'none' || dbType === 'off' || dbType === 'disabled') {
-    console.log(`ℹ️  当前指定为 ${dbType}，跳过 Supabase 初始化检测。`)
+  if (dbType === 'umami' || dbType === 'd1' || dbType === 'none' || dbType === 'off' || dbType === 'disabled') {
+    console.log(`ℹ️  当前目标为 ${dbType}，跳过 Supabase 初始化检测。`)
     return
   }
 
