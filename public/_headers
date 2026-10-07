@@ -1,4 +1,52 @@
+# 静态媒体资源（背景图、头像、文章插图）- 浏览器缓存 30 天，边缘 CDN 缓存 1 年，7 天 SWR
+/images/*
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=2592000, s-maxage=31536000, stale-while-revalidate=604800
+  CDN-Cache-Control: public, max-age=31536000
+  Cloudflare-CDN-Cache-Control: public, max-age=31536000
+
+# 站点图标与 Manifest（favicon.ico, favicon.svg, PNG 图标等）- 浏览器缓存 30 天，边缘 CDN 缓存 1 年
+/favicon*
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=2592000, s-maxage=31536000, stale-while-revalidate=86400
+  CDN-Cache-Control: public, max-age=31536000
+  Cloudflare-CDN-Cache-Control: public, max-age=31536000
+
+/*.ico
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=2592000, s-maxage=31536000, stale-while-revalidate=86400
+  CDN-Cache-Control: public, max-age=31536000
+  Cloudflare-CDN-Cache-Control: public, max-age=31536000
+
+/*.svg
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=2592000, s-maxage=31536000, stale-while-revalidate=86400
+  CDN-Cache-Control: public, max-age=31536000
+  Cloudflare-CDN-Cache-Control: public, max-age=31536000
+
+/*.png
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=2592000, s-maxage=31536000, stale-while-revalidate=86400
+  CDN-Cache-Control: public, max-age=31536000
+  Cloudflare-CDN-Cache-Control: public, max-age=31536000
+
+/*.webp
+  Access-Control-Allow-Origin: *
+  Cache-Control: public, max-age=2592000, s-maxage=31536000, stale-while-revalidate=604800
+  CDN-Cache-Control: public, max-age=31536000
+  Cloudflare-CDN-Cache-Control: public, max-age=31536000
+
+# 样式表与脚本资源
 /css/*
   Access-Control-Allow-Origin: *
   Access-Control-Allow-Methods: GET, HEAD, OPTIONS
-  Cache-Control: public, max-age=86400
+  Cache-Control: public, max-age=604800, s-maxage=2592000, stale-while-revalidate=86400
+  CDN-Cache-Control: public, max-age=2592000
+  Cloudflare-CDN-Cache-Control: public, max-age=2592000
+
+/js/*
+  Access-Control-Allow-Origin: *
+  Access-Control-Allow-Methods: GET, HEAD, OPTIONS
+  Cache-Control: public, max-age=604800, s-maxage=2592000, stale-while-revalidate=86400
+  CDN-Cache-Control: public, max-age=2592000
+  Cloudflare-CDN-Cache-Control: public, max-age=2592000

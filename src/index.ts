@@ -180,9 +180,10 @@ app.get('/images/:path{.+}', async (c) => {
       status: 200,
       headers: {
         'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=604800, s-maxage=2592000, stale-while-revalidate=86400',
-        'CDN-Cache-Control': 'public, s-maxage=2592000',
-        'Netlify-CDN-Cache-Control': 'public, s-maxage=2592000',
+        'Cache-Control': 'public, max-age=2592000, s-maxage=31536000, stale-while-revalidate=604800',
+        'CDN-Cache-Control': 'public, s-maxage=31536000',
+        'Cloudflare-CDN-Cache-Control': 'public, max-age=31536000',
+        'Netlify-CDN-Cache-Control': 'public, s-maxage=31536000',
         'Access-Control-Allow-Origin': '*',
         'ETag': res.headers.get('etag') || `"${imageBytes.byteLength}"`,
       },
@@ -207,8 +208,12 @@ app.get('/images/:path{.+}', async (c) => {
 // 根路径 /favicon.ico 自动回退
 app.get('/favicon.ico', async (c) => {
   const siteConfig = await getBlogConfig(c.env)
-  const iconPath = siteConfig.icons?.faviconIco || '/images/favicon.ico'
-  return c.redirect(iconPath, 302)
+  const iconPath = siteConfig.icons?.faviconIco || '/favicon.ico'
+  if (iconPath && iconPath !== '/favicon.ico') {
+    c.header('Cache-Control', 'public, max-age=2592000, s-maxage=31536000')
+    return c.redirect(iconPath, 301)
+  }
+  return c.notFound()
 })
 
 // API 路由 (带 CORS)

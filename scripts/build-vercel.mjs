@@ -53,6 +53,30 @@ writeFileSync(
     {
       version: 3,
       routes: [
+        {
+          src: '^/images/(.*)$',
+          headers: {
+            'cache-control': 'public, max-age=2592000, s-maxage=31536000, stale-while-revalidate=604800',
+            'cdn-cache-control': 'public, s-maxage=31536000',
+          },
+          continue: true,
+        },
+        {
+          src: '^/.*\\.(ico|svg|png|webp)$',
+          headers: {
+            'cache-control': 'public, max-age=2592000, s-maxage=31536000, stale-while-revalidate=86400',
+            'cdn-cache-control': 'public, s-maxage=31536000',
+          },
+          continue: true,
+        },
+        {
+          src: '^/css/(.*)$',
+          headers: {
+            'cache-control': 'public, max-age=604800, s-maxage=2592000, stale-while-revalidate=86400',
+            'cdn-cache-control': 'public, s-maxage=2592000',
+          },
+          continue: true,
+        },
         { handle: 'filesystem' },
         { src: '/(.*)', dest: '/index' },
       ],
