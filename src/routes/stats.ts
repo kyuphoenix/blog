@@ -4,6 +4,7 @@ import {
   recordPageView,
   getTopPosts,
   getPostStats,
+  getAllPostStats,
   resolveDatabaseType,
   isStatsEnabled,
 } from '../services/stats.js'
@@ -69,6 +70,22 @@ stats.post('/view', async (c) => {
     })
   } catch (err: any) {
     return c.json({ success: false, message: err.message }, 500)
+  }
+})
+
+/**
+ * 批量获取全部文章的访问统计映射字典（供主页异步渲染浏览量使用）
+ */
+stats.get('/all', async (c) => {
+  if (!isStatsEnabled(c.env)) {
+    return c.json({ success: true, enabled: false, data: {} })
+  }
+  try {
+    const data = await getAllPostStats(c.env)
+    c.header('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600')
+    return c.json({ success: true, enabled: true, data })
+  } catch (err: any) {
+    return c.json({ success: false, enabled: true, data: {}, message: err.message }, 500)
   }
 })
 

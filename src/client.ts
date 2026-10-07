@@ -449,6 +449,7 @@ function initSwup() {
     if (container) {
       sanitizeEmbeddedMedia(container)
       reexecuteScripts(container)
+      fetchAndRenderPostViews(container)
     }
   })
 
@@ -669,6 +670,50 @@ function initMobileToc() {
   })
 }
 
+/**
+ * 客户端异步拉取并渲染文章卡片的浏览量（如果请求失败或无数据则保持隐藏不渲染）
+ */
+async function fetchAndRenderPostViews(container: Document | HTMLElement = document) {
+  const badges = container.querySelectorAll<HTMLElement>('.post-views-badge[data-slug]')
+  if (!badges || badges.length === 0) return
+
+  try {
+    const res = await fetch('/api/stats/all')
+    if (!res.ok) return
+    const json = await res.json().catch(() => null)
+    if (!json || !json.success || !json.data) return
+
+    const stats = json.data as Record<string, { views: number; uv: number }>
+    badges.forEach((badge) => {
+      const rawSlug = badge.getAttribute('data-slug')
+      if (!rawSlug) return
+
+      let stat = stats[rawSlug]
+      if (!stat) {
+        try {
+          stat = stats[decodeURIComponent(rawSlug)]
+        } catch {}
+      }
+      if (!stat) {
+        try {
+          stat = stats[encodeURIComponent(rawSlug)]
+        } catch {}
+      }
+
+      const views = typeof stat?.views === 'number' ? stat.views : 0
+      if (views > 0) {
+        const numSpan = badge.querySelector('.post-views-num')
+        if (numSpan) {
+          numSpan.textContent = String(views)
+        }
+        badge.classList.remove('hidden')
+      }
+    })
+  } catch {
+    // 请求失败或离线时静默跳过，徽章保持 hidden，绝不渲染空数据或报错
+  }
+}
+
 function initAllClientFeatures() {
   sanitizeEmbeddedMedia()
   initImageLightbox()
@@ -676,6 +721,7 @@ function initAllClientFeatures() {
   initCodeBlockCopy()
   initLicenseLinkCopy()
   initMobileToc()
+  fetchAndRenderPostViews()
   initSwup()
 }
 

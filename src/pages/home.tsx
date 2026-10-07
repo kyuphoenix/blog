@@ -3,7 +3,6 @@ import type { AppEnv } from '../types/env.js'
 import { Layout, PostCard, Pagination } from '../components/index.js'
 import { PostCardItem } from '../components/PostCard.js'
 import { getManifest, getSidebarData, getBlogConfig } from '../services/github.js'
-import { getTopPosts, getAllPostStats, isStatsEnabled } from '../services/stats.js'
 import { parsePagination } from '../utils/pagination.js'
 import { setTieredCache } from '../utils/cache.js'
 import { i18n, I18nKey } from '../i18n/index.js'
@@ -26,73 +25,12 @@ home.get('/', async (c) => {
     manifest = manifest.filter((p) => p.tags.includes(tag))
   }
 
+  // 严格按照时间倒序排列，最新发布的文章排在最上方
   manifest.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
-  const statsEnabled = isStatsEnabled(c.env)
-
-  // 仅在开启统计功能时获取访问量映射（内置超时保护与平滑降级）
-  let allStats: Record<string, { views: number; uv: number }> = {}
-  if (statsEnabled) {
-    try {
-      allStats = await getAllPostStats(c.env)
-    } catch (err) {
-      console.warn('获取阅读量统计失败（已平滑降级）:', err)
-    }
-  }
-
-  // 仅在首页主列表第一页（无分类/标签筛选）且开启统计功能时，置顶访问量最高的前 3 篇文章
-  const isMainFeed = page === 1 && !category && !tag
-  let topPosts: PostCardItem[] = []
-  let regularList = manifest
-
-  if (isMainFeed && statsEnabled) {
-    try {
-      const topStats = await getTopPosts(c.env, 3)
-      if (topStats.length > 0) {
-        const topMap = new Map(
-          topStats.map((s, idx) => [s.slug, { rank: idx + 1, views: s.views }])
-        )
-
-        // 匹配已发布的文章
-        topPosts = manifest
-          .filter((p) => topMap.has(p.title) || (p.slug ? topMap.has(p.slug) : false))
-          .map((p) => {
-            const info = topMap.get(p.title) || (p.slug ? topMap.get(p.slug) : undefined)
-            return {
-              ...p,
-              isTop: true,
-              rank: info?.rank,
-              views: info?.views,
-            }
-          })
-          .sort((a, b) => (a.rank || 0) - (b.rank || 0))
-
-        // 常规流中排除已置顶的文章，避免在首页重复出现
-        const topTitles = new Set(topPosts.map((p) => p.title))
-        regularList = manifest.filter((p) => !topTitles.has(p.title))
-      }
-    } catch (err) {
-      console.warn('获取热门置顶文章失败:', err)
-    }
-  }
-
-  // 为常规文章列表补充阅读量数据（未开启统计时不注入 views）
-  const regularWithStats: PostCardItem[] = regularList.map((p) => ({
-    ...p,
-    views: statsEnabled
-      ? (allStats[p.title]?.views ?? (p.slug ? allStats[p.slug]?.views : undefined) ?? 0)
-      : undefined,
-  }))
-
-  const total = regularList.length
+  const total = manifest.length
   const totalPages = Math.ceil(total / pageSize)
-  const pagedRegular = regularWithStats.slice(offset, offset + pageSize)
-
-  // 第一页若有置顶文章，合并到最顶部展示
-  const displayPosts: PostCardItem[] =
-    isMainFeed && topPosts.length > 0
-      ? [...topPosts, ...pagedRegular]
-      : pagedRegular
+  const displayPosts: PostCardItem[] = manifest.slice(offset, offset + pageSize)
 
   const [siteConfig, { categories, tags }] = await Promise.all([
     getBlogConfig(c.env),

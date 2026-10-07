@@ -152,17 +152,8 @@ postPage.get('/:title', async (c) => {
     .filter(Boolean).length
   const wordCount = Math.max(100, chineseChars + englishWords)
 
-  // 获取访问量统计（可选功能：配置了 Umami 时开启）
+  // 访问量统计配置（仅在开启统计功能时前端异步加载）
   const statsEnabled = isStatsEnabled(c.env)
-  let stats = { views: 0, uv: 0 }
-  if (statsEnabled) {
-    try {
-      stats = await getPostStats(c.env, post.title)
-    } catch (err) {
-      console.warn('获取单篇文章阅读量失败（已平滑降级）:', err)
-    }
-  }
-  const viewsCount = stats.views || 0
 
   // Compute minDepth for TOC numbering (exact flare-stack-blog TableOfContents logic)
   let minDepth = 10
@@ -314,11 +305,11 @@ postPage.get('/:title', async (c) => {
               <div class="text-sm">{post.readingTime} {i18n(post.readingTime === 1 ? I18nKey.minuteCount : I18nKey.minutesCount, siteConfig.lang)}</div>
             </div>
             {statsEnabled && (
-              <div class="flex flex-row items-center">
+              <div id="post-views-container" class="flex flex-row items-center hidden">
                 <div class="transition h-6 w-6 rounded-md bg-black/5 dark:bg-white/10 fuwari-text-50 flex items-center justify-center mr-2 text-(--fuwari-primary)">
                   <EyeIcon strokeWidth={1.5} size={16} />
                 </div>
-                <div class="text-sm"><span id="post-views-count">{viewsCount}</span> {i18n(I18nKey.viewsCount, siteConfig.lang)}</div>
+                <div class="text-sm"><span id="post-views-count"></span> {i18n(I18nKey.viewsCount, siteConfig.lang)}</div>
               </div>
             )}
           </div>
@@ -641,11 +632,11 @@ postPage.get('/:title', async (c) => {
           })
           .then(function(r) { return r.json(); })
           .then(function(res) {
-            if (res && res.success && res.data) {
+            if (res && res.success && res.data && typeof res.data.views === 'number' && res.data.views > 0) {
               var countEl = document.getElementById('post-views-count');
-              if (countEl && typeof res.data.views === 'number') {
-                countEl.textContent = res.data.views;
-              }
+              var containerEl = document.getElementById('post-views-container');
+              if (countEl) countEl.textContent = res.data.views;
+              if (containerEl) containerEl.classList.remove('hidden');
             }
           })
           .catch(function() {});
