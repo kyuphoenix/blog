@@ -18342,7 +18342,7 @@ function getBlogStorage(env) {
 
 // blog.config.json
 var blog_config_default = {
-  title: "Fuwari Blog",
+  title: "Honoki",
   author: "Blog Author",
   description: "\u8FD9\u662F\u6211\u7684\u4E2A\u4EBA\u7F51\u7AD9\u548C\u535A\u5BA2\u3002\u5728\u8FD9\u91CC\uFF0C\u6211\u4E3B\u8981\u5206\u4EAB\u4E0E\u6280\u672F\u548C\u751F\u6D3B\u76F8\u5173\u7684\u5185\u5BB9\u3002\u6B22\u8FCE\u9605\u8BFB\uFF01",
   lang: "zh_CN",
