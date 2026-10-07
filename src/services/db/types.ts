@@ -6,6 +6,9 @@ export interface PageViewInput {
   ip?: string
   country?: string
   sessionId?: string
+  clientTracked?: boolean
+  language?: string
+  screen?: string
 }
 
 export interface PostStat {
@@ -15,7 +18,7 @@ export interface PostStat {
 }
 
 export interface DatabaseClient {
-  readonly type: 'd1' | 'supabase'
+  readonly type: 'umami'
   recordPageView(input: PageViewInput): Promise<{ views: number; uv: number }>
   getTopPosts(limit?: number): Promise<PostStat[]>
   getPostStats(slug: string): Promise<{ views: number; uv: number }>

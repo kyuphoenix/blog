@@ -203,6 +203,34 @@ export const Giscus: FC<GiscusProps> = ({ env, lang }) => {
                 container.appendChild(script);
               }
 
+              // 本地开发环境安全兜底：若通过 HTTP 访问且 CDN 样式未命中（例如尚未提交至 GitHub 或网络受限），
+              // 自动平滑降级为 Giscus 官方内置无边框主题，杜绝界面出现无样式白块
+              if (!isHttps && (!configuredUrl || !configuredUrl.startsWith('https://')) && !('${configuredLight}')) {
+                fetch(theme, { method: 'HEAD' })
+                  .then(function(res) {
+                    if (!res.ok) {
+                      var fallbackTheme = document.documentElement.classList.contains('dark') ? 'noborder_dark' : 'noborder_light';
+                      var iframe = document.querySelector('iframe.giscus-frame');
+                      if (iframe && iframe.contentWindow) {
+                        iframe.contentWindow.postMessage(
+                          { giscus: { setConfig: { theme: fallbackTheme } } },
+                          'https://giscus.app'
+                        );
+                      }
+                    }
+                  })
+                  .catch(function() {
+                    var fallbackTheme = document.documentElement.classList.contains('dark') ? 'noborder_dark' : 'noborder_light';
+                    var iframe = document.querySelector('iframe.giscus-frame');
+                    if (iframe && iframe.contentWindow) {
+                      iframe.contentWindow.postMessage(
+                        { giscus: { setConfig: { theme: fallbackTheme } } },
+                        'https://giscus.app'
+                      );
+                    }
+                  });
+              }
+
               // 监听明暗模式切换，向 Giscus iframe 发送更新主题消息
               window.addEventListener('theme-change', function(e) {
                 var iframe = document.querySelector('iframe.giscus-frame');

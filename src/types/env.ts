@@ -1,18 +1,5 @@
 // 跨平台环境类型声明（自带必要接口定义，彻底免去构建环境找不到 @cloudflare/workers-types 或 @types/node 的问题）
 declare global {
-  interface D1PreparedStatement {
-    bind(...values: any[]): D1PreparedStatement
-    first<T = unknown>(colName?: string): Promise<T | null>
-    all<T = unknown>(): Promise<{ results?: T[]; success: boolean; [key: string]: any }>
-    run<T = unknown>(): Promise<{ success: boolean; meta: any; [key: string]: any }>
-  }
-
-  interface D1Database {
-    prepare(query: string): D1PreparedStatement
-    batch<T = unknown>(statements: any[]): Promise<any[]>
-    exec(query: string): Promise<any>
-  }
-
   interface KVNamespace {
     get(key: string, type?: any): Promise<any>
     put(key: string, value: any, options?: any): Promise<void>
@@ -25,7 +12,6 @@ declare global {
 }
 
 export type Bindings = {
-  DB?: D1Database
   BLOG_CACHE?: KVNamespace
   // GitHub 仓库配置 (统一采用 GH_ 前缀，避开 GitHub 变量保留名限制)
   GH_OWNER?: string
@@ -46,11 +32,19 @@ export type Bindings = {
   GISCUS_CATEGORY_ID?: string
   GISCUS_THEME_LIGHT?: string
   GISCUS_THEME_DARK?: string
-  // 数据库选型与 Supabase 访问配置（可选：none 或未配置时关闭统计）
-  DATABASE_TYPE?: 'd1' | 'supabase' | 'none' | 'auto'
-  SUPABASE_URL?: string
-  SUPABASE_KEY?: string
-  SUPABASE_ANON_KEY?: string
+  // 统计服务选型（支持 umami | none | auto）
+  DATABASE_TYPE?: 'umami' | 'none' | 'auto'
+  STATS_PROVIDER?: 'umami' | 'none' | 'auto'
+  // Umami 统计配置（免数据库超轻量方案）
+  UMAMI_HOST?: string
+  UMAMI_URL?: string
+  UMAMI_ENDPOINT?: string
+  UMAMI_WEBSITE_ID?: string
+  UMAMI_ID?: string
+  UMAMI_API_KEY?: string
+  UMAMI_TOKEN?: string
+  UMAMI_SCRIPT_URL?: string
+  ENABLE_UMAMI_SCRIPT?: string | boolean
   ENABLE_STATS?: string | boolean
   DISABLE_STATS?: string | boolean
   // 运行与部署平台标记 (cloudflare | vercel | netlify)
