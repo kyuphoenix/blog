@@ -296,6 +296,20 @@ export async function getBlogConfig(env?: AppEnv['Bindings']): Promise<BlogConfi
         author: parsed.author || defaultBlogConfig.author,
         description: parsed.description || defaultBlogConfig.description,
         repository: parsed.repository || defaultBlogConfig.repository,
+        pagination: {
+          pageSize:
+            typeof parsed.pagination?.pageSize === 'number'
+              ? parsed.pagination.pageSize
+              : typeof parsed.pageSize === 'number'
+              ? parsed.pageSize
+              : defaultBlogConfig.pagination?.pageSize ?? 10,
+        },
+        pageSize:
+          typeof parsed.pagination?.pageSize === 'number'
+            ? parsed.pagination.pageSize
+            : typeof parsed.pageSize === 'number'
+            ? parsed.pageSize
+            : defaultBlogConfig.pagination?.pageSize ?? 10,
         nav: Array.isArray(parsed.nav) ? parsed.nav : defaultBlogConfig.nav,
         social: Array.isArray(parsed.social) ? parsed.social : defaultBlogConfig.social,
         icons: {

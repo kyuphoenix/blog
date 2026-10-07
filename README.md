@@ -6,14 +6,13 @@
 
 ## ✨ 核心特性
 
-- 🗄️ **可选双数据库架构与零数据库超轻量运行 (Cloudflare D1 & Supabase)**：
-  - **完全可选的浏览统计功能**：若未配置 D1 且未配置 Supabase，博客自动以**零数据库模式**运行，前端不显示阅读计数与火焰角标，亦不产生任何统计上报请求，性能极致轻快。
-  - **按需自由激活**：配置了 D1 或 Supabase 之一即可秒级自动激活浏览量统计功能。
-  - **支持双引擎与一键关闭**：可自由连接 **Cloudflare D1 (SQLite)** 或 **Supabase (PostgreSQL)**，支持在 GitHub Actions Workflow 中通过下拉选项自由指定（`auto`、`d1`、`supabase`、`none`）。
-  - **访问量统计与热门置顶（开启统计时）**：
-    - 隐私友好（基于每日 Salt 与客户端特征单向哈希，绝不存真实 IP）。
-    - 30 分钟会话与 IP 防刷去重。
-    - 首页自动提拔阅读量最高的 Top 3 热门文章置顶并标明火焰角标。
+- 🗄️ **免数据库超轻量架构与 Umami 访问统计 (Zero-Database & Umami Analytics)**：
+  - **100% 零数据库依赖**：全面摒弃传统关系型数据库（无需 Cloudflare D1，无需 Supabase），从根源杜绝 Cloudflare API 权限不足报错以及繁琐的 SQL 建表与迁移。
+  - **原生 Umami 统计整合**：接入开源现代化统计平台 [Umami](https://umami.is/)（支持官方免费云端 Umami Cloud 或自建实例），自带精美独立访客分析大屏（PV/UV、渠道、跳出率等）。
+  - **双重防刷与防拦截上报**：前端嵌入官方轻量脚本；若客户端开启了 Adblock 去广告插件，服务端自动无感知代理兜底上报。
+  - **纯异步渲染与容灾隐藏（零拖累首屏 TTFB）**：首页与详情页服务端直出完全不等待统计上报，0ms 阻塞；浏览量由前端后台静默异步拉取，若请求失败、超时或未配置则自动保持隐藏，绝无空数据或报错干扰。首页严格按时间倒序排列，最新文章排在最上方。
+  - **四层配额与防卡死保护**：内置 5 分钟进程内存缓存 + 30 分钟分布式边缘 KV 缓存（一天最多写入 48 次，配额消耗仅 4.8%，彻底远离每天 1,000 次免费写入红线），外加 2 秒严格超时熔断与历史快照容灾。
+  - **纯零统计极速模式**：若未配置 Umami，博客自动以纯静态/零统计模式运行，不展示阅读计数，不发送任何统计请求，性能极致轻快。
 - 📝 **Git 驱动与内容解耦**：
   - 文章统一存放在 `posts/*.md` 中，Worker 代码体积极小（不包含任何文章正文）。
   - 运行时动态拉取 GitHub Raw 内容，结合 KV/内存多级缓存加速。
@@ -72,13 +71,21 @@
 
 ---
 
-## 🗄️ 数据库与浏览统计配置（可选功能）
+## 📊 Umami 访问统计接入（可选功能）
 
-> 💡 **说明**：**数据库与文章浏览量统计为完全可选功能**。
-> - **未配置数据库时**：博客自动以**零数据库超轻量模式**运行，前端不展示阅读计数与热门火焰角标，浏览器端完全不发送任何上报请求，性能极致轻快。所有文章展示、TOC 目录、分类标签、代码高亮、Giscus 评论等核心功能 100% 正常使用。
-> - **按需开启**：若需要启用阅读量统计和热门文章排行，只需配置 **Cloudflare D1** 或 **Supabase** 之一即可自动激活。
+> 💡 **说明**：**文章浏览量统计为完全可选功能**。
+> - **零数据库超轻量模式（默认）**：若未配置统计服务，博客自动以纯静态/零数据库模式运行，前端不展示阅读计数，浏览器端完全不发送任何上报请求，性能极致轻快。所有文章展示、TOC 目录、分类标签、代码高亮、Giscus 评论等核心功能 100% 正常使用。
+> - **Umami 统计（免数据库零配置）**：
+>   原生接入开源现代统计 [Umami](https://umami.is/)（支持官方免费云端 Umami Cloud 或自建实例）。**完全无需任何传统数据库，无需建表**，彻底免除 Cloudflare D1 权限报错！只需配置 `UMAMI_WEBSITE_ID` 与 `UMAMI_API_KEY`，即可获得文章阅读量展示（异步拉取，失败自动隐匿）以及精美的独立可视化访客大屏。首页严格按发布时间倒序排列，最新文章始终排在最上方。
 
-如需开启该功能，参考[数据库配置](docs/数据库配置.md)
+| 环境变量 | 配置位置 | 必填/可选 | 说明 |
+| :--- | :---: | :---: | :--- |
+| `UMAMI_WEBSITE_ID` | Variables / Secrets | **必填** (开启统计时) | Umami 站点 UUID，配置后系统自动激活统计服务 |
+| `UMAMI_API_KEY` | Secrets | **建议配置** | 用于服务端安全拉取文章浏览量数据字典供前端异步展示 |
+| `UMAMI_HOST` | Variables | 可选 | 默认 `https://cloud.umami.is`（自建实例填自建域名如 `https://analytics.example.com`） |
+| `ENABLE_UMAMI_SCRIPT` | Variables | 可选 | 默认为 `true`（客户端注入轻量追踪脚本） |
+
+> 📖 **关于获取 Website ID、API Key 与完整接入配置，请查阅**：👉 [**`docs/Umami接入.md`**](docs/Umami接入.md)
 
 ---
 
@@ -111,10 +118,8 @@
   支持随时在 GitHub Actions 页面（选择 `Force Purge All Caches`）或 **Pages CMS** 后台一键手动触发全网 CDN 强刷。
   - **功能**：重新生成文章清单，通知博客服务端预热，并调用 Cloudflare / Netlify / Vercel 官方控制平面毫秒级强制清空全球边缘节点缓存。
   - 💡 **安全解耦特性（自动跳过未配置平台）**：工作流内置严格的凭证判空守卫。若你仅部署了其中某一平台（如 Cloudflare），工作流会自动检测并安全跳过未配置的其他平台，整个流程保持 100% 成功状态（绿色对勾 ✅），绝不报错阻断。
-- **切换数据库后端**：
-  直接在 GitHub Actions 中重新运行 **Deploy to Cloudflare Workers**，在下拉框中选择 `d1` 或 `supabase` 重新构建部署即可无缝切换！
-- **查看数据库运行状态**：
-  访问 `/api/stats/status` 端点可直接查看当前应用实例正连接的数据库类型（`supabase` / `d1` / `none`）。
+- **查看统计与运行状态**：
+  访问 `/api/stats/status` 端点可直接查看当前 Umami 统计引擎的运行状态与配置详情（`provider` 为 `umami` 或 `none`）。
 
 ---
 
@@ -123,7 +128,7 @@
 ```text
 .
 ├── .github/workflows/
-│   ├── deploy.yml            # Cloudflare Workers 部署工作流（支持切换数据库）
+│   ├── deploy.yml            # Cloudflare Workers 部署工作流
 │   ├── deploy-vercel.yml     # Vercel Edge 自动化部署与环境变量同步工作流
 │   ├── deploy-netlify.yml    # Netlify Edge 自动化部署与环境变量同步工作流
 │   ├── sync-posts.yml        # 文章自动同步与缓存热刷新工作流
@@ -140,15 +145,11 @@
 ├── posts/                    # 文章存放目录 (Markdown)
 │   ├── manifest.json         # 自动生成的文章元数据清单
 │   └── *.md                  # 文章源文件
-├── db/
-│   ├── schema.sql            # Cloudflare D1 数据库初始化脚本
-│   └── schema.supabase.sql   # Supabase PostgreSQL 初始化脚本与 RPC 函数
 ├── friends.json              # 友情链接数据源 (支持动态更新与自动刷新缓存)
 ├── public/                   # 静态资源 (头像、背景图、Favicon 等)
 ├── scripts/
 │   ├── gen-manifest.mjs      # 文章清单生成脚本
 │   ├── prepare-wrangler.mjs  # CI/CD 环境变量动态注入与配置清理脚本
-│   ├── init-supabase.mjs     # Supabase 数据表与 RPC 自动初始化脚本
 │   ├── deploy-vercel.mjs     # Vercel 自动化部署与环境变量同步脚本
 │   └── deploy-netlify.mjs    # Netlify 自动化部署与环境变量同步脚本
 ├── src/
@@ -156,7 +157,7 @@
 │   ├── pages/                # 页面路由控制器 (首页、文章详情、归档、关于)
 │   ├── routes/               # API 路由 (/api/posts, /api/stats, /sitemap.xml 等)
 │   ├── services/
-│   │   ├── db/               # 统一数据库抽象层 (D1 与 Supabase 驱动实现)
+│   │   ├── db/               # Umami 统计客户端与缓存抽象层
 │   │   ├── storage.ts        # 基于 unstorage 的统一键值存储服务
 │   │   ├── github.ts         # GitHub 内容拉取与多级缓存服务
 │   │   └── stats.ts          # 阅读量统计与热门榜单业务代理
@@ -174,6 +175,7 @@
 
 本项目内置生产级的**四层渐进式分层缓存架构**（客户端浏览器、全球边缘 CDN、分布式持久化存储、源数据源），结合 **SWR (Stale-While-Revalidate)** 异步预热机制与全球 CDN 强刷工作流：
 - **极致首屏加速**：99% 的读者访问直接由 Cloudflare / Vercel / Netlify 全球 300+ 边缘机房毫秒级响应，彻底杜绝 GitHub API 限流。
+- **静态媒体长效强缓存**：背景图、站长头像及网站 Favicon 图标默认配置 **30 天本地浏览器强缓存 + 1 年全球边缘 CDN 强缓存**（HIT），秒级直出；若更换图片，可通过一键强刷工作流毫秒级全局失效。
 - **实时内容生效**：通过 GitHub Actions 与 Webhook 机制，更新文章或修改配置时支持毫秒级广播清除全球 CDN 缓存。
 - **智能解耦与自动跳过**：内置的强制清除缓存工作流（`Force Purge All Caches`）具备安全兜底机制，自动识别各平台凭证配置情况，未配置的平台将自动优雅跳过且流程保持成功，单平台部署与多平台容灾均无缝适配。
 

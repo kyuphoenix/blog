@@ -30,6 +30,7 @@ archive.get('/', async (c) => {
       tags={tags}
       blogUrl={c.env.BLOG_URL || new URL(c.req.url).origin}
       siteConfig={siteConfig}
+      env={c.env}
     >
       <ArchivePanel posts={manifest} lang={siteConfig.lang} />
     </Layout>

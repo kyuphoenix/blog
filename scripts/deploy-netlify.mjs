@@ -4,7 +4,7 @@
  * 作用：
  * 1. 从 Action Secrets / 环境变量中解析出 Netlify API Token (NETLIFY_AUTH_TOKEN / NETLIFY_API_KEY)
  * 2. 检查已配置的 NETLIFY_SITE_ID，或智能复用现有 Netlify 站点（永久防止每次部署创建新项目导致域名变更）
- * 3. 自动将当前博客所有环境变量 (BLOG_URL, GITHUB_*, SUPABASE_*, GISCUS_*) 同步写入目标 Netlify 站点
+ * 3. 自动将当前博客所有环境变量 (BLOG_URL, GH_*, UMAMI_*, GISCUS_*) 同步写入目标 Netlify 站点
  * 4. 自动生成 .netlify/state.json 建立非交互式 CI 绑定
  * 5. 调用 Netlify CLI 执行正式构建与生产部署 (netlify deploy --site="<siteId>" --build --prod)
  */
@@ -265,11 +265,11 @@ async function main() {
     { key: 'GITHUB_OWNER', value: ghOwner },
     { key: 'GITHUB_REPO', value: ghRepo },
     { key: 'GITHUB_BRANCH', value: ghBranch },
-    { key: 'DATABASE_TYPE', value: process.env.DATABASE_TYPE || 'auto' },
-    { key: 'SUPABASE_URL', value: process.env.SUPABASE_URL },
-    { key: 'SUPABASE_KEY', value: process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY },
-    { key: 'SUPABASE_SERVICE_ROLE_KEY', value: process.env.SUPABASE_SERVICE_ROLE_KEY },
-    { key: 'DATABASE_URL', value: process.env.DATABASE_URL },
+    { key: 'UMAMI_HOST', value: process.env.UMAMI_HOST || process.env.UMAMI_URL },
+    { key: 'UMAMI_WEBSITE_ID', value: process.env.UMAMI_WEBSITE_ID || process.env.UMAMI_ID },
+    { key: 'UMAMI_API_KEY', value: process.env.UMAMI_API_KEY || process.env.UMAMI_TOKEN },
+    { key: 'ENABLE_UMAMI_SCRIPT', value: process.env.ENABLE_UMAMI_SCRIPT },
+    { key: 'UMAMI_SCRIPT_URL', value: process.env.UMAMI_SCRIPT_URL },
     { key: 'PURGE_SECRET', value: process.env.PURGE_SECRET },
     { key: 'GISCUS_REPO', value: process.env.GISCUS_REPO },
     { key: 'GISCUS_REPO_ID', value: process.env.GISCUS_REPO_ID },
@@ -279,11 +279,7 @@ async function main() {
 
   const SENSITIVE_KEYS = new Set([
     'PURGE_SECRET',
-    'SUPABASE_KEY',
-    'SUPABASE_ANON_KEY',
-    'SUPABASE_SERVICE_ROLE_KEY',
-    'DATABASE_URL',
-    'JWT_SECRET',
+    'UMAMI_API_KEY',
     'GH_TOKEN',
   ])
 

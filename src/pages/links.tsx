@@ -53,6 +53,7 @@ ${i18n(I18nKey.siteAvatar, siteConfig.lang)}：${avatarUrl}`
       tags={tags}
       blogUrl={baseUrl}
       siteConfig={siteConfig}
+      env={c.env}
     >
       {/* 头部标题卡片：左侧标题，右侧“申请友链”按钮 */}
       <div

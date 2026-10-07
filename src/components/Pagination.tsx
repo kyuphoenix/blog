@@ -18,6 +18,7 @@ export const Pagination: FC<PaginationProps> = ({
   if (totalPages <= 1) return null
 
   const buildUrl = (page: number) => {
+    if (page === 1) return baseUrl
     const separator = baseUrl.includes('?') ? '&' : '?'
     return `${baseUrl}${separator}page=${page}`
   }

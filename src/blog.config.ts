@@ -18,6 +18,10 @@ export interface BlogConfig {
   description: string
   lang?: string
   repository?: string
+  pagination?: {
+    pageSize: number // 每页展示文章数，若设为 0 则不分页展示全部
+  }
+  pageSize?: number // 顶层配置别名兼容
   nav: NavItem[]
   social: SocialLink[]
   icons: {
@@ -48,6 +52,10 @@ export const blogConfig: BlogConfig = {
     '这是我的个人网站和博客。在这里，我主要分享与技术和生活相关的内容。欢迎阅读！',
   lang: (rawConfig as any).lang || 'zh_CN',
   repository: (rawConfig as any).repository || 'https://github.com/kyuphoenix/blog',
+  pagination: {
+    pageSize: Number((rawConfig as any).pagination?.pageSize ?? (rawConfig as any).pageSize ?? 10),
+  },
+  pageSize: Number((rawConfig as any).pagination?.pageSize ?? (rawConfig as any).pageSize ?? 10),
   nav: (rawConfig.nav as NavItem[]) || [
     { label: '首页', url: '/' },
     { label: '归档', url: '/archive' },

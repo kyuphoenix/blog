@@ -46,13 +46,6 @@ export const PostCard: FC<PostCardProps> = ({ post, index = 0, lang }) => {
           href={postUrl}
           class="transition group w-full block font-bold mb-3 text-2xl md:text-3xl fuwari-text-90 hover:text-(--fuwari-primary) active:text-(--fuwari-primary) relative before:w-1 before:h-5 before:rounded-md before:absolute before:-left-5 before:top-1/2 before:-translate-y-1/2 before:hidden md:before:block before:bg-(--fuwari-primary) no-underline"
         >
-          {post.isTop && (
-            <FireIcon
-              size={24}
-              strokeWidth={2}
-              class="inline-block text-[#f97316] dark:text-[#fb923c] mr-2 align-middle -mt-1 shrink-0"
-            />
-          )}
           {cleanTitle}
           <ChevronRightIcon
             size={28}
@@ -140,12 +133,16 @@ export const PostCard: FC<PostCardProps> = ({ post, index = 0, lang }) => {
             <ClockIcon size={14} />
             {post.readingTime} {i18n(post.readingTime === 1 ? I18nKey.minuteCount : I18nKey.minutesCount, lang)}
           </span>
-          {post.views !== undefined && post.views > 0 && (
-            <span class="inline-flex items-center gap-1.5 text-(--fuwari-primary) font-medium">
-              <EyeIcon size={14} />
-              {post.views} {i18n(I18nKey.viewsCount, lang)}
-            </span>
-          )}
+          {/* 异步阅读量徽章 (默认绝对隐藏 style="display: none;"，客户端异步拉取成功且 views > 0 时才展示；未开启或失败则保持隐藏不渲染) */}
+          <span
+            class="post-views-badge items-center gap-1.5 text-(--fuwari-primary) font-medium"
+            style="display: none;"
+            data-slug={post.title}
+          >
+            <EyeIcon size={14} />
+            <span class="post-views-num"></span>
+            <span>{i18n(I18nKey.viewsCount, lang)}</span>
+          </span>
         </div>
       </div>
 

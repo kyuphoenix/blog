@@ -4,6 +4,7 @@ import {
   recordPageView,
   getTopPosts,
   getPostStats,
+  getAllPostStats,
   resolveDatabaseType,
   isStatsEnabled,
 } from '../services/stats.js'
@@ -58,6 +59,9 @@ stats.post('/view', async (c) => {
       ip,
       country,
       sessionId: body.sessionId || '',
+      clientTracked: Boolean(body.clientTracked),
+      language: body.language || '',
+      screen: body.screen || '',
     })
 
     return c.json({
@@ -66,6 +70,22 @@ stats.post('/view', async (c) => {
     })
   } catch (err: any) {
     return c.json({ success: false, message: err.message }, 500)
+  }
+})
+
+/**
+ * 批量获取全部文章的访问统计映射字典（供主页异步渲染浏览量使用）
+ */
+stats.get('/all', async (c) => {
+  if (!isStatsEnabled(c.env)) {
+    return c.json({ success: true, enabled: false, data: {} })
+  }
+  try {
+    const data = await getAllPostStats(c.env)
+    c.header('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600')
+    return c.json({ success: true, enabled: true, data })
+  } catch (err: any) {
+    return c.json({ success: false, enabled: true, data: {}, message: err.message }, 500)
   }
 })
 
@@ -92,12 +112,17 @@ stats.get('/post', async (c) => {
   if (!slug) {
     return c.json({ success: false, message: 'Missing slug' }, 400)
   }
-  const data = await getPostStats(c.env, slug)
-  return c.json({ success: true, enabled: true, data })
+  try {
+    const data = await getPostStats(c.env, slug)
+    c.header('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600')
+    return c.json({ success: true, enabled: true, data })
+  } catch (err: any) {
+    return c.json({ success: false, enabled: true, data: { views: 0, uv: 0 }, message: err.message }, 500)
+  }
 })
 
 /**
- * 查询当前生效的数据库类型与连接状态
+ * 查询当前生效的数据库/统计提供方与连接状态
  */
 stats.get('/status', (c) => {
   const type = resolveDatabaseType(c.env)
@@ -105,9 +130,18 @@ stats.get('/status', (c) => {
   return c.json({
     success: true,
     data: {
+      provider: type || 'none',
       database: type || 'none',
       configured: Boolean(type),
       enabled,
+      ...(type === 'umami'
+        ? {
+            umamiHost: c.env.UMAMI_HOST || c.env.UMAMI_URL || 'https://cloud.umami.is',
+            websiteId: c.env.UMAMI_WEBSITE_ID || c.env.UMAMI_ID || '',
+            hasApiKey: Boolean(c.env.UMAMI_API_KEY || c.env.UMAMI_TOKEN),
+            scriptEnabled: c.env.ENABLE_UMAMI_SCRIPT !== 'false' && c.env.ENABLE_UMAMI_SCRIPT !== false,
+          }
+        : {}),
     },
   })
 })
