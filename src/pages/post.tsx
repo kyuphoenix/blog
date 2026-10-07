@@ -305,7 +305,7 @@ postPage.get('/:title', async (c) => {
               <div class="text-sm">{post.readingTime} {i18n(post.readingTime === 1 ? I18nKey.minuteCount : I18nKey.minutesCount, siteConfig.lang)}</div>
             </div>
             {statsEnabled && (
-              <div id="post-views-container" class="flex flex-row items-center hidden">
+              <div id="post-views-container" class="flex-row items-center" style="display: none;">
                 <div class="transition h-6 w-6 rounded-md bg-black/5 dark:bg-white/10 fuwari-text-50 flex items-center justify-center mr-2 text-(--fuwari-primary)">
                   <EyeIcon strokeWidth={1.5} size={16} />
                 </div>
@@ -609,7 +609,7 @@ postPage.get('/:title', async (c) => {
               var countEl = document.getElementById('post-views-count');
               var containerEl = document.getElementById('post-views-container');
               if (countEl) countEl.textContent = String(views);
-              if (containerEl) containerEl.classList.remove('hidden');
+              if (containerEl) containerEl.style.display = 'flex';
             }
           }
 

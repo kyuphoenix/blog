@@ -133,9 +133,10 @@ export const PostCard: FC<PostCardProps> = ({ post, index = 0, lang }) => {
             <ClockIcon size={14} />
             {post.readingTime} {i18n(post.readingTime === 1 ? I18nKey.minuteCount : I18nKey.minutesCount, lang)}
           </span>
-          {/* 异步阅读量徽章 (默认 hidden，客户端异步拉取成功且 views > 0 时展示；失败则保持隐藏不渲染) */}
+          {/* 异步阅读量徽章 (默认绝对隐藏 style="display: none;"，客户端异步拉取成功且 views > 0 时才展示；未开启或失败则保持隐藏不渲染) */}
           <span
-            class="post-views-badge inline-flex items-center gap-1.5 text-(--fuwari-primary) font-medium hidden"
+            class="post-views-badge items-center gap-1.5 text-(--fuwari-primary) font-medium"
+            style="display: none;"
             data-slug={post.title}
           >
             <EyeIcon size={14} />

@@ -25,12 +25,21 @@ try {
 
   console.log(`✓ 生产级 Tailwind CSS 编译成功 (v${version}): src/styles/tailwindBundle.ts`)
 
-  // 若此前存在遗留的 public/css，清理以确保 public 目录仅保留纯媒体资源
-  const legacyPublicCss = resolve(process.cwd(), 'public/css')
-  if (existsSync(legacyPublicCss)) {
-    try {
-      rmSync(legacyPublicCss, { recursive: true, force: true })
-    } catch {}
+  // 同步输出 Giscus Fuwari 自定义主题文件至 public/css/
+  const publicCssDir = resolve(process.cwd(), 'public/css')
+  mkdirSync(publicCssDir, { recursive: true })
+  const giscusThemeTs = readFileSync(resolve(stylesDir, 'giscusTheme.ts'), 'utf-8')
+  const darkIndex = giscusThemeTs.indexOf('export const giscusDarkCss')
+  if (darkIndex > 0) {
+    const lightPart = giscusThemeTs.slice(0, darkIndex)
+    const darkPart = giscusThemeTs.slice(darkIndex)
+    const lightCss = lightPart.slice(lightPart.indexOf('`') + 1, lightPart.lastIndexOf('`'))
+    const darkCss = darkPart.slice(darkPart.indexOf('`') + 1, darkPart.lastIndexOf('`'))
+    if (lightCss && darkCss) {
+      writeFileSync(resolve(publicCssDir, 'giscus-fuwari-light.css'), lightCss, 'utf-8')
+      writeFileSync(resolve(publicCssDir, 'giscus-fuwari-dark.css'), darkCss, 'utf-8')
+      console.log('✓ Giscus Fuwari 样式已同步输出至 public/css/')
+    }
   }
 } catch (err) {
   if (existsSync(tmpFile)) {

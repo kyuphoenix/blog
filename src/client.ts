@@ -706,7 +706,7 @@ async function fetchAndRenderPostViews(container: Document | HTMLElement = docum
         if (numSpan) {
           numSpan.textContent = String(views)
         }
-        badge.classList.remove('hidden')
+        badge.style.display = 'inline-flex'
       }
     })
   } catch {
