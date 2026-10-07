@@ -6,10 +6,10 @@
 
 ## ✨ 核心特性
 
-- 🗄️ **可选双数据库架构与零数据库超轻量运行 (Cloudflare D1 & Supabase)**：
-  - **完全可选的浏览统计功能**：若未配置 D1 且未配置 Supabase，博客自动以**零数据库模式**运行，前端不显示阅读计数与火焰角标，亦不产生任何统计上报请求，性能极致轻快。
-  - **按需自由激活**：配置了 D1 或 Supabase 之一即可秒级自动激活浏览量统计功能。
-  - **支持双引擎与一键关闭**：可自由连接 **Cloudflare D1 (SQLite)** 或 **Supabase (PostgreSQL)**，支持在 GitHub Actions Workflow 中通过下拉选项自由指定（`auto`、`d1`、`supabase`、`none`）。
+- 🗄️ **现代访问统计与零数据库轻量架构 (Umami / D1 / Supabase)**：
+  - **首推免数据库超轻量统计 (Umami)**：原生支持接入 [Umami](https://umami.is/)（云端版与自建版），**无需创建或绑定任何传统数据库（免 D1 / 免 Supabase）**，彻底避免 Cloudflare API 权限报错与 SQL 建表维护；自带现代化独立统计大屏与客户端/服务端双重防刷追踪，自动同步文章阅读量与首页热门排行 Top 3 置顶。
+  - **兼容双数据库引擎 (Cloudflare D1 & Supabase)**：亦保留原生 SQLite (Cloudflare D1) 与 PostgreSQL (Supabase) 驱动，支持根据环境变量或 Workflow 参数一键无缝切换。
+  - **零数据库极速模式 (Zero-DB)**：若均未配置，博客自动以零数据库纯静态/轻量模式运行，前端不展示阅读计数与火焰角标，不发送任何统计请求，性能极致轻快。
   - **访问量统计与热门置顶（开启统计时）**：
     - 隐私友好（基于每日 Salt 与客户端特征单向哈希，绝不存真实 IP）。
     - 30 分钟会话与 IP 防刷去重。
@@ -72,13 +72,22 @@
 
 ---
 
-## 🗄️ 数据库与浏览统计配置（可选功能）
+## 🗄️ 访问量统计与数据库配置（可选功能）
 
 > 💡 **说明**：**数据库与文章浏览量统计为完全可选功能**。
-> - **未配置数据库时**：博客自动以**零数据库超轻量模式**运行，前端不展示阅读计数与热门火焰角标，浏览器端完全不发送任何上报请求，性能极致轻快。所有文章展示、TOC 目录、分类标签、代码高亮、Giscus 评论等核心功能 100% 正常使用。
-> - **按需开启**：若需要启用阅读量统计和热门文章排行，只需配置 **Cloudflare D1** 或 **Supabase** 之一即可自动激活。
+> - **零数据库超轻量模式（默认）**：若未配置统计服务，博客自动以纯静态/零数据库模式运行，前端不展示阅读计数与热门火焰角标，浏览器端完全不发送任何上报请求，性能极致轻快。所有文章展示、TOC 目录、分类标签、代码高亮、Giscus 评论等核心功能 100% 正常使用。
+> - **⭐ 方案 1：Umami 统计（强烈推荐，免数据库零配置）**：
+>   原生接入开源现代统计 [Umami](https://umami.is/)（支持官方免费云端 Umami Cloud 或自建实例）。**完全无需任何传统数据库，无需建表**，彻底免除 Cloudflare D1 权限报错！只需配置 `UMAMI_WEBSITE_ID` 与 `UMAMI_API_KEY`，即可获得文章阅读量、首页 Top 3 热门置顶以及精美的独立可视化访客大屏。
+> - **方案 2：Cloudflare D1（专为 Cloudflare Workers 原生设计）**：基于 Cloudflare 边缘 SQLite。
+> - **方案 3：Supabase（专为 PostgreSQL 跨平台设计）**：基于 Supabase 托管 PostgreSQL。
 
-如需开启该功能，参考[数据库配置](docs/数据库配置.md)
+| 环境变量 | 必填/可选 | 说明 |
+| :--- | :---: | :--- |
+| `UMAMI_WEBSITE_ID` | **必填** (开启 Umami 时) | Umami 站点 UUID，配置后系统自动优先以 Umami 引擎运行并剥离 D1 绑定 |
+| `UMAMI_API_KEY` | **建议配置** | 用于服务端安全拉取文章浏览量与计算首页 Top 3 热门文章排行 |
+| `UMAMI_HOST` | 可选 | 默认 `https://cloud.umami.is`（自建实例填自建域名如 `https://analytics.example.com`） |
+
+> 📖 **关于三种统计引擎的详细配置流程、权限说明与切换方式，请查阅完整指南**：👉 [**`docs/数据库配置.md`**](docs/数据库配置.md)
 
 ---
 
@@ -111,10 +120,10 @@
   支持随时在 GitHub Actions 页面（选择 `Force Purge All Caches`）或 **Pages CMS** 后台一键手动触发全网 CDN 强刷。
   - **功能**：重新生成文章清单，通知博客服务端预热，并调用 Cloudflare / Netlify / Vercel 官方控制平面毫秒级强制清空全球边缘节点缓存。
   - 💡 **安全解耦特性（自动跳过未配置平台）**：工作流内置严格的凭证判空守卫。若你仅部署了其中某一平台（如 Cloudflare），工作流会自动检测并安全跳过未配置的其他平台，整个流程保持 100% 成功状态（绿色对勾 ✅），绝不报错阻断。
-- **切换数据库后端**：
-  直接在 GitHub Actions 中重新运行 **Deploy to Cloudflare Workers**，在下拉框中选择 `d1` 或 `supabase` 重新构建部署即可无缝切换！
-- **查看数据库运行状态**：
-  访问 `/api/stats/status` 端点可直接查看当前应用实例正连接的数据库类型（`supabase` / `d1` / `none`）。
+- **切换统计与数据库后端**：
+  直接在 GitHub Actions 中重新运行 **Deploy to Cloudflare Workers**，在下拉框中自由选择 `auto`、`umami`、`d1`、`supabase` 或 `none` 重新构建部署即可无缝切换！
+- **查看后端运行状态**：
+  访问 `/api/stats/status` 端点可直接查看当前应用实例正连接的引擎类型（`umami` / `supabase` / `d1` / `none`）。
 
 ---
 
@@ -156,7 +165,7 @@
 │   ├── pages/                # 页面路由控制器 (首页、文章详情、归档、关于)
 │   ├── routes/               # API 路由 (/api/posts, /api/stats, /sitemap.xml 等)
 │   ├── services/
-│   │   ├── db/               # 统一数据库抽象层 (D1 与 Supabase 驱动实现)
+│   │   ├── db/               # 统一数据与统计抽象层 (Umami, D1 与 Supabase 驱动实现)
 │   │   ├── storage.ts        # 基于 unstorage 的统一键值存储服务
 │   │   ├── github.ts         # GitHub 内容拉取与多级缓存服务
 │   │   └── stats.ts          # 阅读量统计与热门榜单业务代理
