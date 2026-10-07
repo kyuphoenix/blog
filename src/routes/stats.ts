@@ -112,8 +112,13 @@ stats.get('/post', async (c) => {
   if (!slug) {
     return c.json({ success: false, message: 'Missing slug' }, 400)
   }
-  const data = await getPostStats(c.env, slug)
-  return c.json({ success: true, enabled: true, data })
+  try {
+    const data = await getPostStats(c.env, slug)
+    c.header('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600')
+    return c.json({ success: true, enabled: true, data })
+  } catch (err: any) {
+    return c.json({ success: false, enabled: true, data: { views: 0, uv: 0 }, message: err.message }, 500)
+  }
 })
 
 /**

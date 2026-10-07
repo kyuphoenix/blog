@@ -594,7 +594,7 @@ postPage.get('/:title', async (c) => {
         })();
       </script>`)}
 
-      {/* 访问量统计上报脚本（仅在开启统计功能时注入） */}
+      {/* 访问量统计与上报脚本（仅在开启统计功能时注入） */}
       {statsEnabled &&
         raw(`<script>
         (function() {
@@ -602,44 +602,64 @@ postPage.get('/:title', async (c) => {
           var storageKey = 'fuwari_pv_' + encodeURIComponent(slug);
           var lastViewed = sessionStorage.getItem(storageKey);
           var now = Date.now();
+          var isRecent = lastViewed && (now - parseInt(lastViewed, 10)) < 15 * 60 * 1000;
 
-          // 15 分钟会话级防刷（Umami 规范）：同一标签页/会话短时间刷新不重复计数
-          if (lastViewed && (now - parseInt(lastViewed, 10)) < 15 * 60 * 1000) {
-            return;
-          }
-
-          var sessionId = sessionStorage.getItem('fuwari_sid');
-          if (!sessionId) {
-            sessionId = 's_' + Math.random().toString(36).slice(2) + now.toString(36);
-            sessionStorage.setItem('fuwari_sid', sessionId);
-          }
-
-          sessionStorage.setItem(storageKey, String(now));
-
-          fetch('/api/stats/view', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              slug: slug,
-              url: window.location.pathname,
-              referrer: document.referrer || '',
-              screen: window.screen ? (window.screen.width + 'x' + window.screen.height) : '',
-              language: navigator.language || '',
-              sessionId: sessionId,
-              clientTracked: Boolean(window.umami)
-            }),
-            keepalive: true
-          })
-          .then(function(r) { return r.json(); })
-          .then(function(res) {
-            if (res && res.success && res.data && typeof res.data.views === 'number' && res.data.views > 0) {
+          function renderViews(views) {
+            if (typeof views === 'number' && views > 0) {
               var countEl = document.getElementById('post-views-count');
               var containerEl = document.getElementById('post-views-container');
-              if (countEl) countEl.textContent = res.data.views;
+              if (countEl) countEl.textContent = String(views);
               if (containerEl) containerEl.classList.remove('hidden');
             }
-          })
-          .catch(function() {});
+          }
+
+          // 1. 无论是否处于防刷期，进入或刷新页面始终只读拉取最新浏览量并点亮 DOM（解决刷新阅读量消失问题）
+          fetch('/api/stats/post?slug=' + encodeURIComponent(slug))
+            .then(function(r) { return r.json(); })
+            .then(function(res) {
+              if (res && res.success && res.data) {
+                renderViews(res.data.views);
+              }
+            })
+            .catch(function() {});
+
+          // 2. 若在 15 分钟会话防刷期内，跳过任何上报操作
+          if (isRecent) return;
+          sessionStorage.setItem(storageKey, String(now));
+
+          // 3. 延迟 1.5 秒等待 defer 的 script.js 加载就绪；
+          // 仅在确认 window.umami 不存在（即被 Adblock 阻断）时才由服务端代理兜底上报，消除竞态双重计数
+          setTimeout(function() {
+            if (!window.umami) {
+              var sessionId = sessionStorage.getItem('fuwari_sid');
+              if (!sessionId) {
+                sessionId = 's_' + Math.random().toString(36).slice(2) + now.toString(36);
+                sessionStorage.setItem('fuwari_sid', sessionId);
+              }
+
+              fetch('/api/stats/view', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  slug: slug,
+                  url: window.location.pathname,
+                  referrer: document.referrer || '',
+                  screen: window.screen ? (window.screen.width + 'x' + window.screen.height) : '',
+                  language: navigator.language || '',
+                  sessionId: sessionId,
+                  clientTracked: false
+                }),
+                keepalive: true
+              })
+              .then(function(r) { return r.json(); })
+              .then(function(res) {
+                if (res && res.success && res.data) {
+                  renderViews(res.data.views);
+                }
+              })
+              .catch(function() {});
+            }
+          }, 1500);
         })();
       </script>`)}
     </Layout>
