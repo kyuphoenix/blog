@@ -1,37 +1,11 @@
 {
-<<<<<<< HEAD
   "title": "玖凰的个人博客",
   "author": "玖凰",
   "description": "这是我的个人网站和博客。在这里，我主要分享与技术和生活相关的内容。欢迎阅读！",
   "lang": "zh_CN",
   "repository": "https://github.com/kyuphoenix/blog",
-=======
-  "title": "Honoki",
-  "author": "Blog Author",
-  "description": "这是我的个人网站和博客。在这里，我主要分享与技术和生活相关的内容。欢迎阅读！",
-  "lang": "zh_CN",
-  "repository": "https://github.com/kyuphoenix/blog",
   "pagination": {
     "pageSize": 10
-  },
-  "nav": [
-    { "label": "首页", "url": "/" },
-    { "label": "归档", "url": "/archive" },
-    { "label": "友链", "url": "/links" },
-    { "label": "关于", "url": "/about" }
-  ],
-  "social": [
-    { "platform": "github", "url": "https://github.com/kyuphoenix/blog", "label": "GitHub" },
-    { "platform": "email", "url": "mailto:example@email.com", "label": "Email" },
-    { "platform": "rss", "url": "/rss.xml", "label": "RSS" }
-  ],
->>>>>>> template/main
-  "theme": {
-    "fuwari": {
-      "avatar": "/images/avatar.webp",
-      "homeBg": "/images/home-bg.webp",
-      "primaryHue": 250
-    }
   },
   "nav": [
     {
@@ -77,6 +51,13 @@
       "url": "/rss.xml"
     }
   ],
+  "theme": {
+    "fuwari": {
+      "avatar": "/images/avatar.webp",
+      "homeBg": "/images/home-bg.webp",
+      "primaryHue": 250
+    }
+  },
   "seo": {
     "keywords": [
       "个人博客",
