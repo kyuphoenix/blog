@@ -154,7 +154,14 @@ postPage.get('/:title', async (c) => {
 
   // 获取访问量统计（可选功能：配置了 Umami 时开启）
   const statsEnabled = isStatsEnabled(c.env)
-  const stats = statsEnabled ? await getPostStats(c.env, post.title) : { views: 0, uv: 0 }
+  let stats = { views: 0, uv: 0 }
+  if (statsEnabled) {
+    try {
+      stats = await getPostStats(c.env, post.title)
+    } catch (err) {
+      console.warn('获取单篇文章阅读量失败（已平滑降级）:', err)
+    }
+  }
   const viewsCount = stats.views || 0
 
   // Compute minDepth for TOC numbering (exact flare-stack-blog TableOfContents logic)

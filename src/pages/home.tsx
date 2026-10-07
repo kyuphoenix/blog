@@ -30,8 +30,15 @@ home.get('/', async (c) => {
 
   const statsEnabled = isStatsEnabled(c.env)
 
-  // 仅在开启统计功能时获取访问量映射
-  const allStats = statsEnabled ? await getAllPostStats(c.env) : {}
+  // 仅在开启统计功能时获取访问量映射（内置超时保护与平滑降级）
+  let allStats: Record<string, { views: number; uv: number }> = {}
+  if (statsEnabled) {
+    try {
+      allStats = await getAllPostStats(c.env)
+    } catch (err) {
+      console.warn('获取阅读量统计失败（已平滑降级）:', err)
+    }
+  }
 
   // 仅在首页主列表第一页（无分类/标签筛选）且开启统计功能时，置顶访问量最高的前 3 篇文章
   const isMainFeed = page === 1 && !category && !tag

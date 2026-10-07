@@ -9,12 +9,37 @@ export interface UmamiClientOptions {
   enableScript?: boolean
 }
 
+// 进程内短效内存缓存与容灾快照（跨请求复用，0ms 极速响应）
+interface MemoryCacheEntry {
+  data: Record<string, { views: number; uv: number }>
+  timestamp: number
+}
+const memCacheMap = new Map<string, MemoryCacheEntry>()
+const lastGoodSnapshotMap = new Map<string, Record<string, { views: number; uv: number }>>()
+
+// 5 分钟进程内存缓存，30 分钟边缘 KV 缓存（一天最多写入 48 次，彻底消除 1000 次/天配额风险）
+const MEM_CACHE_TTL_MS = 5 * 60 * 1000
+const KV_CACHE_TTL_S = 30 * 60
+
+/**
+ * 安全的 AbortSignal 超时创建函数（跨 Cloudflare Workers / Node.js 兼容）
+ */
+function getTimeoutSignal(ms = 2000): AbortSignal {
+  if (typeof AbortSignal !== 'undefined' && typeof (AbortSignal as any).timeout === 'function') {
+    return (AbortSignal as any).timeout(ms)
+  }
+  const controller = new AbortController()
+  setTimeout(() => controller.abort(), ms)
+  return controller.signal
+}
+
 /**
  * Umami 统计客户端实现：
  * 1. 采用 Umami 官方 REST API 与 /api/send 事件规范
  * 2. 完美适配 Umami Cloud (cloud.umami.is / api.umami.is) 与 自建私有化部署 (Self-hosted)
  * 3. 支持聚合查询全部文章阅读量、单篇阅读量、热门排行榜
- * 4. 内置内存/KV 智能分层缓存（默认 60s），避免边缘函数高频请求 Umami 上游服务
+ * 4. 内置内存(5m) + KV(30m) 智能多级缓存，避免边缘函数高频请求 Umami 上游服务
+ * 5. 全面内置请求超时熔断与容灾降级（Stale Fallback），绝不拖累首页 TTFB，绝不因 Umami 异常导致页面崩溃
  */
 export class UmamiDatabaseClient implements DatabaseClient {
   readonly type = 'umami' as const
@@ -24,6 +49,7 @@ export class UmamiDatabaseClient implements DatabaseClient {
   private apiKey: string
   private storage?: Storage
   private enableScript: boolean
+  private preferredMetricsType?: 'expanded' | 'url' | 'path'
 
   constructor(options: UmamiClientOptions) {
     const rawHost = (options.host || 'https://cloud.umami.is').trim().replace(/\/+$/, '')
@@ -105,14 +131,15 @@ export class UmamiDatabaseClient implements DatabaseClient {
           sendHeaders['X-Forwarded-For'] = input.ip
         }
 
-        // 发送至 Umami /api/send 收集端点
+        // 发送至 Umami /api/send 收集端点（带 2s 超时保护）
         await fetch(`${this.apiBase}/send`, {
           method: 'POST',
           headers: sendHeaders,
           body: JSON.stringify(sendPayload),
+          signal: getTimeoutSignal(2000),
         })
       } catch (err) {
-        console.warn('[Umami] recordPageView upstream send failed:', err)
+        console.warn('[Umami] recordPageView upstream send failed (ignored):', err)
       }
     }
 
@@ -130,48 +157,66 @@ export class UmamiDatabaseClient implements DatabaseClient {
     }
 
     const cacheKey = `umami_stats_${this.websiteId}`
+    const now = Date.now()
 
-    // 1. 尝试从缓存中获取（60s 边缘缓存）
+    // 1. 优先命中进程内存缓存（0ms 极速响应，不消耗 KV 读写配额）
+    const memCached = memCacheMap.get(this.websiteId)
+    if (memCached && now - memCached.timestamp < MEM_CACHE_TTL_MS) {
+      return memCached.data
+    }
+
+    // 2. 尝试从 KV 缓存中获取（30 分钟分布式边缘缓存）
     if (this.storage) {
       try {
         const cached = await this.storage.getItem<Record<string, { views: number; uv: number }>>(
           cacheKey
         )
-        if (cached && typeof cached === 'object') {
+        if (cached && typeof cached === 'object' && Object.keys(cached).length > 0) {
+          memCacheMap.set(this.websiteId, { data: cached, timestamp: now })
+          lastGoodSnapshotMap.set(this.websiteId, cached)
           return cached
         }
       } catch {}
     }
 
-    // 2. 向 Umami 接口发起拉取
-    const now = Date.now()
-    // 起始时间设置为 2020-01-01 (1577836800000)，涵盖全量历史访问记录
-    const startAt = 1577836800000
+    // 3. 向 Umami 接口发起拉取（带严格 2s 超时控制）
+    const startAt = 1577836800000 // 起始时间 2020-01-01，涵盖历史全量
     const endAt = now
-
     const result: Record<string, { views: number; uv: number }> = {}
 
     try {
       const headers = this.getHeaders()
+      let res: Response | null = null
 
-      // 优先尝试 expanded metrics 接口（可同时获取 views 与 visitors UV）
-      let metricsUrl = `${this.apiBase}/websites/${this.websiteId}/metrics/expanded?type=url&startAt=${startAt}&endAt=${endAt}&limit=500`
-      let res = await fetch(metricsUrl, { headers })
+      // 根据历史探测优先尝试最适合当前实例的端点
+      const candidates: Array<'expanded' | 'url' | 'path'> = this.preferredMetricsType
+        ? [this.preferredMetricsType]
+        : ['expanded', 'url', 'path']
 
-      if (!res.ok) {
-        // 降级尝试标准 metrics 接口
-        metricsUrl = `${this.apiBase}/websites/${this.websiteId}/metrics?type=url&startAt=${startAt}&endAt=${endAt}&limit=500`
-        res = await fetch(metricsUrl, { headers })
+      for (const mode of candidates) {
+        try {
+          const metricsUrl =
+            mode === 'expanded'
+              ? `${this.apiBase}/websites/${this.websiteId}/metrics/expanded?type=url&startAt=${startAt}&endAt=${endAt}&limit=500`
+              : `${this.apiBase}/websites/${this.websiteId}/metrics?type=${mode}&startAt=${startAt}&endAt=${endAt}&limit=500`
+
+          const candidateRes = await fetch(metricsUrl, {
+            headers,
+            signal: getTimeoutSignal(2000), // 最多等待 2 秒，绝不阻塞首页 TTFB
+          })
+
+          if (candidateRes.ok) {
+            res = candidateRes
+            this.preferredMetricsType = mode
+            break
+          }
+        } catch {
+          // 当前端点超时或失败，尝试下一个候选
+        }
       }
 
-      if (!res.ok) {
-        // 针对部分 Umami v2 实例兼容 type=path
-        metricsUrl = `${this.apiBase}/websites/${this.websiteId}/metrics?type=path&startAt=${startAt}&endAt=${endAt}&limit=500`
-        res = await fetch(metricsUrl, { headers })
-      }
-
-      if (res.ok) {
-        const data: any = await res.json()
+      if (res && res.ok) {
+        const data: any = await res.json().catch(() => null)
         const items = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : []
 
         for (const item of items) {
@@ -206,17 +251,29 @@ export class UmamiDatabaseClient implements DatabaseClient {
           }
         }
 
-        // 写入缓存，TTL 60 秒
+        // 写入内存缓存与容灾快照
+        memCacheMap.set(this.websiteId, { data: result, timestamp: now })
+        lastGoodSnapshotMap.set(this.websiteId, result)
+
+        // 写入 KV 缓存，TTL 30 分钟 (1800 秒)，一天最多 48 次写入，彻底避免耗尽 1000 次/天免费限额
         if (this.storage) {
           try {
-            await this.storage.setItem(cacheKey, result, { ttl: 60 })
+            await this.storage.setItem(cacheKey, result, { ttl: KV_CACHE_TTL_S })
           } catch {}
         }
+
+        return result
       } else {
-        console.warn(`[Umami] Failed to fetch metrics: status ${res.status}`)
+        console.warn(`[Umami] Failed to fetch metrics: status ${res?.status ?? 'timeout'}`)
       }
     } catch (err) {
-      console.warn('[Umami] Error in getAllPostStats:', err)
+      console.warn('[Umami] Error in getAllPostStats (falling back to snapshot):', err)
+    }
+
+    // 4. 容灾降级：若 Umami 宕机、超时或网络不通，平滑回退至上一次成功的可用数据快照
+    const fallback = lastGoodSnapshotMap.get(this.websiteId)
+    if (fallback) {
+      return fallback
     }
 
     return result
@@ -249,16 +306,19 @@ export class UmamiDatabaseClient implements DatabaseClient {
     const pathForm = cleanSlug.startsWith('/posts/') ? cleanSlug : `/posts/${cleanSlug}`
     if (all[pathForm]) return all[pathForm]
 
-    // 2. 若批量数据中未找到（例如刚创建的新文章），向 Umami stats 单独查询一次
+    // 2. 若批量数据中未找到（例如刚创建的新文章），向 Umami stats 单独查询一次（带 1.5s 超时）
     try {
       const startAt = 1577836800000
       const endAt = Date.now()
       const postUrl = `/posts/${encodeURIComponent(cleanSlug)}`
       const statsReqUrl = `${this.apiBase}/websites/${this.websiteId}/stats?startAt=${startAt}&endAt=${endAt}&url=${encodeURIComponent(postUrl)}`
-      const res = await fetch(statsReqUrl, { headers: this.getHeaders() })
+      const res = await fetch(statsReqUrl, {
+        headers: this.getHeaders(),
+        signal: getTimeoutSignal(1500),
+      })
 
       if (res.ok) {
-        const data: any = await res.json()
+        const data: any = await res.json().catch(() => null)
         const views = Number(data?.pageviews?.value ?? data?.pageviews ?? 0)
         const uv = Number(data?.visitors?.value ?? data?.visitors ?? 0)
         if (views > 0 || uv > 0) {
