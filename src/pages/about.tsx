@@ -62,6 +62,7 @@ about.get('/', async (c) => {
       tags={tags}
       blogUrl={c.env.BLOG_URL || new URL(c.req.url).origin}
       siteConfig={siteConfig}
+      env={c.env}
     >
       <div
         class="fuwari-card-base z-10 px-6 md:px-9 pt-6 pb-8 relative w-full fuwari-onload-animation"

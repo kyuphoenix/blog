@@ -28,8 +28,10 @@
       "database_id": "<YOUR_D1_DATABASE_ID>"
     }
   ],
-  // 运行环境变量
+  // 运行环境变量（若配置 UMAMI_WEBSITE_ID，将自动接入 Umami 代替 D1/Supabase 统计）
   "vars": {
     "DEPLOY_PLATFORM": "cloudflare"
+    // "UMAMI_HOST": "https://cloud.umami.is",
+    // "UMAMI_WEBSITE_ID": "<YOUR_UMAMI_WEBSITE_ID>"
   }
 }

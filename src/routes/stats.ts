@@ -58,6 +58,9 @@ stats.post('/view', async (c) => {
       ip,
       country,
       sessionId: body.sessionId || '',
+      clientTracked: Boolean(body.clientTracked),
+      language: body.language || '',
+      screen: body.screen || '',
     })
 
     return c.json({
@@ -97,7 +100,7 @@ stats.get('/post', async (c) => {
 })
 
 /**
- * 查询当前生效的数据库类型与连接状态
+ * 查询当前生效的数据库/统计提供方与连接状态
  */
 stats.get('/status', (c) => {
   const type = resolveDatabaseType(c.env)
@@ -105,9 +108,18 @@ stats.get('/status', (c) => {
   return c.json({
     success: true,
     data: {
+      provider: type || 'none',
       database: type || 'none',
       configured: Boolean(type),
       enabled,
+      ...(type === 'umami'
+        ? {
+            umamiHost: c.env.UMAMI_HOST || c.env.UMAMI_URL || 'https://cloud.umami.is',
+            websiteId: c.env.UMAMI_WEBSITE_ID || c.env.UMAMI_ID || '',
+            hasApiKey: Boolean(c.env.UMAMI_API_KEY || c.env.UMAMI_TOKEN),
+            scriptEnabled: c.env.ENABLE_UMAMI_SCRIPT !== 'false' && c.env.ENABLE_UMAMI_SCRIPT !== false,
+          }
+        : {}),
     },
   })
 })

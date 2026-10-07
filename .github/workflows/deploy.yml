@@ -87,6 +87,10 @@ jobs:
           CLOUDFLARE_D1_ID: ${{ secrets.CLOUDFLARE_D1_ID || vars.CLOUDFLARE_D1_ID || vars.D1_DATABASE_ID }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL || vars.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY || vars.SUPABASE_KEY || secrets.SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY }}
+          UMAMI_HOST: ${{ vars.UMAMI_HOST || secrets.UMAMI_HOST }}
+          UMAMI_WEBSITE_ID: ${{ vars.UMAMI_WEBSITE_ID || secrets.UMAMI_WEBSITE_ID }}
+          UMAMI_SCRIPT_URL: ${{ vars.UMAMI_SCRIPT_URL }}
+          ENABLE_UMAMI_SCRIPT: ${{ vars.ENABLE_UMAMI_SCRIPT }}
           WORKER_NAME: ${{ vars.WORKER_NAME || 'honoki' }}
           BLOG_URL: ${{ vars.BLOG_URL || secrets.BLOG_URL }}
           GH_OWNER: ${{ vars.GH_OWNER || vars.GITHUB_OWNER || github.repository_owner }}
@@ -125,6 +129,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
           WORKER_NAME: ${{ vars.WORKER_NAME || 'honoki' }}
           PURGE_SECRET: ${{ secrets.PURGE_SECRET }}
+          UMAMI_API_KEY: ${{ secrets.UMAMI_API_KEY || vars.UMAMI_API_KEY }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY || vars.SUPABASE_KEY || secrets.SUPABASE_ANON_KEY || vars.SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL || secrets.SUPABASE_DB_URL || vars.DATABASE_URL || vars.SUPABASE_DB_URL }}

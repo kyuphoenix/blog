@@ -70,6 +70,7 @@ async function main() {
 
   const secretEntries = [
     { key: 'PURGE_SECRET', value: process.env.PURGE_SECRET?.trim() },
+    { key: 'UMAMI_API_KEY', value: (process.env.UMAMI_API_KEY || process.env.UMAMI_TOKEN)?.trim() },
     { key: 'SUPABASE_KEY', value: (process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY)?.trim() },
     { key: 'SUPABASE_SERVICE_ROLE_KEY', value: process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() },
     { key: 'DATABASE_URL', value: process.env.DATABASE_URL?.trim() },

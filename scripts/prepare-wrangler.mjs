@@ -21,9 +21,12 @@ let kvId = (process.env.CLOUDFLARE_KV_ID || process.env.KV_NAMESPACE_ID)?.trim()
 let d1Id = (process.env.CLOUDFLARE_D1_ID || process.env.D1_DATABASE_ID)?.trim()
 const workerName = process.env.WORKER_NAME?.trim()
 const blogUrl = process.env.BLOG_URL?.trim()
-const dbType = (process.env.DATABASE_TYPE || process.env.DB_TYPE || 'auto').toLowerCase().trim()
+const dbType = (process.env.DATABASE_TYPE || process.env.DB_TYPE || process.env.STATS_PROVIDER || 'auto').toLowerCase().trim()
 const supabaseUrl = process.env.SUPABASE_URL?.trim()
 const supabaseKey = (process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY)?.trim()
+const umamiWebsiteId = (process.env.UMAMI_WEBSITE_ID || process.env.UMAMI_ID)?.trim()
+const umamiHost = (process.env.UMAMI_HOST || process.env.UMAMI_URL || process.env.UMAMI_ENDPOINT)?.trim()
+const hasUmami = Boolean(umamiWebsiteId)
 
 const apiToken = process.env.CLOUDFLARE_API_TOKEN?.trim()
 let accountId = (process.env.CLOUDFLARE_ACCOUNT_ID || process.env.ACCOUNT_ID)?.trim()
@@ -264,10 +267,13 @@ async function main() {
     console.warn('⚠️ 未检测到可用 KV 绑定，已安全移除 KV 占位符（unstorage 自动使用内存缓存）')
   }
 
-  // 2. 数据库绑定逻辑（支持 D1 与 Supabase 双架构切换，或 none 模式关闭数据库与统计）
+  // 2. 数据库绑定逻辑（支持 Umami、D1 与 Supabase 架构切换，或 none 模式关闭数据库与统计）
   if (dbType === 'none' || dbType === 'off' || dbType === 'disabled') {
     content = stripD1Databases(content)
     console.log('✓ 构建目标已指定为 none，已移除 D1 数据库绑定（零数据库模式运行）')
+  } else if (dbType === 'umami' || (dbType === 'auto' && hasUmami)) {
+    content = stripD1Databases(content)
+    console.log('✓ 构建目标已接入 Umami 统计（替代 D1/Supabase），已安全移除 D1 数据库绑定')
   } else if (dbType === 'supabase') {
     content = stripD1Databases(content)
     console.log('✓ 构建目标已指定为 Supabase，已移除 wrangler.jsonc 中的 D1 数据库绑定')
@@ -347,6 +353,10 @@ async function main() {
     GH_BRANCH: (process.env.GH_BRANCH || process.env.GITHUB_BRANCH)?.trim(),
     BLOG_URL: blogUrl || undefined,
     SUPABASE_URL: supabaseUrl || undefined,
+    UMAMI_HOST: umamiHost || undefined,
+    UMAMI_WEBSITE_ID: umamiWebsiteId || undefined,
+    UMAMI_SCRIPT_URL: process.env.UMAMI_SCRIPT_URL?.trim() || undefined,
+    ENABLE_UMAMI_SCRIPT: process.env.ENABLE_UMAMI_SCRIPT?.trim() || undefined,
     GISCUS_REPO: process.env.GISCUS_REPO?.trim() || undefined,
     GISCUS_REPO_ID: process.env.GISCUS_REPO_ID?.trim() || undefined,
     GISCUS_CATEGORY: process.env.GISCUS_CATEGORY?.trim() || undefined,

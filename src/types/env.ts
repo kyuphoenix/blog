@@ -46,8 +46,20 @@ export type Bindings = {
   GISCUS_CATEGORY_ID?: string
   GISCUS_THEME_LIGHT?: string
   GISCUS_THEME_DARK?: string
-  // 数据库选型与 Supabase 访问配置（可选：none 或未配置时关闭统计）
-  DATABASE_TYPE?: 'd1' | 'supabase' | 'none' | 'auto'
+  // 数据库选型与统计服务（支持 umami | d1 | supabase | none | auto）
+  DATABASE_TYPE?: 'umami' | 'd1' | 'supabase' | 'none' | 'auto'
+  STATS_PROVIDER?: 'umami' | 'd1' | 'supabase' | 'none' | 'auto'
+  // Umami 统计配置（通过环境变量配置，用以替代 D1 和 Supabase 数据统计）
+  UMAMI_HOST?: string
+  UMAMI_URL?: string
+  UMAMI_ENDPOINT?: string
+  UMAMI_WEBSITE_ID?: string
+  UMAMI_ID?: string
+  UMAMI_API_KEY?: string
+  UMAMI_TOKEN?: string
+  UMAMI_SCRIPT_URL?: string
+  ENABLE_UMAMI_SCRIPT?: string | boolean
+  // Supabase 访问配置
   SUPABASE_URL?: string
   SUPABASE_KEY?: string
   SUPABASE_ANON_KEY?: string

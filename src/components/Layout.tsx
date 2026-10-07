@@ -8,6 +8,7 @@ import { Footer } from './Footer.js'
 import { swupClientVersion } from '../scripts/swupBundle.js'
 import { tailwindVersion } from '../styles/tailwindBundle.js'
 import { getHtmlLang, i18n, I18nKey } from '../i18n/index.js'
+import type { AppEnv } from '../types/env.js'
 
 interface CategoryItem {
   name: string
@@ -51,6 +52,7 @@ interface LayoutProps {
   bannerHeightVh?: number
   contentOffsetVh?: number
   siteConfig?: BlogConfig
+  env?: AppEnv['Bindings']
   children: any
 }
 
@@ -77,6 +79,7 @@ export const Layout: FC<LayoutProps> = ({
   ogType,
   articleMeta,
   verification,
+  env,
   children,
 }) => {
   const cfg = siteConfig || blogConfig
@@ -86,6 +89,34 @@ export const Layout: FC<LayoutProps> = ({
   const contentOffsetVh =
     customContentOffsetVh ?? (isHomePage ? CONTENT_OFFSET_HOME : CONTENT_OFFSET_PAGE)
   const defaultHue = cfg.theme.fuwari.primaryHue
+
+  // Umami 统计参数解析
+  const umamiWebsiteId =
+    env?.UMAMI_WEBSITE_ID ||
+    env?.UMAMI_ID ||
+    (typeof process !== 'undefined' ? process.env?.UMAMI_WEBSITE_ID || process.env?.UMAMI_ID : undefined)
+
+  const rawUmamiHost =
+    env?.UMAMI_HOST ||
+    env?.UMAMI_URL ||
+    env?.UMAMI_ENDPOINT ||
+    (typeof process !== 'undefined' ? process.env?.UMAMI_HOST || process.env?.UMAMI_URL || process.env?.UMAMI_ENDPOINT : undefined) ||
+    'https://cloud.umami.is'
+
+  const enableUmamiScript =
+    env?.ENABLE_UMAMI_SCRIPT !== false &&
+    env?.ENABLE_UMAMI_SCRIPT !== 'false' &&
+    (typeof process === 'undefined' || process.env?.ENABLE_UMAMI_SCRIPT !== 'false')
+
+  const cleanUmamiHost = rawUmamiHost ? rawUmamiHost.trim().replace(/\/+$/, '') : ''
+  const umamiScriptUrl =
+    env?.UMAMI_SCRIPT_URL ||
+    (typeof process !== 'undefined' ? process.env?.UMAMI_SCRIPT_URL : undefined) ||
+    (cleanUmamiHost
+      ? cleanUmamiHost.includes('api.umami.is')
+        ? 'https://cloud.umami.is/script.js'
+        : `${cleanUmamiHost.replace(/\/api$/, '').replace(/\/v1$/, '')}/script.js`
+      : undefined)
 
   // 基础域名处理
   const cleanBlogUrl = (blogUrl || '').replace(/\/$/, '')
@@ -353,6 +384,15 @@ export const Layout: FC<LayoutProps> = ({
             }
           })();
         </script>`)}
+        {/* Umami Analytics 访客数据统计脚本 */}
+        {umamiWebsiteId && enableUmamiScript && umamiScriptUrl && (
+          <script
+            defer
+            src={umamiScriptUrl}
+            data-website-id={umamiWebsiteId}
+            data-auto-track="true"
+          />
+        )}
         <style>{raw(css)}</style>
       </head>
       <body>

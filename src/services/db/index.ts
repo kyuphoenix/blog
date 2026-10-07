@@ -1,11 +1,14 @@
 import type { AppEnv } from '../../types/env.js'
 import { D1DatabaseClient } from './d1.js'
 import { SupabaseDatabaseClient } from './supabase.js'
+import { UmamiDatabaseClient } from './umami.js'
+import { getBlogStorage } from '../storage.js'
 import type { DatabaseClient, PageViewInput, PostStat } from './types.js'
 
 export * from './types.js'
 export { D1DatabaseClient } from './d1.js'
 export { SupabaseDatabaseClient } from './supabase.js'
+export { UmamiDatabaseClient } from './umami.js'
 
 // 缓存数据库客户端实例，避免重复初始化
 let cachedD1Client: D1DatabaseClient | null = null
@@ -14,14 +17,17 @@ let cachedD1Instance: D1Database | null = null
 let cachedSupabaseClient: SupabaseDatabaseClient | null = null
 let cachedSupabaseKey = ''
 
+let cachedUmamiClient: UmamiDatabaseClient | null = null
+let cachedUmamiKey = ''
+
 /**
- * 判定当前环境生效的数据库类型：
- * 1. 优先遵循环境变量/Workflow 显式指定的 DATABASE_TYPE ('d1' | 'supabase' | 'none')
- * 2. auto 或未指定时，根据“配置了谁的信息就用哪个数据库”自动判定
+ * 判定当前环境生效的数据库/统计类型：
+ * 1. 优先遵循环境变量/Workflow 显式指定的 DATABASE_TYPE ('umami' | 'd1' | 'supabase' | 'none')
+ * 2. auto 或未指定时：配置了 Umami 则优先接入 Umami（替代 D1/Supabase），否则按配置依次自动判定
  */
 export function resolveDatabaseType(
   env?: AppEnv['Bindings'] | any
-): 'd1' | 'supabase' | null {
+): 'umami' | 'd1' | 'supabase' | null {
   if (!env) return null
 
   // 若直接传入 D1 实例（兼容旧版调用）
@@ -29,16 +35,22 @@ export function resolveDatabaseType(
     return 'd1'
   }
 
-  const explicitType = (env.DATABASE_TYPE || env.DB_TYPE || '').toLowerCase().trim()
+  const explicitType = (env.DATABASE_TYPE || env.DB_TYPE || env.STATS_PROVIDER || '')
+    .toLowerCase()
+    .trim()
   if (explicitType === 'none' || explicitType === 'off' || explicitType === 'disabled') {
     return null
   }
 
+  const hasUmami = Boolean(env.UMAMI_WEBSITE_ID || env.UMAMI_ID)
   const hasSupabase = Boolean(
     env.SUPABASE_URL && (env.SUPABASE_KEY || env.SUPABASE_ANON_KEY)
   )
   const hasD1 = Boolean(env.DB && typeof env.DB.prepare === 'function')
 
+  if (explicitType === 'umami') {
+    return hasUmami ? 'umami' : null
+  }
   if (explicitType === 'supabase') {
     return hasSupabase ? 'supabase' : null
   }
@@ -46,7 +58,11 @@ export function resolveDatabaseType(
     return hasD1 ? 'd1' : null
   }
 
-  // auto 模式或未显式指定：配置了谁的信息就优先连接谁
+  // auto 模式或未显式指定：
+  // 若配置了 Umami Website ID，优先使用 Umami（代替 D1 与 Supabase 数据统计）
+  if (hasUmami) {
+    return 'umami'
+  }
   if (hasSupabase && !hasD1) {
     return 'supabase'
   }
@@ -97,6 +113,29 @@ export function getDbClient(
 
   const env = target as AppEnv['Bindings']
   const type = resolveDatabaseType(env)
+
+  if (type === 'umami') {
+    const host = (env.UMAMI_HOST || env.UMAMI_URL || env.UMAMI_ENDPOINT || 'https://cloud.umami.is').trim()
+    const websiteId = (env.UMAMI_WEBSITE_ID || env.UMAMI_ID || '').trim()
+    const apiKey = (env.UMAMI_API_KEY || env.UMAMI_TOKEN || '').trim()
+    const enableScript = env.ENABLE_UMAMI_SCRIPT !== 'false' && env.ENABLE_UMAMI_SCRIPT !== false
+
+    if (!websiteId) return null
+
+    const cacheToken = `${host}:${websiteId}:${apiKey}:${enableScript}`
+    if (!cachedUmamiClient || cachedUmamiKey !== cacheToken) {
+      cachedUmamiKey = cacheToken
+      const storage = getBlogStorage(env)
+      cachedUmamiClient = new UmamiDatabaseClient({
+        host,
+        websiteId,
+        apiKey,
+        storage,
+        enableScript,
+      })
+    }
+    return cachedUmamiClient
+  }
 
   if (type === 'supabase') {
     const url = (env.SUPABASE_URL || '').trim()

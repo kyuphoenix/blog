@@ -67,6 +67,7 @@ postPage.get('/:title', async (c) => {
         tags={tags}
         blogUrl={c.env.BLOG_URL || new URL(c.req.url).origin}
         siteConfig={siteConfig}
+        env={c.env}
       >
         <div class="fuwari-card-base p-12 text-center fuwari-onload-animation">
           <h1 class="text-4xl font-bold fuwari-text-90 mb-3">404</h1>
@@ -195,6 +196,7 @@ postPage.get('/:title', async (c) => {
       image={post.cover}
       ogType="article"
       siteConfig={siteConfig}
+      env={c.env}
       articleMeta={{
         publishedTime: post.date ? new Date(post.date).toISOString() : undefined,
         modifiedTime: post.updated
@@ -625,7 +627,8 @@ postPage.get('/:title', async (c) => {
               referrer: document.referrer || '',
               screen: window.screen ? (window.screen.width + 'x' + window.screen.height) : '',
               language: navigator.language || '',
-              sessionId: sessionId
+              sessionId: sessionId,
+              clientTracked: Boolean(window.umami)
             }),
             keepalive: true
           })
