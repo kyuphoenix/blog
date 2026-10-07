@@ -1,5 +1,5 @@
 /**
- * 将敏感凭据（PURGE_SECRET、SUPABASE_KEY 等）作为加密 Secret 同步到 Cloudflare Worker
+ * 将敏感凭据（PURGE_SECRET、UMAMI_API_KEY 等）作为加密 Secret 同步到 Cloudflare Worker
  * 
  * 作用：
  * 1. 避免敏感密钥以明文变量 (vars) 暴露在 Cloudflare 控制台与配置中
@@ -71,9 +71,6 @@ async function main() {
   const secretEntries = [
     { key: 'PURGE_SECRET', value: process.env.PURGE_SECRET?.trim() },
     { key: 'UMAMI_API_KEY', value: (process.env.UMAMI_API_KEY || process.env.UMAMI_TOKEN)?.trim() },
-    { key: 'SUPABASE_KEY', value: (process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY)?.trim() },
-    { key: 'SUPABASE_SERVICE_ROLE_KEY', value: process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() },
-    { key: 'DATABASE_URL', value: process.env.DATABASE_URL?.trim() },
     { key: 'GH_TOKEN', value: ghToken },
   ].filter((item) => item.value && item.value !== '')
 

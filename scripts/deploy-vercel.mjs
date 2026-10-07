@@ -4,7 +4,7 @@
  * 作用：
  * 1. 从 Action Secrets / 环境变量中解析出 Vercel API Token (VERCEL_TOKEN / VERCEL_API_KEY)
  * 2. 检查或自动通过 Vercel API 创建/发现项目
- * 3. 自动将当前博客所有环境变量 (BLOG_URL, GITHUB_*, SUPABASE_*, GISCUS_*) 批量同步写入 Vercel 项目
+ * 3. 自动将当前博客所有环境变量 (BLOG_URL, GH_*, UMAMI_*, GISCUS_*) 批量同步写入 Vercel 项目
  * 4. 自动生成 .vercel/project.json 建立非交互式 CI 绑定
  * 5. 调用 Vercel CLI 执行正式生产部署 (vercel deploy --prod)
  */
@@ -125,11 +125,11 @@ async function main() {
     { key: 'GITHUB_OWNER', value: ghOwner },
     { key: 'GITHUB_REPO', value: ghRepo },
     { key: 'GITHUB_BRANCH', value: ghBranch },
-    { key: 'DATABASE_TYPE', value: process.env.DATABASE_TYPE || 'auto' },
-    { key: 'SUPABASE_URL', value: process.env.SUPABASE_URL },
-    { key: 'SUPABASE_KEY', value: process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY },
-    { key: 'SUPABASE_SERVICE_ROLE_KEY', value: process.env.SUPABASE_SERVICE_ROLE_KEY },
-    { key: 'DATABASE_URL', value: process.env.DATABASE_URL },
+    { key: 'UMAMI_HOST', value: process.env.UMAMI_HOST || process.env.UMAMI_URL },
+    { key: 'UMAMI_WEBSITE_ID', value: process.env.UMAMI_WEBSITE_ID || process.env.UMAMI_ID },
+    { key: 'UMAMI_API_KEY', value: process.env.UMAMI_API_KEY || process.env.UMAMI_TOKEN },
+    { key: 'ENABLE_UMAMI_SCRIPT', value: process.env.ENABLE_UMAMI_SCRIPT },
+    { key: 'UMAMI_SCRIPT_URL', value: process.env.UMAMI_SCRIPT_URL },
     { key: 'PURGE_SECRET', value: process.env.PURGE_SECRET },
     { key: 'GISCUS_REPO', value: process.env.GISCUS_REPO },
     { key: 'GISCUS_REPO_ID', value: process.env.GISCUS_REPO_ID },
@@ -143,12 +143,7 @@ async function main() {
     'PAT_TOKEN',
     'GITHUB_TOKEN',
     'PURGE_SECRET',
-    'SUPABASE_KEY',
-    'SUPABASE_ANON_KEY',
-    'SUPABASE_SERVICE_ROLE_KEY',
-    'SUPABASE_ACCESS_TOKEN',
-    'DATABASE_URL',
-    'JWT_SECRET',
+    'UMAMI_API_KEY',
   ])
 
   console.log(`🔄 正在查询 Vercel 项目现有环境变量配置...`)

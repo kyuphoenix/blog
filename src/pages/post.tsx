@@ -152,7 +152,7 @@ postPage.get('/:title', async (c) => {
     .filter(Boolean).length
   const wordCount = Math.max(100, chineseChars + englishWords)
 
-  // 获取访问量统计（可选功能：配置了 D1 或 Supabase 时开启）
+  // 获取访问量统计（可选功能：配置了 Umami 时开启）
   const statsEnabled = isStatsEnabled(c.env)
   const stats = statsEnabled ? await getPostStats(c.env, post.title) : { views: 0, uv: 0 }
   const viewsCount = stats.views || 0

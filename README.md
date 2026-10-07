@@ -6,14 +6,12 @@
 
 ## ✨ 核心特性
 
-- 🗄️ **现代访问统计与零数据库轻量架构 (Umami / D1 / Supabase)**：
-  - **首推免数据库超轻量统计 (Umami)**：原生支持接入 [Umami](https://umami.is/)（云端版与自建版），**无需创建或绑定任何传统数据库（免 D1 / 免 Supabase）**，彻底避免 Cloudflare API 权限报错与 SQL 建表维护；自带现代化独立统计大屏与客户端/服务端双重防刷追踪，自动同步文章阅读量与首页热门排行 Top 3 置顶。
-  - **兼容双数据库引擎 (Cloudflare D1 & Supabase)**：亦保留原生 SQLite (Cloudflare D1) 与 PostgreSQL (Supabase) 驱动，支持根据环境变量或 Workflow 参数一键无缝切换。
-  - **零数据库极速模式 (Zero-DB)**：若均未配置，博客自动以零数据库纯静态/轻量模式运行，前端不展示阅读计数与火焰角标，不发送任何统计请求，性能极致轻快。
-  - **访问量统计与热门置顶（开启统计时）**：
-    - 隐私友好（基于每日 Salt 与客户端特征单向哈希，绝不存真实 IP）。
-    - 30 分钟会话与 IP 防刷去重。
-    - 首页自动提拔阅读量最高的 Top 3 热门文章置顶并标明火焰角标。
+- 🗄️ **免数据库超轻量架构与 Umami 访问统计 (Zero-Database & Umami Analytics)**：
+  - **100% 零数据库依赖**：全面摒弃传统关系型数据库（无需 Cloudflare D1，无需 Supabase），从根源杜绝 Cloudflare API 权限不足报错以及繁琐的 SQL 建表与迁移。
+  - **原生 Umami 统计整合**：接入开源现代化统计平台 [Umami](https://umami.is/)（支持官方免费云端 Umami Cloud 或自建实例），自带精美独立访客分析大屏（PV/UV、渠道、跳出率等）。
+  - **双重防刷与防拦截上报**：前端嵌入官方轻量脚本；若客户端开启了 Adblock 去广告插件，服务端自动无感知代理兜底上报；内置 60 秒边缘缓存。
+  - **热门文章排行与火焰角标**：自动安全聚合文章浏览量，首页将阅读量最高的 Top 3 热门文章置顶并标明火焰角标 🔥。
+  - **纯零统计极速模式**：若未配置 Umami，博客自动以纯静态/零统计模式运行，不展示阅读计数，不发送任何统计请求，性能极致轻快。
 - 📝 **Git 驱动与内容解耦**：
   - 文章统一存放在 `posts/*.md` 中，Worker 代码体积极小（不包含任何文章正文）。
   - 运行时动态拉取 GitHub Raw 内容，结合 KV/内存多级缓存加速。
@@ -72,22 +70,21 @@
 
 ---
 
-## 🗄️ 访问量统计与数据库配置（可选功能）
+## 📊 Umami 访问统计接入（可选功能）
 
-> 💡 **说明**：**数据库与文章浏览量统计为完全可选功能**。
+> 💡 **说明**：**文章浏览量统计为完全可选功能**。
 > - **零数据库超轻量模式（默认）**：若未配置统计服务，博客自动以纯静态/零数据库模式运行，前端不展示阅读计数与热门火焰角标，浏览器端完全不发送任何上报请求，性能极致轻快。所有文章展示、TOC 目录、分类标签、代码高亮、Giscus 评论等核心功能 100% 正常使用。
-> - **⭐ 方案 1：Umami 统计（强烈推荐，免数据库零配置）**：
+> - **Umami 统计（免数据库零配置）**：
 >   原生接入开源现代统计 [Umami](https://umami.is/)（支持官方免费云端 Umami Cloud 或自建实例）。**完全无需任何传统数据库，无需建表**，彻底免除 Cloudflare D1 权限报错！只需配置 `UMAMI_WEBSITE_ID` 与 `UMAMI_API_KEY`，即可获得文章阅读量、首页 Top 3 热门置顶以及精美的独立可视化访客大屏。
-> - **方案 2：Cloudflare D1（专为 Cloudflare Workers 原生设计）**：基于 Cloudflare 边缘 SQLite。
-> - **方案 3：Supabase（专为 PostgreSQL 跨平台设计）**：基于 Supabase 托管 PostgreSQL。
 
-| 环境变量 | 必填/可选 | 说明 |
-| :--- | :---: | :--- |
-| `UMAMI_WEBSITE_ID` | **必填** (开启 Umami 时) | Umami 站点 UUID，配置后系统自动优先以 Umami 引擎运行并剥离 D1 绑定 |
-| `UMAMI_API_KEY` | **建议配置** | 用于服务端安全拉取文章浏览量与计算首页 Top 3 热门文章排行 |
-| `UMAMI_HOST` | 可选 | 默认 `https://cloud.umami.is`（自建实例填自建域名如 `https://analytics.example.com`） |
+| 环境变量 | 配置位置 | 必填/可选 | 说明 |
+| :--- | :---: | :---: | :--- |
+| `UMAMI_WEBSITE_ID` | Variables / Secrets | **必填** (开启统计时) | Umami 站点 UUID，配置后系统自动激活统计服务 |
+| `UMAMI_API_KEY` | Secrets | **建议配置** | 用于服务端安全拉取文章浏览量与计算首页 Top 3 热门文章排行 |
+| `UMAMI_HOST` | Variables | 可选 | 默认 `https://cloud.umami.is`（自建实例填自建域名如 `https://analytics.example.com`） |
+| `ENABLE_UMAMI_SCRIPT` | Variables | 可选 | 默认为 `true`（客户端注入轻量追踪脚本） |
 
-> 📖 **关于三种统计引擎的详细配置流程、权限说明与切换方式，请查阅完整指南**：👉 [**`docs/数据库配置.md`**](docs/数据库配置.md)
+> 📖 **关于获取 Website ID、API Key 与完整接入配置，请查阅**：👉 [**`docs/Umami接入.md`**](docs/Umami接入.md)
 
 ---
 
@@ -120,10 +117,8 @@
   支持随时在 GitHub Actions 页面（选择 `Force Purge All Caches`）或 **Pages CMS** 后台一键手动触发全网 CDN 强刷。
   - **功能**：重新生成文章清单，通知博客服务端预热，并调用 Cloudflare / Netlify / Vercel 官方控制平面毫秒级强制清空全球边缘节点缓存。
   - 💡 **安全解耦特性（自动跳过未配置平台）**：工作流内置严格的凭证判空守卫。若你仅部署了其中某一平台（如 Cloudflare），工作流会自动检测并安全跳过未配置的其他平台，整个流程保持 100% 成功状态（绿色对勾 ✅），绝不报错阻断。
-- **切换统计与数据库后端**：
-  直接在 GitHub Actions 中重新运行 **Deploy to Cloudflare Workers**，在下拉框中自由选择 `auto`、`umami`、`d1`、`supabase` 或 `none` 重新构建部署即可无缝切换！
-- **查看后端运行状态**：
-  访问 `/api/stats/status` 端点可直接查看当前应用实例正连接的引擎类型（`umami` / `supabase` / `d1` / `none`）。
+- **查看统计与运行状态**：
+  访问 `/api/stats/status` 端点可直接查看当前 Umami 统计引擎的运行状态与配置详情（`provider` 为 `umami` 或 `none`）。
 
 ---
 
@@ -132,7 +127,7 @@
 ```text
 .
 ├── .github/workflows/
-│   ├── deploy.yml            # Cloudflare Workers 部署工作流（支持切换数据库）
+│   ├── deploy.yml            # Cloudflare Workers 部署工作流
 │   ├── deploy-vercel.yml     # Vercel Edge 自动化部署与环境变量同步工作流
 │   ├── deploy-netlify.yml    # Netlify Edge 自动化部署与环境变量同步工作流
 │   ├── sync-posts.yml        # 文章自动同步与缓存热刷新工作流
@@ -149,15 +144,11 @@
 ├── posts/                    # 文章存放目录 (Markdown)
 │   ├── manifest.json         # 自动生成的文章元数据清单
 │   └── *.md                  # 文章源文件
-├── db/
-│   ├── schema.sql            # Cloudflare D1 数据库初始化脚本
-│   └── schema.supabase.sql   # Supabase PostgreSQL 初始化脚本与 RPC 函数
 ├── friends.json              # 友情链接数据源 (支持动态更新与自动刷新缓存)
 ├── public/                   # 静态资源 (头像、背景图、Favicon 等)
 ├── scripts/
 │   ├── gen-manifest.mjs      # 文章清单生成脚本
 │   ├── prepare-wrangler.mjs  # CI/CD 环境变量动态注入与配置清理脚本
-│   ├── init-supabase.mjs     # Supabase 数据表与 RPC 自动初始化脚本
 │   ├── deploy-vercel.mjs     # Vercel 自动化部署与环境变量同步脚本
 │   └── deploy-netlify.mjs    # Netlify 自动化部署与环境变量同步脚本
 ├── src/
@@ -165,7 +156,7 @@
 │   ├── pages/                # 页面路由控制器 (首页、文章详情、归档、关于)
 │   ├── routes/               # API 路由 (/api/posts, /api/stats, /sitemap.xml 等)
 │   ├── services/
-│   │   ├── db/               # 统一数据与统计抽象层 (Umami, D1 与 Supabase 驱动实现)
+│   │   ├── db/               # Umami 统计客户端与缓存抽象层
 │   │   ├── storage.ts        # 基于 unstorage 的统一键值存储服务
 │   │   ├── github.ts         # GitHub 内容拉取与多级缓存服务
 │   │   └── stats.ts          # 阅读量统计与热门榜单业务代理
