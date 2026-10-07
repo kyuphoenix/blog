@@ -10,11 +10,18 @@ import { i18n, I18nKey } from '../i18n/index.js'
 const home = new Hono<AppEnv>()
 
 home.get('/', async (c) => {
-  const { page, pageSize, offset } = parsePagination(c.req.query())
+  const [siteConfig, { categories, tags }, manifestRaw] = await Promise.all([
+    getBlogConfig(c.env),
+    getSidebarData(c.env),
+    getManifest(c.env),
+  ])
+
+  const configuredPageSize = siteConfig.pagination?.pageSize ?? siteConfig.pageSize ?? 10
+  const { page, pageSize, offset, isPaginated } = parsePagination(c.req.query(), configuredPageSize)
   const category = c.req.query('category')
   const tag = c.req.query('tag')
 
-  let manifest = (await getManifest(c.env)).filter(
+  let manifest = manifestRaw.filter(
     (p) => p.draft !== true && (p.draft as any) !== 'true'
   )
 
@@ -29,17 +36,19 @@ home.get('/', async (c) => {
   manifest.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
   const total = manifest.length
-  const totalPages = Math.ceil(total / pageSize)
-  const displayPosts: PostCardItem[] = manifest.slice(offset, offset + pageSize)
-
-  const [siteConfig, { categories, tags }] = await Promise.all([
-    getBlogConfig(c.env),
-    getSidebarData(c.env),
-  ])
+  const totalPages = isPaginated && pageSize > 0 ? Math.ceil(total / pageSize) : 1
+  const displayPosts: PostCardItem[] = isPaginated && pageSize > 0
+    ? manifest.slice(offset, offset + pageSize)
+    : manifest
 
   let baseUrl = '/'
   if (category) baseUrl = `/?category=${encodeURIComponent(category)}`
   else if (tag) baseUrl = `/?tag=${encodeURIComponent(tag)}`
+
+  let currentPath = baseUrl
+  if (page > 1) {
+    currentPath = baseUrl.includes('?') ? `${baseUrl}&page=${page}` : `/?page=${page}`
+  }
 
   let pageTitle = undefined
   let pageDescription = undefined
@@ -57,8 +66,8 @@ home.get('/', async (c) => {
     <Layout
       title={pageTitle}
       description={pageDescription}
-      currentPath={category ? `/?category=${encodeURIComponent(category)}` : tag ? `/?tag=${encodeURIComponent(tag)}` : '/'}
-      isHomePage={!category && !tag}
+      currentPath={currentPath}
+      isHomePage={!category && !tag && page <= 1}
       categories={categories}
       tags={tags}
       blogUrl={c.env.BLOG_URL || new URL(c.req.url).origin}
@@ -99,7 +108,9 @@ home.get('/', async (c) => {
         </div>
       )}
 
-      <Pagination currentPage={page} totalPages={totalPages} baseUrl={baseUrl} lang={siteConfig.lang} />
+      {isPaginated && totalPages > 1 && (
+        <Pagination currentPage={page} totalPages={totalPages} baseUrl={baseUrl} lang={siteConfig.lang} />
+      )}
     </Layout>
   )
 })

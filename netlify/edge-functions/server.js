@@ -18347,6 +18347,9 @@ var blog_config_default = {
   description: "\u8FD9\u662F\u6211\u7684\u4E2A\u4EBA\u7F51\u7AD9\u548C\u535A\u5BA2\u3002\u5728\u8FD9\u91CC\uFF0C\u6211\u4E3B\u8981\u5206\u4EAB\u4E0E\u6280\u672F\u548C\u751F\u6D3B\u76F8\u5173\u7684\u5185\u5BB9\u3002\u6B22\u8FCE\u9605\u8BFB\uFF01",
   lang: "zh_CN",
   repository: "https://github.com/kyuphoenix/blog",
+  pagination: {
+    pageSize: 10
+  },
   nav: [
     { label: "\u9996\u9875", url: "/" },
     { label: "\u5F52\u6863", url: "/archive" },
@@ -18393,6 +18396,10 @@ var blogConfig = {
   description: blog_config_default.description || "\u8FD9\u662F\u6211\u7684\u4E2A\u4EBA\u7F51\u7AD9\u548C\u535A\u5BA2\u3002\u5728\u8FD9\u91CC\uFF0C\u6211\u4E3B\u8981\u5206\u4EAB\u4E0E\u6280\u672F\u548C\u751F\u6D3B\u76F8\u5173\u7684\u5185\u5BB9\u3002\u6B22\u8FCE\u9605\u8BFB\uFF01",
   lang: blog_config_default.lang || "zh_CN",
   repository: blog_config_default.repository || "https://github.com/kyuphoenix/blog",
+  pagination: {
+    pageSize: Number(blog_config_default.pagination?.pageSize ?? blog_config_default.pageSize ?? 10)
+  },
+  pageSize: Number(blog_config_default.pagination?.pageSize ?? blog_config_default.pageSize ?? 10),
   nav: blog_config_default.nav || [
     { label: "\u9996\u9875", url: "/" },
     { label: "\u5F52\u6863", url: "/archive" },
@@ -18612,6 +18619,10 @@ async function getBlogConfig(env) {
         author: parsed.author || blogConfig.author,
         description: parsed.description || blogConfig.description,
         repository: parsed.repository || blogConfig.repository,
+        pagination: {
+          pageSize: typeof parsed.pagination?.pageSize === "number" ? parsed.pagination.pageSize : typeof parsed.pageSize === "number" ? parsed.pageSize : blogConfig.pagination?.pageSize ?? 10
+        },
+        pageSize: typeof parsed.pagination?.pageSize === "number" ? parsed.pagination.pageSize : typeof parsed.pageSize === "number" ? parsed.pageSize : blogConfig.pagination?.pageSize ?? 10,
         nav: Array.isArray(parsed.nav) ? parsed.nav : blogConfig.nav,
         social: Array.isArray(parsed.social) ? parsed.social : blogConfig.social,
         icons: {
@@ -18891,7 +18902,7 @@ var paginated = (c, data, total, page, pageSize) => {
       page,
       pageSize,
       total,
-      totalPages: Math.ceil(total / pageSize)
+      totalPages: pageSize > 0 ? Math.ceil(total / pageSize) : 1
     }
   });
 };
@@ -18903,14 +18914,20 @@ var fail = (c, message, status = 400) => {
 var DEFAULT_PAGE = 1;
 var DEFAULT_PAGE_SIZE = 10;
 var MAX_PAGE_SIZE = 100;
-var parsePagination = (query) => {
+var parsePagination = (query, configPageSize = DEFAULT_PAGE_SIZE) => {
   let page = parseInt(query.page || String(DEFAULT_PAGE), 10);
-  let pageSize = parseInt(query.pageSize || String(DEFAULT_PAGE_SIZE), 10);
   if (isNaN(page) || page < 1) page = DEFAULT_PAGE;
-  if (isNaN(pageSize) || pageSize < 1) pageSize = DEFAULT_PAGE_SIZE;
+  if (typeof configPageSize === "number" && configPageSize <= 0) {
+    return { page: 1, pageSize: 0, offset: 0, isPaginated: false };
+  }
+  let pageSize = parseInt(query.pageSize || String(configPageSize), 10);
+  if (isNaN(pageSize) || pageSize < 0) pageSize = configPageSize;
   if (pageSize > MAX_PAGE_SIZE) pageSize = MAX_PAGE_SIZE;
+  if (pageSize <= 0) {
+    return { page: 1, pageSize: 0, offset: 0, isPaginated: false };
+  }
   const offset = (page - 1) * pageSize;
-  return { page, pageSize, offset };
+  return { page, pageSize, offset, isPaginated: true };
 };
 
 // src/utils/cache.ts
@@ -19194,11 +19211,16 @@ async function purgePlatformCaches(env, options) {
 // src/routes/posts.ts
 var posts = new Hono2();
 posts.get("/", async (c) => {
-  const { page, pageSize, offset } = parsePagination(c.req.query());
+  const [siteConfig, manifestRaw] = await Promise.all([
+    getBlogConfig(c.env),
+    getManifest(c.env)
+  ]);
+  const configuredPageSize = siteConfig.pagination?.pageSize ?? siteConfig.pageSize ?? 10;
+  const { page, pageSize, offset, isPaginated } = parsePagination(c.req.query(), configuredPageSize);
   const category = c.req.query("category");
   const tag = c.req.query("tag");
   const keyword = c.req.query("keyword");
-  let manifest = await getManifest(c.env);
+  let manifest = manifestRaw;
   manifest = manifest.filter((p) => p.draft !== true && p.draft !== "true");
   if (category) {
     manifest = manifest.filter((p) => p.category === category);
@@ -19214,9 +19236,9 @@ posts.get("/", async (c) => {
   }
   manifest.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   const total = manifest.length;
-  const paged = manifest.slice(offset, offset + pageSize);
+  const paged = isPaginated && pageSize > 0 ? manifest.slice(offset, offset + pageSize) : manifest;
   setTieredCache(c, { tags: ["api", "posts"] });
-  return paginated(c, paged, total, page, pageSize);
+  return paginated(c, paged, total, page, isPaginated ? pageSize : total);
 });
 posts.get("/categories", async (c) => {
   const manifest = await getManifest(c.env);
@@ -22518,6 +22540,7 @@ var Pagination = ({
 }) => {
   if (totalPages <= 1) return null;
   const buildUrl = (page) => {
+    if (page === 1) return baseUrl;
     const separator = baseUrl.includes("?") ? "&" : "?";
     return `${baseUrl}${separator}page=${page}`;
   };
@@ -23002,10 +23025,16 @@ var LicenseCard = ({ title: title2, url, date, siteConfig }) => {
 // src/pages/home.tsx
 var home = new Hono2();
 home.get("/", async (c) => {
-  const { page, pageSize, offset } = parsePagination(c.req.query());
+  const [siteConfig, { categories, tags }, manifestRaw] = await Promise.all([
+    getBlogConfig(c.env),
+    getSidebarData(c.env),
+    getManifest(c.env)
+  ]);
+  const configuredPageSize = siteConfig.pagination?.pageSize ?? siteConfig.pageSize ?? 10;
+  const { page, pageSize, offset, isPaginated } = parsePagination(c.req.query(), configuredPageSize);
   const category = c.req.query("category");
   const tag = c.req.query("tag");
-  let manifest = (await getManifest(c.env)).filter(
+  let manifest = manifestRaw.filter(
     (p) => p.draft !== true && p.draft !== "true"
   );
   if (category) {
@@ -23016,15 +23045,15 @@ home.get("/", async (c) => {
   }
   manifest.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   const total = manifest.length;
-  const totalPages = Math.ceil(total / pageSize);
-  const displayPosts = manifest.slice(offset, offset + pageSize);
-  const [siteConfig, { categories, tags }] = await Promise.all([
-    getBlogConfig(c.env),
-    getSidebarData(c.env)
-  ]);
+  const totalPages = isPaginated && pageSize > 0 ? Math.ceil(total / pageSize) : 1;
+  const displayPosts = isPaginated && pageSize > 0 ? manifest.slice(offset, offset + pageSize) : manifest;
   let baseUrl = "/";
   if (category) baseUrl = `/?category=${encodeURIComponent(category)}`;
   else if (tag) baseUrl = `/?tag=${encodeURIComponent(tag)}`;
+  let currentPath = baseUrl;
+  if (page > 1) {
+    currentPath = baseUrl.includes("?") ? `${baseUrl}&page=${page}` : `/?page=${page}`;
+  }
   let pageTitle = void 0;
   let pageDescription = void 0;
   if (category) {
@@ -23041,8 +23070,8 @@ home.get("/", async (c) => {
       {
         title: pageTitle,
         description: pageDescription,
-        currentPath: category ? `/?category=${encodeURIComponent(category)}` : tag ? `/?tag=${encodeURIComponent(tag)}` : "/",
-        isHomePage: !category && !tag,
+        currentPath,
+        isHomePage: !category && !tag && page <= 1,
         categories,
         tags,
         blogUrl: c.env.BLOG_URL || new URL(c.req.url).origin,
@@ -23079,7 +23108,7 @@ home.get("/", async (c) => {
               children: i18n("noPosts" /* noPosts */, siteConfig.lang)
             }
           ) : /* @__PURE__ */ jsxDEV("div", { class: "flex flex-col gap-4", children: displayPosts.map((post, i2) => /* @__PURE__ */ jsxDEV(PostCard, { post, index: i2, lang: siteConfig.lang })) }),
-          /* @__PURE__ */ jsxDEV(Pagination, { currentPage: page, totalPages, baseUrl, lang: siteConfig.lang })
+          isPaginated && totalPages > 1 && /* @__PURE__ */ jsxDEV(Pagination, { currentPage: page, totalPages, baseUrl, lang: siteConfig.lang })
         ]
       }
     )

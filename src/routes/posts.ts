@@ -12,12 +12,17 @@ const posts = new Hono<AppEnv>()
  * GET /api/posts?page=1&pageSize=10&category=xxx&tag=xxx
  */
 posts.get('/', async (c) => {
-  const { page, pageSize, offset } = parsePagination(c.req.query())
+  const [siteConfig, manifestRaw] = await Promise.all([
+    getBlogConfig(c.env),
+    getManifest(c.env),
+  ])
+  const configuredPageSize = siteConfig.pagination?.pageSize ?? siteConfig.pageSize ?? 10
+  const { page, pageSize, offset, isPaginated } = parsePagination(c.req.query(), configuredPageSize)
   const category = c.req.query('category')
   const tag = c.req.query('tag')
   const keyword = c.req.query('keyword')
 
-  let manifest = await getManifest(c.env)
+  let manifest = manifestRaw
 
   // 过滤草稿
   manifest = manifest.filter((p) => p.draft !== true && (p.draft as any) !== 'true')
@@ -46,10 +51,10 @@ posts.get('/', async (c) => {
   manifest.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
   const total = manifest.length
-  const paged = manifest.slice(offset, offset + pageSize)
+  const paged = isPaginated && pageSize > 0 ? manifest.slice(offset, offset + pageSize) : manifest
 
   setTieredCache(c, { tags: ['api', 'posts'] })
-  return paginated(c, paged, total, page, pageSize)
+  return paginated(c, paged, total, page, isPaginated ? pageSize : total)
 })
 
 /**

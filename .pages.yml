@@ -135,6 +135,15 @@ content:
         type: string
         default: https://github.com/kyuphoenix/blog
         description: 博客的开源代码仓库链接，展示在网站页脚
+      - name: pagination
+        label: 分页配置
+        type: object
+        fields:
+          - name: pageSize
+            label: 每页文章数 (Page Size)
+            type: number
+            default: 10
+            description: 首页与文章列表每页显示的文章篇数。默认为 10；若填入 0 则不分页，展示全部文章。
       - name: theme
         label: 主题与外观
         type: object
