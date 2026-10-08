@@ -51,6 +51,8 @@ jobs:
                 const payload = JSON.parse(process.env.INPUT_PAYLOAD);
                 if (payload?.inputs?.stats_mode) {
                   statsMode = payload.inputs.stats_mode;
+                } else if (payload?.inputs?.database_type) {
+                  statsMode = payload.inputs.database_type === 'none' ? 'none' : 'auto';
                 }
               } catch (e) {
                 console.warn("Could not parse Pages CMS payload:", e.message);
