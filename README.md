@@ -6,13 +6,6 @@
 
 ## ✨ 核心特性
 
-- 🗄️ **免数据库超轻量架构与 Umami 访问统计 (Zero-Database & Umami Analytics)**：
-  - **100% 零数据库依赖**：全面摒弃传统关系型数据库（无需 Cloudflare D1，无需 Supabase），从根源杜绝 Cloudflare API 权限不足报错以及繁琐的 SQL 建表与迁移。
-  - **原生 Umami 统计整合**：接入开源现代化统计平台 [Umami](https://umami.is/)（支持官方免费云端 Umami Cloud 或自建实例），自带精美独立访客分析大屏（PV/UV、渠道、跳出率等）。
-  - **双重防刷与防拦截上报**：前端嵌入官方轻量脚本；若客户端开启了 Adblock 去广告插件，服务端自动无感知代理兜底上报。
-  - **纯异步渲染与容灾隐藏（零拖累首屏 TTFB）**：首页与详情页服务端直出完全不等待统计上报，0ms 阻塞；浏览量由前端后台静默异步拉取，若请求失败、超时或未配置则自动保持隐藏，绝无空数据或报错干扰。首页严格按时间倒序排列，最新文章排在最上方。
-  - **四层配额与防卡死保护**：内置 5 分钟进程内存缓存 + 30 分钟分布式边缘 KV 缓存（一天最多写入 48 次，配额消耗仅 4.8%，彻底远离每天 1,000 次免费写入红线），外加 2 秒严格超时熔断与历史快照容灾。
-  - **纯零统计极速模式**：若未配置 Umami，博客自动以纯静态/零统计模式运行，不展示阅读计数，不发送任何统计请求，性能极致轻快。
 - 📝 **Git 驱动与内容解耦**：
   - 文章统一存放在 `posts/*.md` 中，Worker 代码体积极小（不包含任何文章正文）。
   - 运行时动态拉取 GitHub Raw 内容，结合 KV/内存多级缓存加速。
@@ -23,6 +16,10 @@
 - 💬 **Giscus 评论系统深度定制**：
   - 免数据库 GitHub Discussions 评论系统，外观深度重构贴合博客主题。
   - 配备富文本格式快捷栏（粗体、斜体、代码、引用、列表等）与实时表情互动。
+- 🗄️ **Umami 访问统计 (Zero-Database & Umami Analytics)**：
+  - **原生 Umami 统计整合**：接入开源现代化统计平台 [Umami](https://umami.is/)（支持官方免费云端 Umami Cloud 或自建实例）。
+  - **纯异步渲染与容灾隐藏（零拖累首屏 TTFB）**：首页与详情页服务端直出完全不等待统计上报，0ms 阻塞；浏览量由前端后台静默异步拉取，若请求失败、超时或未配置则自动保持隐藏，绝无空数据或报错干扰。首页严格按时间倒序排列，最新文章排在最上方。
+  - **纯零统计极速模式**：若未配置 Umami，博客自动以纯静态/零统计模式运行，不展示阅读计数，不发送任何统计请求，性能极致轻快。
 
 ---
 
@@ -114,8 +111,9 @@
   - 进入 GitHub 仓库的 **Actions** 标签页，在左侧选择 **Sync Template Updates**。
   - 点击 **Run workflow** -> 选择 `direct`（直接合并）即可一键同步！工作流会自动精准关联上游历史，安全保留你自定义的文章（`posts/`）、站点配置（`blog.config.json`）与友链（`friends.json`）。
   - 💡 **自动部署提示**：若希望代码同步合并后**立即自动触发后续部署工作流**，可在仓库 Secrets 中配置个人访问令牌 `PAT_TOKEN`（或 `GH_TOKEN`），以绕过 GitHub 默认 Token 的防递归触发机制。
-- **手动一键强刷全网 CDN 缓存 (Force Purge All Caches)**：
-  支持随时在 GitHub Actions 页面（选择 `Force Purge All Caches`）或 **Pages CMS** 后台一键手动触发全网 CDN 强刷。
+- **文章同步与缓存管理 (Sync Posts & Manage Cache)**：
+  支持随时在 GitHub Actions 页面（选择 `Sync Posts & Manage Cache`）或 **Pages CMS** 后台一键手动触发。
+  - **下拉框自由选择**：支持【全部执行】、【清除 KV 缓存并重新拉取】或【仅清除 CDN 缓存】。
   - **功能**：重新生成文章清单，通知博客服务端预热，并调用 Cloudflare / Netlify / Vercel 官方控制平面毫秒级强制清空全球边缘节点缓存。
   - 💡 **安全解耦特性（自动跳过未配置平台）**：工作流内置严格的凭证判空守卫。若你仅部署了其中某一平台（如 Cloudflare），工作流会自动检测并安全跳过未配置的其他平台，整个流程保持 100% 成功状态（绿色对勾 ✅），绝不报错阻断。
 - **查看统计与运行状态**：
@@ -128,11 +126,8 @@
 ```text
 .
 ├── .github/workflows/
-│   ├── deploy.yml            # Cloudflare Workers 部署工作流
-│   ├── deploy-vercel.yml     # Vercel Edge 自动化部署与环境变量同步工作流
-│   ├── deploy-netlify.yml    # Netlify Edge 自动化部署与环境变量同步工作流
-│   ├── sync-posts.yml        # 文章自动同步与缓存热刷新工作流
-│   ├── purge-cache.yml       # 手动一键强刷全球 CDN 缓存工作流 (支持多平台解耦跳过)
+│   ├── deploy.yml            # 多平台自动化部署工作流 (Cloudflare / Vercel / Netlify 下拉选择)
+│   ├── sync-posts.yml        # 文章同步与缓存管理工作流 (更新清单 / 刷新 KV / 清除 CDN 下拉选择)
 │   └── sync-template.yml     # 一键从上游模板仓库同步最新功能与修复工作流
 ├── .pages.yml                # Pages CMS 可视化内容管理后台配置文件
 ├── blog.config.json          # 博客全局基础设置 (标题、作者、头像、背景图、主题色等)

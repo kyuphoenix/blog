@@ -1,9 +1,19 @@
-name: Deploy to Cloudflare Workers
+name: Deploy Blog
 
 # 仅允许手动运行触发部署
 on:
   workflow_dispatch:
     inputs:
+      platform:
+        description: '选择部署平台 (cloudflare: Cloudflare Workers, vercel: Vercel, netlify: Netlify, all: 全平台部署)'
+        required: true
+        default: 'cloudflare'
+        type: choice
+        options:
+          - cloudflare
+          - vercel
+          - netlify
+          - all
       stats_mode:
         description: '选择访问量统计模式 (auto: 自动检测 Umami 配置, none: 关闭统计)'
         required: false
@@ -12,21 +22,25 @@ on:
         options:
           - auto
           - none
+      site_id:
+        description: 'Netlify 站点 ID (可选，仅 Netlify 部署时生效，留空则自动复用现有站点)'
+        required: false
+        type: string
       payload:
         description: 'Pages CMS 上下文 Payload'
         required: false
         type: string
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: deploy-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    name: Deploy to Cloudflare
+    name: Deploy Blog
     permissions:
-      contents: read
+      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -41,29 +55,45 @@ jobs:
           cache: 'pnpm'
 
       # 解析 Pages CMS 传入的上下文 Payload 与字段输入
-      - name: Parse Pages CMS payload inputs
+      - name: Parse inputs and Pages CMS payload
         run: |
           node -e '
             const fs = require("fs");
-            let statsMode = process.env.INPUT_STATS_MODE;
+            let platform = process.env.INPUT_PLATFORM || "cloudflare";
+            let statsMode = process.env.INPUT_STATS_MODE || "auto";
+            let siteId = process.env.INPUT_SITE_ID || "";
             if (process.env.INPUT_PAYLOAD) {
               try {
                 const payload = JSON.parse(process.env.INPUT_PAYLOAD);
+                if (payload?.inputs?.platform) {
+                  platform = payload.inputs.platform;
+                }
                 if (payload?.inputs?.stats_mode) {
                   statsMode = payload.inputs.stats_mode;
                 } else if (payload?.inputs?.database_type) {
-                  statsMode = payload.inputs.database_type === 'none' ? 'none' : 'auto';
+                  statsMode = payload.inputs.database_type === "none" ? "none" : "auto";
+                }
+                if (payload?.inputs?.site_id) {
+                  siteId = payload.inputs.site_id;
                 }
               } catch (e) {
                 console.warn("Could not parse Pages CMS payload:", e.message);
               }
             }
+            console.log("Selected target platform:", platform);
+            console.log("Stats mode:", statsMode);
+            fs.appendFileSync(process.env.GITHUB_ENV, `DEPLOY_PLATFORM=${platform}\n`);
             if (statsMode === "none") {
               fs.appendFileSync(process.env.GITHUB_ENV, `DISABLE_STATS=true\n`);
             }
+            if (siteId) {
+              fs.appendFileSync(process.env.GITHUB_ENV, `NETLIFY_SITE_ID=${siteId}\n`);
+            }
           '
         env:
+          INPUT_PLATFORM: ${{ github.event.inputs.platform }}
           INPUT_STATS_MODE: ${{ github.event.inputs.stats_mode }}
+          INPUT_SITE_ID: ${{ github.event.inputs.site_id }}
           INPUT_PAYLOAD: ${{ github.event.inputs.payload }}
 
       - name: Install dependencies
@@ -72,13 +102,17 @@ jobs:
       - name: Generate post manifest
         run: pnpm gen:manifest
 
-      - name: Build client assets (Swup & Tailwind CSS)
+      # ----------------------------------------------------
+      # 1. Cloudflare Workers 部署
+      # ----------------------------------------------------
+      - name: Build client assets for Cloudflare (Swup & Tailwind CSS)
+        if: ${{ env.DEPLOY_PLATFORM == 'cloudflare' || env.DEPLOY_PLATFORM == 'all' }}
         run: |
           pnpm build:js
           pnpm build:css
 
-      # 注入 Cloudflare 基础设施与有效环境变量（未配置的可选变量如 BLOG_URL 将由脚本自动忽略）
       - name: Prepare wrangler.jsonc infrastructure config
+        if: ${{ env.DEPLOY_PLATFORM == 'cloudflare' || env.DEPLOY_PLATFORM == 'all' }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
@@ -98,15 +132,15 @@ jobs:
           GISCUS_CATEGORY_ID: ${{ vars.GISCUS_CATEGORY_ID }}
         run: pnpm prepare:wrangler
 
-      # 部署到 Cloudflare Workers（所有非敏感有效变量已由 prepare-wrangler 动态写入 wrangler.jsonc，缺失项自动安全跳过）
       - name: Deploy to Cloudflare Workers
+        if: ${{ env.DEPLOY_PLATFORM == 'cloudflare' || env.DEPLOY_PLATFORM == 'all' }}
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
 
-      # 将敏感凭据（PURGE_SECRET、UMAMI_API_KEY 等）作为加密 Secret 同步到 Cloudflare Worker
       - name: Sync Cloudflare Worker Secrets
+        if: ${{ env.DEPLOY_PLATFORM == 'cloudflare' || env.DEPLOY_PLATFORM == 'all' }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID }}
@@ -115,3 +149,61 @@ jobs:
           UMAMI_API_KEY: ${{ secrets.UMAMI_API_KEY || vars.UMAMI_API_KEY }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: pnpm sync:cf-secrets
+
+      # ----------------------------------------------------
+      # 2. Vercel 部署
+      # ----------------------------------------------------
+      - name: Deploy to Vercel
+        if: ${{ env.DEPLOY_PLATFORM == 'vercel' || env.DEPLOY_PLATFORM == 'all' }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN || secrets.VERCEL_API_KEY || secrets.VERCEL_AUTH_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID || vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID || vars.VERCEL_PROJECT_ID }}
+          VERCEL_PROJECT_NAME: ${{ vars.VERCEL_PROJECT_NAME || vars.PROJECT_NAME || 'honoki' }}
+          UMAMI_HOST: ${{ vars.UMAMI_HOST || secrets.UMAMI_HOST }}
+          UMAMI_WEBSITE_ID: ${{ vars.UMAMI_WEBSITE_ID || secrets.UMAMI_WEBSITE_ID }}
+          UMAMI_API_KEY: ${{ secrets.UMAMI_API_KEY || vars.UMAMI_API_KEY }}
+          UMAMI_SCRIPT_URL: ${{ vars.UMAMI_SCRIPT_URL }}
+          ENABLE_UMAMI_SCRIPT: ${{ vars.ENABLE_UMAMI_SCRIPT }}
+          BLOG_URL: ${{ vars.BLOG_URL || secrets.BLOG_URL }}
+          GH_OWNER: ${{ vars.GH_OWNER || vars.GITHUB_OWNER || github.repository_owner }}
+          GH_REPO: ${{ vars.GH_REPO || vars.GITHUB_REPO || github.event.repository.name }}
+          GH_BRANCH: ${{ vars.GH_BRANCH || vars.GITHUB_BRANCH || github.ref_name }}
+          GISCUS_REPO: ${{ vars.GISCUS_REPO }}
+          GISCUS_REPO_ID: ${{ vars.GISCUS_REPO_ID }}
+          GISCUS_CATEGORY: ${{ vars.GISCUS_CATEGORY }}
+          GISCUS_CATEGORY_ID: ${{ vars.GISCUS_CATEGORY_ID }}
+          PURGE_SECRET: ${{ secrets.PURGE_SECRET }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: pnpm deploy:vercel
+
+      # ----------------------------------------------------
+      # 3. Netlify 部署
+      # ----------------------------------------------------
+      - name: Build Netlify assets and edge functions
+        if: ${{ env.DEPLOY_PLATFORM == 'netlify' || env.DEPLOY_PLATFORM == 'all' }}
+        run: pnpm build:netlify
+
+      - name: Deploy to Netlify
+        if: ${{ env.DEPLOY_PLATFORM == 'netlify' || env.DEPLOY_PLATFORM == 'all' }}
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN || secrets.NETLIFY_TOKEN || secrets.NETLIFY_API_KEY }}
+          NETLIFY_SITE_ID: ${{ env.NETLIFY_SITE_ID || secrets.NETLIFY_SITE_ID || vars.NETLIFY_SITE_ID }}
+          NETLIFY_SITE_NAME: ${{ vars.NETLIFY_SITE_NAME || vars.SITE_NAME || '' }}
+          UMAMI_HOST: ${{ vars.UMAMI_HOST || secrets.UMAMI_HOST }}
+          UMAMI_WEBSITE_ID: ${{ vars.UMAMI_WEBSITE_ID || secrets.UMAMI_WEBSITE_ID }}
+          UMAMI_API_KEY: ${{ secrets.UMAMI_API_KEY || vars.UMAMI_API_KEY }}
+          UMAMI_SCRIPT_URL: ${{ vars.UMAMI_SCRIPT_URL }}
+          ENABLE_UMAMI_SCRIPT: ${{ vars.ENABLE_UMAMI_SCRIPT }}
+          BLOG_URL: ${{ vars.BLOG_URL || secrets.BLOG_URL }}
+          GH_OWNER: ${{ vars.GH_OWNER || vars.GITHUB_OWNER || github.repository_owner }}
+          GH_REPO: ${{ vars.GH_REPO || vars.GITHUB_REPO || github.event.repository.name }}
+          GH_BRANCH: ${{ vars.GH_BRANCH || vars.GITHUB_BRANCH || github.ref_name }}
+          GISCUS_REPO: ${{ vars.GISCUS_REPO }}
+          GISCUS_REPO_ID: ${{ vars.GISCUS_REPO_ID }}
+          GISCUS_CATEGORY: ${{ vars.GISCUS_CATEGORY }}
+          GISCUS_CATEGORY_ID: ${{ vars.GISCUS_CATEGORY_ID }}
+          PURGE_SECRET: ${{ secrets.PURGE_SECRET }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN || secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
+        run: pnpm deploy:netlify
