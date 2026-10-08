@@ -344,6 +344,11 @@ function initInstantPreload(swup: Swup) {
 
   // 4. 空闲调度预加载核心页签 (首页、归档、友链、关于)
   function preloadCoreLinks() {
+    // 本地开发环境 (localhost / 127.0.0.1) 下跳过后台自动全量预取，避免刷新页面时产生大量并发背景请求导致 Dev 变慢
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return
+    }
+
     const coreLinks = document.querySelectorAll<HTMLAnchorElement>(
       '#fuwari-navbar nav a[href], #mobile-menu-panel nav a[href]'
     )
@@ -356,13 +361,13 @@ function initInstantPreload(swup: Swup) {
 
   const runIdle = (cb: () => void) => {
     if (typeof (window as any).requestIdleCallback === 'function') {
-      ;(window as any).requestIdleCallback(cb, { timeout: 2000 })
+      ;(window as any).requestIdleCallback(cb, { timeout: 3000 })
     } else {
-      setTimeout(cb, 400)
+      setTimeout(cb, 1200)
     }
   }
 
-  // 页面就绪后延迟 400ms 自动在后台静默预取核心页签
+  // 页面就绪后适度延迟自动在后台静默预取核心页签 (不抢占首屏关键资源渲染)
   runIdle(preloadCoreLinks)
 
   // 每次切页完成之后，亦在空闲时检查核心页签

@@ -371,62 +371,54 @@ actions:
     workflow: deploy.yml
     confirm:
       title: 部署 Worker 到 Cloudflare？
-      message: 触发 GitHub Actions 重新构建并部署 Cloudflare Worker。
+      message: 触发 GitHub Actions 重新构建并部署 Cloudflare Worker（零数据库架构，无需 D1 或 Supabase）。
       button: 确认部署
     fields:
-      - name: database_type
-        label: 数据库类型
+      - name: stats_mode
+        label: 访问量统计模式
         type: select
         required: true
         default: auto
         options:
-          - label: "自动检测 (Auto: 推荐，按配置凭证自动绑定)"
+          - label: "自动检测 (Auto: 推荐，按 Umami 环境变量自动启用)"
             value: auto
-          - label: Cloudflare D1 (无服务器 SQLite)
-            value: d1
-          - label: Supabase (PostgreSQL 云数据库)
-            value: supabase
-          - label: 不使用数据库 (纯静态模式 / 关闭统计)
+          - label: "关闭统计 (None: 纯静态模式，不加载任何统计)"
             value: none
   - name: deploy-vercel
     label: 部署到 Vercel
     workflow: deploy-vercel.yml
     confirm:
       title: 部署到 Vercel？
-      message: 触发 GitHub Actions 重新构建并部署到 Vercel。
+      message: 触发 GitHub Actions 重新构建并部署到 Vercel（零数据库架构）。
       button: 确认部署
     fields:
-      - name: database_type
-        label: 数据库类型
+      - name: stats_mode
+        label: 访问量统计模式
         type: select
         required: true
         default: auto
         options:
-          - label: "自动检测 (Auto: 推荐，按配置凭证自动绑定)"
+          - label: "自动检测 (Auto: 推荐，按 Umami 环境变量自动启用)"
             value: auto
-          - label: Supabase (PostgreSQL 云数据库)
-            value: supabase
-          - label: 不使用数据库 (纯静态模式 / 关闭统计)
+          - label: "关闭统计 (None: 纯静态模式，不加载任何统计)"
             value: none
   - name: deploy-netlify
     label: 部署到 Netlify
     workflow: deploy-netlify.yml
     confirm:
       title: 部署到 Netlify？
-      message: 触发 GitHub Actions 重新构建并部署到 Netlify。
+      message: 触发 GitHub Actions 重新构建并部署到 Netlify（零数据库架构）。
       button: 确认部署
     fields:
-      - name: database_type
-        label: 数据库类型
+      - name: stats_mode
+        label: 访问量统计模式
         type: select
         required: true
         default: auto
         options:
-          - label: "自动检测 (Auto: 推荐，按配置凭证自动绑定)"
+          - label: "自动检测 (Auto: 推荐，按 Umami 环境变量自动启用)"
             value: auto
-          - label: Supabase (PostgreSQL 云数据库)
-            value: supabase
-          - label: 不使用数据库 (纯静态模式 / 关闭统计)
+          - label: "关闭统计 (None: 纯静态模式，不加载任何统计)"
             value: none
       - name: site_id
         label: Netlify 站点 ID (可选，留空则自动按规范创建或复用)

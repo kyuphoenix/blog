@@ -128,6 +128,18 @@ function getMimeType(filename: string): string {
 app.get('/images/:path{.+}', async (c) => {
   const imagePath = c.req.param('path')
 
+  // 0. 优先尝试从 Cloudflare Workers 静态托管资源 (assets) 读取本地静态图片 (零网络往返，直接毫秒级返回)
+  if (c.env?.ASSETS && typeof c.env.ASSETS.fetch === 'function') {
+    try {
+      const assetRes = await c.env.ASSETS.fetch(c.req.raw)
+      if (assetRes.status === 200) {
+        return assetRes
+      }
+    } catch {
+      // 忽略 assets 异常，继续后续检查
+    }
+  }
+
   // 1. 优先尝试从 Cloudflare 原生 Cache API 读取
   let cache: any = null
   try {
@@ -155,7 +167,7 @@ app.get('/images/:path{.+}', async (c) => {
     return c.notFound()
   }
 
-  // 3. 从 GitHub Raw 拉取最新的图片资源
+  // 3. 从 GitHub Raw 拉取最新的图片资源（带 3 秒超时保护）
   const branch = (env.GH_BRANCH || env.GITHUB_BRANCH || 'main').trim()
   const githubUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/public/images/${encodeURI(imagePath)}`
 
@@ -167,8 +179,11 @@ app.get('/images/:path{.+}', async (c) => {
     headers['Authorization'] = `token ${token}`
   }
 
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), 3000)
+
   try {
-    const res = await fetch(githubUrl, { headers })
+    const res = await fetch(githubUrl, { headers, signal: controller.signal })
     if (!res.ok) {
       return c.notFound()
     }
@@ -199,9 +214,15 @@ app.get('/images/:path{.+}', async (c) => {
     }
 
     return response
-  } catch (err) {
-    console.error('Failed to fetch image from GitHub:', err)
+  } catch (err: any) {
+    if (err.name === 'AbortError') {
+      console.warn(`[Image Fetch Timeout] 拉取图片超时: ${githubUrl}`)
+    } else {
+      console.error('Failed to fetch image from GitHub:', err)
+    }
     return c.notFound()
+  } finally {
+    clearTimeout(timeoutId)
   }
 })
 

@@ -3,6 +3,34 @@ import type { PostMeta, Post, Manifest, FriendLink, AboutContent } from '../type
 import { parseFrontmatter, estimateReadingTime, extractExcerpt } from '../utils/markdown.js'
 import { getBlogStorage } from './storage.js'
 import { blogConfig as defaultBlogConfig, BlogConfig } from '../blog.config.js'
+import defaultFriendsRaw from '../../friends.json' with { type: 'json' }
+import defaultManifestRaw from '../../posts/manifest.json' with { type: 'json' }
+
+/**
+ * 判定是否处于本地开发环境
+ */
+export function isDevMode(env?: AppEnv['Bindings']): boolean {
+  if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development') return true
+  if (env?.BLOG_URL?.includes('localhost') || env?.BLOG_URL?.includes('127.0.0.1')) return true
+  if (typeof process !== 'undefined' && (process.env?.BLOG_URL?.includes('localhost') || process.env?.BLOG_URL?.includes('127.0.0.1'))) return true
+  if (env?.DEPLOY_PLATFORM === 'local') return true
+  return false
+}
+
+/**
+ * 本地开发环境下尝试直接读取工作区磁盘文件 (避免网络延迟与离线无法调试)
+ */
+async function readLocalFile(relativePath: string): Promise<string | null> {
+  try {
+    const fs = await import('node:fs')
+    const path = await import('node:path')
+    const fullPath = path.resolve(process.cwd(), relativePath)
+    if (fs.existsSync(fullPath)) {
+      return fs.readFileSync(fullPath, 'utf-8')
+    }
+  } catch {}
+  return null
+}
 
 /**
  * 获取底层持久化/内存缓存时长（秒）
@@ -55,11 +83,12 @@ function isGitHubConfigured(env: AppEnv['Bindings']): boolean {
 }
 
 /**
- * 从 GitHub 拉取文件内容
+ * 从 GitHub 拉取文件内容（带超时与异常熔断保护，默认 2500ms 超时，防止因网络受阻导致页面卡死）
  */
 async function fetchFromGitHub(
   url: string,
-  token?: string
+  token?: string,
+  timeoutMs = 2500
 ): Promise<string | null> {
   const headers: Record<string, string> = {
     'User-Agent': 'Blog-Worker',
@@ -68,21 +97,52 @@ async function fetchFromGitHub(
     headers['Authorization'] = `token ${token}`
   }
 
-  const res = await fetch(url, { headers })
-  if (!res.ok) {
-    if (res.status === 404) return null
-    throw new Error(`GitHub fetch failed: ${res.status} ${res.statusText}`)
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+
+  try {
+    const res = await fetch(url, { headers, signal: controller.signal })
+    if (!res.ok) {
+      if (res.status === 404) return null
+      console.warn(`[GitHub Fetch Failed] ${res.status} ${res.statusText}: ${url}`)
+      return null
+    }
+    return await res.text()
+  } catch (err: any) {
+    if (err.name === 'AbortError') {
+      console.warn(`[GitHub Timeout] 请求超时 (${timeoutMs}ms)，自动降级: ${url}`)
+      return null
+    }
+    console.warn(`[GitHub Error] ${err.message}: ${url}`)
+    return null
+  } finally {
+    clearTimeout(timer)
   }
-  return res.text()
 }
 
 /**
- * 获取文章清单（带 KV 缓存）
+ * 获取文章清单（带 KV 缓存与本地优先）
  */
 export async function getManifest(env: AppEnv['Bindings']): Promise<Manifest> {
+  const isDev = isDevMode(env)
   const storage = getBlogStorage(env)
 
-  // 先查缓存
+  // 1. 本地开发环境下，优先读取本地 posts/manifest.json 文件（秒级响应且支持本地实时更新）
+  if (isDev) {
+    const localContent = await readLocalFile('posts/manifest.json')
+    if (localContent) {
+      try {
+        const manifest = JSON.parse(localContent) as Manifest
+        storage.setItem(MANIFEST_CACHE_KEY, manifest, { ttl: 3600 }).catch(() => {})
+        return manifest
+      } catch {}
+    }
+    const builtin = getBuiltinManifest()
+    storage.setItem(MANIFEST_CACHE_KEY, builtin, { ttl: 3600 }).catch(() => {})
+    return builtin
+  }
+
+  // 2. 生产环境先查缓存
   try {
     const cached = await storage.getItem<Manifest>(MANIFEST_CACHE_KEY)
     if (cached) {
@@ -92,12 +152,12 @@ export async function getManifest(env: AppEnv['Bindings']): Promise<Manifest> {
     // 缓存不可用时忽略
   }
 
-  // GitHub 未配置时返回示例数据
+  // 3. GitHub 未配置时返回示例数据
   if (!isGitHubConfigured(env)) {
     return getBuiltinManifest()
   }
 
-  // 从 GitHub 拉取
+  // 4. 从 GitHub 拉取（带 2.5 秒超时）
   const { owner, repo, branch, token } = getGhConfig(env)
   const url = rawUrl(owner, repo, branch, 'posts/manifest.json')
   const content = await fetchFromGitHub(url, token)
@@ -106,18 +166,22 @@ export async function getManifest(env: AppEnv['Bindings']): Promise<Manifest> {
     return getBuiltinManifest()
   }
 
-  const manifest = JSON.parse(content) as Manifest
-
-  // 写入缓存
   try {
-    await storage.setItem(MANIFEST_CACHE_KEY, manifest, {
-      ttl: getCacheTtl(env),
-    })
-  } catch {
-    // 写入异常时忽略
-  }
+    const manifest = JSON.parse(content) as Manifest
 
-  return manifest
+    // 写入缓存
+    try {
+      await storage.setItem(MANIFEST_CACHE_KEY, manifest, {
+        ttl: getCacheTtl(env),
+      })
+    } catch {
+      // 写入异常时忽略
+    }
+
+    return manifest
+  } catch {
+    return getBuiltinManifest()
+  }
 }
 
 /**
@@ -160,18 +224,51 @@ export async function getPost(
       encodeURIComponent(p.title) === identifier
   )
 
-  // GitHub 未配置时返回示例文章
+  const isDev = isDevMode(env)
+
+  // 1. 本地开发环境：优先尝试直接读取本地 posts 目录下的真实 markdown 文件
+  if (isDev) {
+    const filePath = meta ? meta.path : `posts/${decoded}.md`
+    const localContent = await readLocalFile(filePath)
+    if (localContent) {
+      const { frontmatter, content } = parseFrontmatter(localContent)
+      const postTitle = meta?.title || frontmatter.title || decoded
+      const rawDraft = meta?.draft ?? frontmatter.draft
+      const isDraft = typeof rawDraft === 'boolean' ? rawDraft : (rawDraft === 'true' || rawDraft === 'yes')
+
+      const post: Post = {
+        title: postTitle,
+        date: meta?.date || frontmatter.date || new Date().toISOString().split('T')[0],
+        updated: meta?.updated || frontmatter.updated || undefined,
+        category: meta?.category || frontmatter.category || '未分类',
+        tags: meta?.tags || frontmatter.tags || [],
+        excerpt: meta?.excerpt || frontmatter.excerpt || extractExcerpt(content),
+        cover: meta?.cover || frontmatter.cover || frontmatter.image,
+        draft: isDraft,
+        slug: postTitle,
+        path: filePath,
+        readingTime: estimateReadingTime(content),
+        content,
+      }
+
+      storage.setItem(cacheKey, post, { ttl: 3600 }).catch(() => {})
+      return post
+    }
+  }
+
+  // 2. GitHub 未配置时返回示例文章
   if (!isGitHubConfigured(env)) {
     return getBuiltinPost(decoded)
   }
 
+  // 3. 从 GitHub 拉取（带 2.5 秒超时）
   const { owner, repo, branch, token } = getGhConfig(env)
   const filePath = meta ? meta.path : `posts/${decoded}.md`
   const url = rawUrl(owner, repo, branch, filePath)
   const raw = await fetchFromGitHub(url, token)
 
   if (!raw) {
-    return null
+    return getBuiltinPost(decoded)
   }
 
   // 解析 frontmatter 和内容
@@ -209,12 +306,33 @@ export async function getPost(
 }
 
 /**
- * 获取友情链接列表（带 KV 缓存）
+ * 获取友情链接列表（带 KV 缓存与本地优先）
  */
 export async function getFriends(env: AppEnv['Bindings']): Promise<FriendLink[]> {
+  const isDev = isDevMode(env)
   const storage = getBlogStorage(env)
 
-  // 1. 先查缓存
+  // 1. 本地开发环境下，优先读取本地 friends.json 文件
+  if (isDev) {
+    const localContent = await readLocalFile('friends.json')
+    if (localContent) {
+      try {
+        const data = JSON.parse(localContent)
+        const list: FriendLink[] = Array.isArray(data)
+          ? data
+          : data && Array.isArray(data.friends)
+          ? data.friends
+          : []
+        storage.setItem(FRIENDS_CACHE_KEY, list, { ttl: 3600 }).catch(() => {})
+        return list
+      } catch {}
+    }
+    const builtin = getBuiltinFriends()
+    storage.setItem(FRIENDS_CACHE_KEY, builtin, { ttl: 3600 }).catch(() => {})
+    return builtin
+  }
+
+  // 2. 生产环境先查缓存
   try {
     const cached = await storage.getItem<any>(FRIENDS_CACHE_KEY)
     if (cached) {
@@ -225,18 +343,20 @@ export async function getFriends(env: AppEnv['Bindings']): Promise<FriendLink[]>
     // 缓存不可用时忽略
   }
 
-  // 2. GitHub 未配置时返回内置示例数据
+  // 3. GitHub 未配置时返回内置示例数据
   if (!isGitHubConfigured(env)) {
     return getBuiltinFriends()
   }
 
-  // 3. 从 GitHub 拉取 friends.json
+  // 4. 从 GitHub 拉取 friends.json（带 2.5 秒超时）
   const { owner, repo, branch, token } = getGhConfig(env)
   const url = rawUrl(owner, repo, branch, 'friends.json')
   const content = await fetchFromGitHub(url, token)
 
   if (!content) {
-    return getBuiltinFriends()
+    const builtin = getBuiltinFriends()
+    storage.setItem(FRIENDS_CACHE_KEY, builtin, { ttl: 60 }).catch(() => {})
+    return builtin
   }
 
   try {
@@ -264,12 +384,67 @@ export async function getFriends(env: AppEnv['Bindings']): Promise<FriendLink[]>
 }
 
 /**
- * 获取站点全局配置（优先从 KV/内存 缓存读取；支持从 GitHub 动态同步 blog.config.json）
+ * 获取站点全局配置（本地优先读取，生产环境优先从 KV 缓存读取并支持 GitHub 动态同步）
  */
 export async function getBlogConfig(env?: AppEnv['Bindings']): Promise<BlogConfig> {
+  const isDev = isDevMode(env)
+
+  // 1. 本地开发环境下，优先直接使用本地工作区的最新 blog.config.json (或 defaultBlogConfig)
+  // 彻底避免 Miniflare 本地持久化 KV 缓存 (.wrangler/state) 残留旧标题或受到远程 GitHub 网络延迟干扰
+  if (isDev) {
+    const storage = getBlogStorage(env)
+    const localContent = await readLocalFile('blog.config.json')
+    if (localContent) {
+      try {
+        const parsed = JSON.parse(localContent)
+        const merged: BlogConfig = {
+          title: parsed.title || defaultBlogConfig.title,
+          author: parsed.author || defaultBlogConfig.author,
+          description: parsed.description || defaultBlogConfig.description,
+          lang: parsed.lang || defaultBlogConfig.lang,
+          repository: parsed.repository || defaultBlogConfig.repository,
+          pagination: {
+            pageSize:
+              typeof parsed.pagination?.pageSize === 'number'
+                ? parsed.pagination.pageSize
+                : typeof parsed.pageSize === 'number'
+                ? parsed.pageSize
+                : defaultBlogConfig.pagination?.pageSize ?? 10,
+          },
+          pageSize:
+            typeof parsed.pagination?.pageSize === 'number'
+              ? parsed.pagination.pageSize
+              : typeof parsed.pageSize === 'number'
+              ? parsed.pageSize
+              : defaultBlogConfig.pagination?.pageSize ?? 10,
+          nav: Array.isArray(parsed.nav) ? parsed.nav : defaultBlogConfig.nav,
+          social: Array.isArray(parsed.social) ? parsed.social : defaultBlogConfig.social,
+          icons: {
+            ...defaultBlogConfig.icons,
+            ...(parsed.icons || {}),
+          },
+          theme: {
+            fuwari: {
+              ...defaultBlogConfig.theme.fuwari,
+              ...(parsed.theme?.fuwari || {}),
+            },
+          },
+          seo: {
+            ...defaultBlogConfig.seo,
+            ...(parsed.seo || {}),
+          },
+        }
+        storage.setItem(CONFIG_CACHE_KEY, merged).catch(() => {})
+        return merged
+      } catch {}
+    }
+    storage.setItem(CONFIG_CACHE_KEY, defaultBlogConfig).catch(() => {})
+    return defaultBlogConfig
+  }
+
   const storage = getBlogStorage(env)
 
-  // 1. 先查缓存
+  // 2. 生产环境先查缓存
   try {
     const cached = await storage.getItem<BlogConfig>(CONFIG_CACHE_KEY)
     if (cached && typeof cached === 'object' && cached.title) {
@@ -279,12 +454,12 @@ export async function getBlogConfig(env?: AppEnv['Bindings']): Promise<BlogConfi
     // 缓存不可用时忽略
   }
 
-  // 2. 如果 GitHub 未配置，返回本地默认配置
+  // 3. 如果 GitHub 未配置，返回本地默认配置
   if (!env || !isGitHubConfigured(env)) {
     return defaultBlogConfig
   }
 
-  // 3. 从 GitHub 拉取最新的 blog.config.json
+  // 4. 从 GitHub 拉取最新的 blog.config.json（带 2.5 秒超时）
   try {
     const { owner, repo, branch, token } = getGhConfig(env)
     const url = rawUrl(owner, repo, branch, 'blog.config.json')
@@ -295,6 +470,7 @@ export async function getBlogConfig(env?: AppEnv['Bindings']): Promise<BlogConfi
         title: parsed.title || defaultBlogConfig.title,
         author: parsed.author || defaultBlogConfig.author,
         description: parsed.description || defaultBlogConfig.description,
+        lang: parsed.lang || defaultBlogConfig.lang,
         repository: parsed.repository || defaultBlogConfig.repository,
         pagination: {
           pageSize:
@@ -334,7 +510,7 @@ export async function getBlogConfig(env?: AppEnv['Bindings']): Promise<BlogConfi
           ttl: getCacheTtl(env),
         })
       } catch {
-        // 忽略写入缓存失败
+        // 忽略写入缓存异常
       }
 
       return merged
@@ -347,12 +523,33 @@ export async function getBlogConfig(env?: AppEnv['Bindings']): Promise<BlogConfi
 }
 
 /**
- * 获取关于页面内容（优先从 KV/内存 缓存读取；支持从 GitHub 动态同步 about.md）
+ * 获取关于页面内容（本地优先读取，生产环境优先从 KV 缓存读取并支持 GitHub 动态同步 about.md）
  */
 export async function getAboutContent(env?: AppEnv['Bindings']): Promise<AboutContent> {
+  const isDev = isDevMode(env)
   const storage = getBlogStorage(env)
 
-  // 1. 先查缓存
+  // 1. 本地开发环境下，优先读取本地 about.md 文件
+  if (isDev) {
+    const localContent = await readLocalFile('about.md')
+    if (localContent) {
+      try {
+        const parsed = parseFrontmatter(localContent)
+        const aboutData: AboutContent = {
+          title: parsed.frontmatter.title || '关于本站',
+          description: (parsed.frontmatter as any).description || undefined,
+          content: parsed.content || localContent,
+        }
+        storage.setItem(ABOUT_CACHE_KEY, aboutData, { ttl: 3600 }).catch(() => {})
+        return aboutData
+      } catch {}
+    }
+    const builtin = getBuiltinAbout()
+    storage.setItem(ABOUT_CACHE_KEY, builtin, { ttl: 3600 }).catch(() => {})
+    return builtin
+  }
+
+  // 2. 生产环境先查缓存
   try {
     const cached = await storage.getItem<AboutContent>(ABOUT_CACHE_KEY)
     if (cached && typeof cached === 'object' && cached.content) {
@@ -362,12 +559,12 @@ export async function getAboutContent(env?: AppEnv['Bindings']): Promise<AboutCo
     // 缓存不可用时忽略
   }
 
-  // 2. 如果 GitHub 未配置，返回内置默认关于内容
+  // 3. 如果 GitHub 未配置，返回内置默认关于内容
   if (!env || !isGitHubConfigured(env)) {
     return getBuiltinAbout()
   }
 
-  // 3. 从 GitHub 拉取最新的 about.md
+  // 4. 从 GitHub 拉取最新的 about.md（带 2.5 秒超时）
   try {
     const { owner, repo, branch, token } = getGhConfig(env)
     const url = rawUrl(owner, repo, branch, 'about.md')
@@ -408,7 +605,9 @@ export async function getAboutContent(env?: AppEnv['Bindings']): Promise<AboutCo
     console.warn('动态拉取 about.md 异常，回退至内置内容:', err)
   }
 
-  return getBuiltinAbout()
+  const builtin = getBuiltinAbout()
+  storage.setItem(ABOUT_CACHE_KEY, builtin, { ttl: 60 }).catch(() => {})
+  return builtin
 }
 
 /**
@@ -466,6 +665,9 @@ export async function getSidebarData(env: AppEnv['Bindings']) {
 // ============================
 
 function getBuiltinManifest(): Manifest {
+  if (Array.isArray(defaultManifestRaw) && defaultManifestRaw.length > 0) {
+    return defaultManifestRaw as Manifest
+  }
   return [
     {
       title: '使用 Hono 构建博客 API',
@@ -580,6 +782,9 @@ Hono 是一个小巧、快速的 Web 框架，专为 Edge Runtime 设计。
 }
 
 function getBuiltinFriends(): FriendLink[] {
+  if (Array.isArray(defaultFriendsRaw) && defaultFriendsRaw.length > 0) {
+    return defaultFriendsRaw as FriendLink[]
+  }
   return [
     {
       title: 'Fuwari',

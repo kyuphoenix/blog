@@ -5,13 +5,10 @@ declare global {
     put(key: string, value: any, options?: any): Promise<void>
     delete(key: string): Promise<void>
   }
-
-  var process: {
-    env: Record<string, string | undefined>
-  }
 }
 
 export type Bindings = {
+  ASSETS?: { fetch: (request: Request | string) => Promise<Response> }
   BLOG_CACHE?: KVNamespace
   // GitHub 仓库配置 (统一采用 GH_ 前缀，避开 GitHub 变量保留名限制)
   GH_OWNER?: string
