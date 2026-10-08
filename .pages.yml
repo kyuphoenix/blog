@@ -92,7 +92,7 @@ content:
         workflow: sync-posts.yml
         confirm:
           title: 刷新文章缓存？
-          message: 将重新生成 manifest.json 并通知 Cloudflare Worker 预热最新缓存。
+          message: 将重新生成 manifest.json 并通知博客服务预热最新缓存。
           button: 立即同步
 
   - name: settings
@@ -272,7 +272,7 @@ content:
         workflow: sync-posts.yml
         confirm:
           title: 刷新配置缓存？
-          message: 将通知 Cloudflare Worker 重新加载最新的 blog.config.json。
+          message: 将通知博客服务重新加载最新的 blog.config.json。
           button: 立即刷新
 
   - name: friends
@@ -301,7 +301,7 @@ content:
         workflow: sync-posts.yml
         confirm:
           title: 刷新缓存？
-          message: 将通知 Cloudflare Worker 重新加载最新的友链数据。
+          message: 将通知博客服务重新加载最新的友链数据。
           button: 立即刷新
 
   - name: about
@@ -339,77 +339,48 @@ content:
 
 # 3. 仓库级动作（GitHub Actions 快捷触发按钮）
 actions:
-  - name: sync-posts
-    label: 同步文章与配置缓存 (Sync All)
+  - name: sync-and-cache
+    label: 同步文章与缓存管理 (Sync & Purge)
     workflow: sync-posts.yml
     confirm:
-      title: 刷新文章与站点配置缓存？
-      message: 重新生成文章清单并通知 Cloudflare Worker 加载最新的文章、友链和站点配置。
-      button: 确认同步
-  - name: purge-cache
-    label: 强制清除全球 CDN 缓存 (Force Purge All)
-    workflow: purge-cache.yml
-    confirm:
-      title: 强制清空全球 CDN 缓存？
-      message: 将通知博客后端重新预热，并调用 Cloudflare / Netlify / Vercel 控制平面强制清空全球边缘 CDN 节点缓存。未配置的平台将自动安全跳过。
-      button: 确认强刷
+      title: 确认执行同步与缓存管理？
+      message: 选择更新文章清单与 KV 缓存，或者清空各云平台全球 CDN 边缘节点缓存。
+      button: 确认执行
     fields:
-      - name: purge_cf
-        label: 强制刷新 Cloudflare 全球 CDN 边缘缓存
-        type: checkbox
-        default: true
-      - name: purge_netlify
-        label: 强制刷新 Netlify 全球 CDN 边缘缓存
-        type: checkbox
-        default: true
-      - name: trigger_vercel
-        label: 强制刷新 Vercel 全球 CDN 边缘缓存
-        type: checkbox
-        default: true
-  - name: deploy-worker
-    label: 部署 Worker (Cloudflare)
+      - name: action_type
+        label: 操作类型
+        type: select
+        required: true
+        default: all
+        options:
+          - label: "全部执行 (更新清单 + 刷新 KV 缓存 + 清除全平台 CDN)"
+            value: all
+          - label: "清除 KV 缓存并重新拉取 (更新文章清单并重新拉取)"
+            value: kv
+          - label: "清除 CDN 缓存 (仅清空 Cloudflare / Netlify / Vercel 全球边缘缓存)"
+            value: cdn
+  - name: deploy
+    label: 部署博客 (Deploy to Edge)
     workflow: deploy.yml
     confirm:
-      title: 部署 Worker 到 Cloudflare？
-      message: 触发 GitHub Actions 重新构建并部署 Cloudflare Worker（零数据库架构，无需 D1 或 Supabase）。
+      title: 确认部署博客？
+      message: 触发 GitHub Actions 构建并部署博客到指定平台（零数据库架构）。
       button: 确认部署
     fields:
-      - name: stats_mode
-        label: 访问量统计模式
+      - name: platform
+        label: 选择部署平台
         type: select
         required: true
-        default: auto
+        default: cloudflare
         options:
-          - label: "自动检测 (Auto: 推荐，按 Umami 环境变量自动启用)"
-            value: auto
-          - label: "关闭统计 (None: 纯静态模式，不加载任何统计)"
-            value: none
-  - name: deploy-vercel
-    label: 部署到 Vercel
-    workflow: deploy-vercel.yml
-    confirm:
-      title: 部署到 Vercel？
-      message: 触发 GitHub Actions 重新构建并部署到 Vercel（零数据库架构）。
-      button: 确认部署
-    fields:
-      - name: stats_mode
-        label: 访问量统计模式
-        type: select
-        required: true
-        default: auto
-        options:
-          - label: "自动检测 (Auto: 推荐，按 Umami 环境变量自动启用)"
-            value: auto
-          - label: "关闭统计 (None: 纯静态模式，不加载任何统计)"
-            value: none
-  - name: deploy-netlify
-    label: 部署到 Netlify
-    workflow: deploy-netlify.yml
-    confirm:
-      title: 部署到 Netlify？
-      message: 触发 GitHub Actions 重新构建并部署到 Netlify（零数据库架构）。
-      button: 确认部署
-    fields:
+          - label: "Cloudflare Workers (推荐)"
+            value: cloudflare
+          - label: "Vercel Edge"
+            value: vercel
+          - label: "Netlify Edge"
+            value: netlify
+          - label: "全平台部署 (Cloudflare + Vercel + Netlify)"
+            value: all
       - name: stats_mode
         label: 访问量统计模式
         type: select
@@ -421,7 +392,7 @@ actions:
           - label: "关闭统计 (None: 纯静态模式，不加载任何统计)"
             value: none
       - name: site_id
-        label: Netlify 站点 ID (可选，留空则自动按规范创建或复用)
+        label: Netlify 站点 ID (可选，仅 Netlify 部署时生效)
         type: text
         required: false
         default: ""

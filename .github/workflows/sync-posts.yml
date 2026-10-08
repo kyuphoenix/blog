@@ -1,6 +1,6 @@
-name: Sync Posts & Refresh Cache
+name: Sync Posts & Manage Cache
 
-# 当文章目录有变动或推送时触发，或通过 Pages CMS 手动触发
+# 当文章目录有变动或推送时触发，或通过 Pages CMS / 手动触发
 on:
   push:
     branches:
@@ -12,15 +12,19 @@ on:
       - 'about.md'
   workflow_dispatch:
     inputs:
+      action_type:
+        description: '选择操作类型 (all: 全部执行, kv: 清除 KV 缓存并重新拉取, cdn: 清除 CDN 缓存)'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - kv
+          - cdn
       payload:
         description: 'Pages CMS 上下文 Payload'
         required: false
         type: string
-      force_purge:
-        description: '是否强制刷新全部 CDN 边缘缓存 (Cloudflare / Netlify / Vercel)'
-        required: false
-        default: true
-        type: boolean
 
 concurrency:
   group: sync-posts-${{ github.ref }}
@@ -29,7 +33,7 @@ concurrency:
 jobs:
   sync-posts:
     runs-on: ubuntu-latest
-    name: Sync Posts & Re-cache
+    name: Sync Posts & Manage Cache
     permissions:
       contents: write
     steps:
@@ -43,10 +47,43 @@ jobs:
         with:
           node-version: 22
 
+      # 解析 Pages CMS 传入的上下文 Payload 与字段输入
+      - name: Parse inputs and Pages CMS payload
+        run: |
+          node -e '
+            const fs = require("fs");
+            let actionType = process.env.INPUT_ACTION_TYPE;
+            if (process.env.GITHUB_EVENT_NAME === "push") {
+              actionType = "all";
+            }
+            if (process.env.INPUT_PAYLOAD) {
+              try {
+                const payload = JSON.parse(process.env.INPUT_PAYLOAD);
+                if (payload?.inputs?.action_type) {
+                  actionType = payload.inputs.action_type;
+                }
+              } catch (e) {
+                console.warn("Could not parse Pages CMS payload:", e.message);
+              }
+            }
+            if (!actionType) actionType = "all";
+            console.log("Selected action type:", actionType);
+            fs.appendFileSync(process.env.GITHUB_ENV, `ACTION_TYPE=${actionType}\n`);
+          '
+        env:
+          INPUT_ACTION_TYPE: ${{ github.event.inputs.action_type }}
+          INPUT_PAYLOAD: ${{ github.event.inputs.payload }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+
+      # ----------------------------------------------------
+      # 1. 文章清单更新与后端 KV / 内存缓存刷新 (action_type: kv 或 all)
+      # ----------------------------------------------------
       - name: Update post manifest
+        if: ${{ env.ACTION_TYPE == 'kv' || env.ACTION_TYPE == 'all' }}
         run: node scripts/gen-manifest.mjs
 
       - name: Commit & push manifest if updated
+        if: ${{ env.ACTION_TYPE == 'kv' || env.ACTION_TYPE == 'all' }}
         run: |
           if ! git diff --quiet posts/manifest.json; then
             echo "检测到 manifest.json 发生变动，自动提交最新文章清单..."
@@ -59,8 +96,8 @@ jobs:
             echo "manifest.json 已是最新，无需提交。"
           fi
 
-      # 1. 通知博客服务端清除底层 KV / 内存缓存并重新预热
       - name: Notify Blog Backend to purge KV and re-cache
+        if: ${{ env.ACTION_TYPE == 'kv' || env.ACTION_TYPE == 'all' }}
         run: |
           BLOG_URL="${{ vars.BLOG_URL || secrets.BLOG_URL }}"
           PURGE_SECRET="${{ secrets.PURGE_SECRET || secrets.GH_TOKEN || secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}"
@@ -86,8 +123,11 @@ jobs:
             echo "⚠️ 缓存刷新请求返回非 2xx 状态码: $HTTP_CODE (请核对 PURGE_SECRET 与服务端状态)"
           fi
 
-      # 2. 强制清除 Cloudflare 全球 CDN 边缘节点缓存 (如果配置了凭证)
+      # ----------------------------------------------------
+      # 2. 全球 CDN 边缘节点缓存强制清空 (action_type: cdn 或 all)
+      # ----------------------------------------------------
       - name: Force Purge Cloudflare CDN Cache
+        if: ${{ env.ACTION_TYPE == 'cdn' || env.ACTION_TYPE == 'all' }}
         run: |
           CF_ZONE_ID="${{ secrets.CLOUDFLARE_ZONE_ID || vars.CLOUDFLARE_ZONE_ID }}"
           CF_TOKEN="${{ secrets.CLOUDFLARE_API_TOKEN }}"
@@ -183,8 +223,8 @@ jobs:
             fi
           fi
 
-      # 3. 强制清除 Netlify 全球 CDN 边缘节点缓存 (如果配置了凭证)
       - name: Force Purge Netlify CDN Cache
+        if: ${{ env.ACTION_TYPE == 'cdn' || env.ACTION_TYPE == 'all' }}
         run: |
           NETLIFY_SITE_ID="${{ secrets.NETLIFY_SITE_ID || vars.NETLIFY_SITE_ID || secrets.NETLIFY_PROJECT_ID || vars.NETLIFY_PROJECT_ID }}"
           NETLIFY_TOKEN="${{ secrets.NETLIFY_API_KEY || secrets.NETLIFY_AUTH_TOKEN || secrets.NETLIFY_TOKEN }}"
@@ -212,8 +252,8 @@ jobs:
             echo "⚠️ Netlify CDN 清除未返回 2xx (请检查 NETLIFY_SITE_ID 与 Token 是否有效)"
           fi
 
-      # 4. 强制清除 Vercel 全球 CDN 边缘缓存 (优先使用官方 Edge Cache REST API，无需绑定 GitHub 仓库与 Deploy Hook)
       - name: Force Purge Vercel CDN Cache
+        if: ${{ env.ACTION_TYPE == 'cdn' || env.ACTION_TYPE == 'all' }}
         run: |
           VERCEL_TOKEN="${{ secrets.VERCEL_TOKEN || secrets.VERCEL_API_KEY || secrets.VERCEL_AUTH_TOKEN }}"
           VERCEL_PROJECT_ID="${{ secrets.VERCEL_PROJECT_ID || vars.VERCEL_PROJECT_ID || vars.VERCEL_PROJECT_NAME || 'honoki' }}"
